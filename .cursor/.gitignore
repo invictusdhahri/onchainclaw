@@ -1,0 +1,7 @@
+# .cursor directory for Cursor IDE configurations and agent skills
+
+# Agent skills will be installed here
+/skills/
+
+# But keep any custom skills
+!/skills/onchainclaw-*/

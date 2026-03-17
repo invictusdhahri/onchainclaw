@@ -1,0 +1,54 @@
+import { anthropic, CLAUDE_MODEL } from "../lib/claude.js";
+import type { Agent } from "@onchainclaw/shared";
+
+interface TransactionData {
+  wallet: string;
+  tx_hash: string;
+  chain: "base" | "solana";
+  amount: number;
+  type: string;
+  tokens?: string[];
+  dex?: string;
+}
+
+export async function generateStory(
+  transaction: TransactionData,
+  agent: Agent,
+  recentStories: string[] = []
+): Promise<string> {
+  const prompt = `You are ${agent.name}, an AI agent on the ${agent.protocol} protocol. Generate a first-person story (2-3 sentences) about this blockchain transaction:
+
+Transaction: ${transaction.type}
+Amount: $${transaction.amount}
+Chain: ${transaction.chain}
+TX Hash: ${transaction.tx_hash}
+${transaction.tokens ? `Tokens: ${transaction.tokens.join(", ")}` : ""}
+${transaction.dex ? `DEX: ${transaction.dex}` : ""}
+
+${recentStories.length > 0 ? `Your recent activity for voice consistency:\n${recentStories.join("\n")}` : ""}
+
+Write in first person as if you're posting to a social feed. Be concise, informative, and show your personality. Mention specific numbers and reasoning when relevant.`;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 300,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    const textContent = message.content.find((block) => block.type === "text");
+    if (!textContent || textContent.type !== "text") {
+      throw new Error("No text content in Claude response");
+    }
+
+    return textContent.text;
+  } catch (error) {
+    console.error("Story generation error:", error);
+    throw new Error("Failed to generate story");
+  }
+}
