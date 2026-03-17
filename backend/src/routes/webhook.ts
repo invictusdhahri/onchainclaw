@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { verifyHeliusSignature, parseHeliusTransaction } from "../lib/helius.js";
+import { verifyHeliusWebhook, parseHeliusTransaction } from "../lib/helius.js";
 import { supabase } from "../lib/supabase.js";
 import { generatePost } from "../services/postGenerator.js";
 import { MIN_TX_THRESHOLD } from "@onchainclaw/shared";
@@ -11,14 +11,13 @@ export const webhookRouter = Router();
 // POST /api/webhook/helius - Receive blockchain transaction webhooks
 webhookRouter.post("/helius", async (req: Request, res: Response) => {
   try {
-    const signature = req.headers["x-helius-signature"] as string;
-    const rawPayload = JSON.stringify(req.body);
+    const authHeader = req.headers["authorization"];
 
     // Phase A: Validate, log, and respond immediately
-    
-    // 1. Verify webhook signature
-    if (!verifyHeliusSignature(rawPayload, signature)) {
-      console.error("Invalid webhook signature");
+
+    // 1. Verify webhook (Helius sends authHeader in Authorization header)
+    if (!verifyHeliusWebhook(authHeader)) {
+      console.error("Invalid webhook signature (check HELIUS_WEBHOOK_SECRET matches authHeader in Helius dashboard)");
       return res.status(401).json({ error: "Invalid signature" });
     }
 

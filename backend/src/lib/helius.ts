@@ -1,25 +1,42 @@
-import { createHmac } from "crypto";
-import type { HeliusEnhancedTransaction } from "@onchainclaw/shared";
+import type {
+  HeliusEnhancedTransaction,
+  HeliusNativeTransfer,
+  HeliusTokenTransfer,
+} from "@onchainclaw/shared";
 
 const HELIUS_WEBHOOK_SECRET = process.env.HELIUS_WEBHOOK_SECRET;
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 const HELIUS_WEBHOOK_ID = process.env.HELIUS_WEBHOOK_ID;
-const HELIUS_API_BASE = "https://api.helius.xyz/v0/webhooks";
+const HELIUS_API_BASE = "https://api-mainnet.helius-rpc.com/v0/webhooks";
+const HELIUS_FETCH_TIMEOUT_MS = 30_000;
 
-export function verifyHeliusSignature(
-  payload: string,
-  signature: string
-): boolean {
+function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), HELIUS_FETCH_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() =>
+    clearTimeout(timeout)
+  );
+}
+
+/**
+ * Verify webhook came from Helius.
+ * Helius echoes your authHeader value in the Authorization header (see Helius docs).
+ * If HELIUS_WEBHOOK_SECRET is set, it must match the incoming Authorization header.
+ * Leave empty to skip verification (e.g. local dev).
+ */
+export function verifyHeliusWebhook(authHeader: string | undefined): boolean {
   if (!HELIUS_WEBHOOK_SECRET) {
-    console.warn("HELIUS_WEBHOOK_SECRET not set, skipping signature verification");
     return true;
   }
-
-  const hmac = createHmac("sha256", HELIUS_WEBHOOK_SECRET);
-  hmac.update(payload);
-  const expectedSignature = hmac.digest("hex");
-
-  return signature === expectedSignature;
+  if (!authHeader) {
+    return false;
+  }
+  // Helius sends the exact authHeader value; support "Bearer <token>" or raw token
+  const expected = HELIUS_WEBHOOK_SECRET;
+  return authHeader === expected || authHeader === `Bearer ${expected}`;
 }
 
 interface ParsedTransaction {
@@ -58,7 +75,8 @@ export function parseHeliusTransaction(
   if (tx.nativeTransfers && tx.nativeTransfers.length > 0) {
     // Sum all native transfers
     totalLamports = tx.nativeTransfers.reduce(
-      (sum, transfer) => sum + Math.abs(transfer.amount),
+      (sum: number, transfer: HeliusNativeTransfer) =>
+        sum + Math.abs(transfer.amount),
       0
     );
   } else if (maxBalanceChange > 0) {
@@ -73,8 +91,10 @@ export function parseHeliusTransaction(
   // Extract token mints if any
   const tokens: string[] = [];
   if (tx.tokenTransfers) {
-    const uniqueMints = new Set(tx.tokenTransfers.map((t) => t.mint));
-    tokens.push(...uniqueMints);
+    const mints: string[] = tx.tokenTransfers.map(
+      (t: HeliusTokenTransfer) => t.mint
+    );
+    tokens.push(...new Set(mints));
   }
 
   // Extract DEX/source
@@ -119,21 +139,21 @@ export async function syncHeliusWebhookAddresses(
 
   try {
     // Fetch current webhook config
-    const listRes = await fetch(
+    const listRes = await fetchWithTimeout(
       `${HELIUS_API_BASE}?api-key=${HELIUS_API_KEY}`
     );
     if (!listRes.ok) {
       throw new Error(`Helius list webhooks failed: ${listRes.status}`);
     }
 
-    const webhooks: Array<{
+    const webhooks = (await listRes.json()) as Array<{
       webhookID: string;
       webhookURL: string;
       transactionTypes: string[];
       accountAddresses: string[];
       webhookType: string;
       authHeader?: string;
-    }> = await listRes.json();
+    }>;
 
     const webhook = webhooks.find((w) => w.webhookID === HELIUS_WEBHOOK_ID);
     if (!webhook) {
@@ -143,7 +163,7 @@ export async function syncHeliusWebhookAddresses(
     }
 
     // Update webhook with new address list (preserve other config)
-    const updateRes = await fetch(
+    const updateRes = await fetchWithTimeout(
       `${HELIUS_API_BASE}/${HELIUS_WEBHOOK_ID}?api-key=${HELIUS_API_KEY}`,
       {
         method: "PUT",
