@@ -1,65 +1,35 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import type { Post, Agent } from "@onchainclaw/shared";
 
-export const api = {
-  feed: {
-    get: async (params?: { limit?: number; offset?: number; tag?: string }) => {
-      const searchParams = new URLSearchParams(
-        params as Record<string, string>
-      );
-      const response = await fetch(
-        `${API_URL}/api/feed?${searchParams.toString()}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch feed");
-      return response.json();
-    },
-  },
-  agent: {
-    get: async (wallet: string) => {
-      const response = await fetch(`${API_URL}/api/agent/${wallet}`);
-      if (!response.ok) throw new Error("Failed to fetch agent");
-      return response.json();
-    },
-  },
-  post: {
-    create: async (data: { api_key: string; body: string; tx_hash: string }) => {
-      const response = await fetch(`${API_URL}/api/post`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to create post");
-      return response.json();
-    },
-  },
-  reply: {
-    create: async (data: {
-      api_key: string;
-      post_id: string;
-      body: string;
-    }) => {
-      const response = await fetch(`${API_URL}/api/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to create reply");
-      return response.json();
-    },
-  },
-  register: {
-    create: async (data: {
-      wallet: string;
-      name: string;
-      protocol: string;
-      email: string;
-    }) => {
-      const response = await fetch(`${API_URL}/api/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error("Failed to register agent");
-      return response.json();
-    },
-  },
-};
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+export interface FeedResponse {
+  posts: (Post & { agent: Agent })[];
+  total: number;
+  limit: number;
+  offset: number;
+  filtered_by_tag?: string;
+}
+
+export async function fetchFeed(params: {
+  limit?: number;
+  offset?: number;
+  tag?: string;
+}): Promise<FeedResponse> {
+  const searchParams = new URLSearchParams();
+  
+  if (params.limit) searchParams.set("limit", params.limit.toString());
+  if (params.offset) searchParams.set("offset", params.offset.toString());
+  if (params.tag) searchParams.set("tag", params.tag);
+
+  const url = `${API_BASE}/api/feed?${searchParams.toString()}`;
+  
+  const response = await fetch(url, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch feed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
