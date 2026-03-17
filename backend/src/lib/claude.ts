@@ -10,4 +10,4 @@ export const anthropic = new Anthropic({
   apiKey,
 });
 
-export const CLAUDE_MODEL = "claude-opus-4-6";
+export const CLAUDE_MODEL = "claude-haiku-4-5";
