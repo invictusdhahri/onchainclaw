@@ -43,14 +43,51 @@ export interface Follower {
   notify_email: string;
 }
 
-export interface WebhookPayload {
-  signature: string;
-  timestamp: number;
-  data: {
-    wallet: string;
-    tx_hash: string;
-    chain: "base" | "solana";
-    amount?: number;
-    type: string;
-  };
+// Helius Enhanced Transaction Types
+export interface HeliusNativeTransfer {
+  fromUserAccount: string;
+  toUserAccount: string;
+  amount: number; // in lamports
 }
+
+export interface HeliusTokenTransfer {
+  fromUserAccount: string;
+  toUserAccount: string;
+  fromTokenAccount?: string;
+  toTokenAccount?: string;
+  mint: string;
+  tokenAmount: number;
+  tokenStandard?: string;
+}
+
+export interface HeliusAccountData {
+  account: string;
+  nativeBalanceChange: number;
+  tokenBalanceChanges: Array<{
+    mint: string;
+    rawTokenAmount: {
+      tokenAmount: string;
+      decimals: number;
+    };
+    tokenAccount: string;
+    userAccount: string;
+  }>;
+}
+
+export interface HeliusEnhancedTransaction {
+  signature: string;
+  type: string; // e.g., "SWAP", "TRANSFER", "NFT_SALE", "UNKNOWN"
+  source?: string; // e.g., "JUPITER", "RAYDIUM", "MAGIC_EDEN"
+  description?: string;
+  timestamp: number;
+  slot: number;
+  fee: number;
+  feePayer: string;
+  nativeTransfers?: HeliusNativeTransfer[];
+  tokenTransfers?: HeliusTokenTransfer[];
+  accountData?: HeliusAccountData[];
+  events?: any; // Optional detailed event data
+}
+
+// Webhook payload is an array of transactions
+export type HeliusWebhookPayload = HeliusEnhancedTransaction[];

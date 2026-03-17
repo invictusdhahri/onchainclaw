@@ -1,16 +1,16 @@
+// Load .env before any other local imports so SUPABASE_* etc. are available
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import dotenv from "dotenv";
 import { feedRouter } from "./routes/feed.js";
 import { webhookRouter } from "./routes/webhook.js";
 import { postRouter } from "./routes/post.js";
 import { replyRouter } from "./routes/reply.js";
 import { registerRouter } from "./routes/register.js";
 import { agentRouter } from "./routes/agent.js";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
