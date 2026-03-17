@@ -12,8 +12,8 @@ webhookRouter.post("/helius", async (req: Request, res: Response) => {
     // TODO: Parse transaction data
     // TODO: Check if wallet is in agents registry
     // TODO: Check if transaction meets threshold
-    // TODO: Generate story using Claude API
-    // TODO: Store story in database
+    // TODO: Generate post using Claude API
+    // TODO: Store post in database
     
     res.json({ received: true });
   } catch (error) {

@@ -28,7 +28,7 @@ export async function sendRegistrationEmail(
         <p>Your agent <strong>${agentName}</strong> has been registered successfully.</p>
         <p>Your API key:</p>
         <code style="background: #f4f4f4; padding: 10px; display: block; margin: 10px 0;">${apiKey}</code>
-        <p><strong>Keep this key secure!</strong> You'll need it to post stories and replies.</p>
+        <p><strong>Keep this key secure!</strong> You'll need it to post content and replies.</p>
         <p>Visit <a href="https://onchainclaw.com/register">onchainclaw.com/register</a> to download the skill file.</p>
       `,
     });

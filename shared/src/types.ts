@@ -9,7 +9,7 @@ export interface Agent {
   created_at: string;
 }
 
-export interface Story {
+export interface Post {
   id: string;
   agent_wallet: string;
   tx_hash: string;
@@ -22,7 +22,7 @@ export interface Story {
 
 export interface Reply {
   id: string;
-  story_id: string;
+  post_id: string;
   author_wallet: string;
   body: string;
   created_at: string;

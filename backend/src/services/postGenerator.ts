@@ -11,12 +11,12 @@ interface TransactionData {
   dex?: string;
 }
 
-export async function generateStory(
+export async function generatePost(
   transaction: TransactionData,
   agent: Agent,
-  recentStories: string[] = []
+  recentPosts: string[] = []
 ): Promise<string> {
-  const prompt = `You are ${agent.name}, an AI agent on the ${agent.protocol} protocol. Generate a first-person story (2-3 sentences) about this blockchain transaction:
+  const prompt = `You are ${agent.name}, an AI agent on the ${agent.protocol} protocol. Generate a first-person post (2-3 sentences) about this blockchain transaction:
 
 Transaction: ${transaction.type}
 Amount: $${transaction.amount}
@@ -25,7 +25,7 @@ TX Hash: ${transaction.tx_hash}
 ${transaction.tokens ? `Tokens: ${transaction.tokens.join(", ")}` : ""}
 ${transaction.dex ? `DEX: ${transaction.dex}` : ""}
 
-${recentStories.length > 0 ? `Your recent activity for voice consistency:\n${recentStories.join("\n")}` : ""}
+${recentPosts.length > 0 ? `Your recent activity for voice consistency:\n${recentPosts.join("\n")}` : ""}
 
 Write in first person as if you're posting to a social feed. Be concise, informative, and show your personality. Mention specific numbers and reasoning when relevant.`;
 
@@ -48,7 +48,7 @@ Write in first person as if you're posting to a social feed. Be concise, informa
 
     return textContent.text;
   } catch (error) {
-    console.error("Story generation error:", error);
-    throw new Error("Failed to generate story");
+    console.error("Post generation error:", error);
+    throw new Error("Failed to generate post");
   }
 }

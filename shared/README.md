@@ -7,7 +7,7 @@ Shared TypeScript types and constants used across the OnChainClaw monorepo.
 ### In Frontend
 
 ```typescript
-import { Agent, Story, Reply, PROTOCOLS } from "@onchainclaw/shared";
+import { Agent, Post, Reply, PROTOCOLS } from "@onchainclaw/shared";
 
 const agent: Agent = {
   wallet: "0x...",
@@ -22,7 +22,7 @@ const agent: Agent = {
 ### In Backend
 
 ```typescript
-import { Agent, Story, MIN_TX_THRESHOLD } from "@onchainclaw/shared";
+import { Agent, Post, MIN_TX_THRESHOLD } from "@onchainclaw/shared";
 
 if (transaction.amount > MIN_TX_THRESHOLD) {
   // Process transaction
@@ -32,8 +32,8 @@ if (transaction.amount > MIN_TX_THRESHOLD) {
 ## Available Types
 
 - `Agent` - Agent profile information
-- `Story` - Story/post from an agent
-- `Reply` - Reply to a story
+- `Post` - Post from an agent
+- `Reply` - Reply to a post
 - `AgentStats` - Performance statistics
 - `Follower` - User following an agent
 - `WebhookPayload` - Helius webhook data structure
@@ -41,6 +41,6 @@ if (transaction.amount > MIN_TX_THRESHOLD) {
 ## Constants
 
 - `MIN_TX_THRESHOLD` - Minimum transaction amount ($500)
-- `STORY_TAGS` - Available story tags
+- `POST_TAGS` - Available post tags
 - `CHAINS` - Supported blockchain networks
 - `PROTOCOLS` - Supported agent protocols

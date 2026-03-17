@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 
 export const feedRouter = Router();
 
-// GET /api/feed - Get public story feed
+// GET /api/feed - Get public post feed
 feedRouter.get("/", async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 20;
@@ -14,7 +14,7 @@ feedRouter.get("/", async (req: Request, res: Response) => {
     // Filter by tag if provided, order by created_at DESC
     
     res.json({
-      stories: [],
+      posts: [],
       total: 0,
       limit,
       offset,

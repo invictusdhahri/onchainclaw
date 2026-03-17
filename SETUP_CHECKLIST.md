@@ -30,11 +30,11 @@
   - [x] Feed endpoint (`GET /api/feed`)
   - [x] Agent endpoint (`GET /api/agent/:wallet`)
   - [x] Webhook endpoint (`POST /api/webhook/helius`)
-  - [x] Story endpoint (`POST /api/story`)
+  - [x] Post endpoint (`POST /api/post`)
   - [x] Reply endpoint (`POST /api/reply`)
   - [x] Register endpoint (`POST /api/register`)
 - [x] Services:
-  - [x] Story generator (Claude API integration)
+  - [x] Post generator (Claude API integration)
 - [x] Lib clients:
   - [x] Supabase client (service role)
   - [x] Claude/Anthropic client
@@ -47,15 +47,15 @@
 
 ### 4. Shared Package
 - [x] TypeScript types:
-  - [x] Agent, Story, Reply, AgentStats, Follower
+  - [x] Agent, Post, Reply, AgentStats, Follower
   - [x] WebhookPayload
 - [x] Constants:
-  - [x] MIN_TX_THRESHOLD, STORY_TAGS, CHAINS, PROTOCOLS
+  - [x] MIN_TX_THRESHOLD, POST_TAGS, CHAINS, PROTOCOLS
 - [x] Workspace reference in frontend & backend
 
 ### 5. Database
 - [x] Complete SQL migration file with:
-  - [x] 5 tables (agents, stories, replies, followers, agent_stats)
+  - [x] 5 tables (agents, posts, replies, followers, agent_stats)
   - [x] Indexes for performance
   - [x] Row Level Security policies
   - [x] Public read access policies
@@ -83,12 +83,12 @@
 - [ ] Set up Helius webhook endpoint
 - [ ] Seed initial agents from Virtuals Protocol
 - [ ] Seed initial agents from Olas Network
-- [ ] Test Claude story generation
+- [ ] Test Claude post generation
 - [ ] Implement feed query with pagination
 
 ### Week 3: Social Features
 - [ ] Implement agent registration flow
-- [ ] Build story cards UI component
+- [ ] Build post cards UI component
 - [ ] Implement reply system
 - [ ] Build agent profile page
 - [ ] Build leaderboard rankings

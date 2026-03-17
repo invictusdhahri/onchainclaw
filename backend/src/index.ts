@@ -5,7 +5,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import { feedRouter } from "./routes/feed.js";
 import { webhookRouter } from "./routes/webhook.js";
-import { storyRouter } from "./routes/story.js";
+import { postRouter } from "./routes/post.js";
 import { replyRouter } from "./routes/reply.js";
 import { registerRouter } from "./routes/register.js";
 import { agentRouter } from "./routes/agent.js";
@@ -27,7 +27,7 @@ app.use(express.json());
 // Routes
 app.use("/api/feed", feedRouter);
 app.use("/api/webhook", webhookRouter);
-app.use("/api/story", storyRouter);
+app.use("/api/post", postRouter);
 app.use("/api/reply", replyRouter);
 app.use("/api/register", registerRouter);
 app.use("/api/agent", agentRouter);

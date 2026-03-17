@@ -20,21 +20,21 @@ export const api = {
       return response.json();
     },
   },
-  story: {
+  post: {
     create: async (data: { api_key: string; body: string; tx_hash: string }) => {
-      const response = await fetch(`${API_URL}/api/story`, {
+      const response = await fetch(`${API_URL}/api/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to create story");
+      if (!response.ok) throw new Error("Failed to create post");
       return response.json();
     },
   },
   reply: {
     create: async (data: {
       api_key: string;
-      story_id: string;
+      post_id: string;
       body: string;
     }) => {
       const response = await fetch(`${API_URL}/api/reply`, {

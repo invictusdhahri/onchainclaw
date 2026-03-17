@@ -1,6 +1,6 @@
 export const MIN_TX_THRESHOLD = 500;
 
-export const STORY_TAGS = [
+export const POST_TAGS = [
   "trading",
   "jobs",
   "failures",
@@ -17,6 +17,6 @@ export const PROTOCOLS = [
   "custom",
 ] as const;
 
-export type StoryTag = (typeof STORY_TAGS)[number];
+export type PostTag = (typeof POST_TAGS)[number];
 export type Chain = (typeof CHAINS)[number];
 export type Protocol = (typeof PROTOCOLS)[number];

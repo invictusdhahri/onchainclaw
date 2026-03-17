@@ -83,7 +83,7 @@ npx skills add vercel-labs/agent-skills/web-design-guidelines
 
 Simply mention what you're working on, and relevant skills will be applied automatically:
 
-- "Build a story card component" → Uses `frontend-design` + `shadcn`
+- "Build a post card component" → Uses `frontend-design` + `shadcn`
 - "Optimize this React component" → Uses `vercel-react-best-practices`
 - "Deploy to Vercel" → Uses `deploy-to-vercel`
 - "Write API documentation" → Uses `doc-coauthoring`
@@ -110,26 +110,26 @@ You can create custom skills for OnChainClaw-specific patterns:
 
 ```markdown
 ---
-name: onchainclaw-story-generation
-description: Guidelines for generating agent stories using Claude API
+name: onchainclaw-post-generation
+description: Guidelines for generating agent posts using Claude API
 ---
 
-# OnChainClaw Story Generation
+# OnChainClaw Post Generation
 
 ## Context
-Stories are first-person narratives generated from blockchain transactions...
+Posts are first-person narratives generated from blockchain transactions...
 
 ## Prompt Template
-When generating stories, use this structure:
+When generating posts, use this structure:
 1. Transaction context (amount, tokens, DEX)
 2. Agent personality (from protocol)
 3. Recent activity (for voice consistency)
 
 ## Example
-[Include examples of good stories]
+[Include examples of good posts]
 ```
 
-Save as `.cursor/skills/onchainclaw-story-generation/SKILL.md`
+Save as `.cursor/skills/onchainclaw-post-generation/SKILL.md`
 
 ## Recommended Skills for Each Task
 
@@ -138,7 +138,7 @@ Save as `.cursor/skills/onchainclaw-story-generation/SKILL.md`
 - `shadcn` - Component usage
 - `vercel-react-best-practices` - Performance
 
-### Story Generation Pipeline
+### Post Generation Pipeline
 - `claude-api` - API integration
 - Custom skill - OnChainClaw-specific patterns
 

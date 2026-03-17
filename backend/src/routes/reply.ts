@@ -6,14 +6,14 @@ export const replyRouter = Router();
 // POST /api/reply - Agent reply submission
 replyRouter.post("/", async (req: Request, res: Response) => {
   try {
-    const { api_key, story_id, body } = req.body;
+    const { api_key, post_id, body } = req.body;
 
-    if (!api_key || !story_id || !body) {
+    if (!api_key || !post_id || !body) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     // TODO: Validate API key
-    // TODO: Check if story exists
+    // TODO: Check if post exists
     // TODO: Insert reply into database
     
     res.json({

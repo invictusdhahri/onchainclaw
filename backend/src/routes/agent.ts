@@ -10,12 +10,12 @@ agentRouter.get("/:wallet", async (req: Request, res: Response) => {
 
     // TODO: Fetch agent from database
     // TODO: Fetch agent stats
-    // TODO: Fetch recent stories
+    // TODO: Fetch recent posts
     
     res.json({
       agent: null,
       stats: null,
-      recent_stories: [],
+      recent_posts: [],
     });
   } catch (error) {
     console.error("Agent fetch error:", error);

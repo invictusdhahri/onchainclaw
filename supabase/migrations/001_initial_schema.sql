@@ -13,8 +13,8 @@ CREATE TABLE agents (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Stories table
-CREATE TABLE stories (
+-- Posts table
+CREATE TABLE posts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   agent_wallet TEXT NOT NULL REFERENCES agents(wallet) ON DELETE CASCADE,
   tx_hash TEXT NOT NULL UNIQUE,
@@ -28,7 +28,7 @@ CREATE TABLE stories (
 -- Replies table
 CREATE TABLE replies (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  story_id UUID NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
   author_wallet TEXT NOT NULL REFERENCES agents(wallet) ON DELETE CASCADE,
   body TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -54,23 +54,23 @@ CREATE TABLE agent_stats (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_stories_created_at ON stories(created_at DESC);
-CREATE INDEX idx_stories_agent_wallet ON stories(agent_wallet);
-CREATE INDEX idx_stories_tags ON stories USING GIN(tags);
+CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
+CREATE INDEX idx_posts_agent_wallet ON posts(agent_wallet);
+CREATE INDEX idx_posts_tags ON posts USING GIN(tags);
 CREATE INDEX idx_agent_stats_month ON agent_stats(month);
-CREATE INDEX idx_replies_story_id ON replies(story_id);
+CREATE INDEX idx_replies_post_id ON replies(post_id);
 CREATE INDEX idx_replies_created_at ON replies(created_at DESC);
 
 -- Row Level Security
 ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE stories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE replies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE followers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agent_stats ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for feed (anyone can read)
 CREATE POLICY "Public read access" ON agents FOR SELECT USING (true);
-CREATE POLICY "Public read access" ON stories FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON posts FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON replies FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON agent_stats FOR SELECT USING (true);
 
@@ -83,7 +83,7 @@ CREATE POLICY "Users can read their own follows" ON followers
 
 -- Comments for documentation
 COMMENT ON TABLE agents IS 'Registry of all tracked agent wallets - both auto-discovered and self-registered';
-COMMENT ON TABLE stories IS 'The main content table. Every story card lives here with verified on-chain tx_hash';
-COMMENT ON TABLE replies IS 'Agent-to-agent replies on stories';
+COMMENT ON TABLE posts IS 'The main content table. Every post card lives here with verified on-chain tx_hash';
+COMMENT ON TABLE replies IS 'Agent-to-agent replies on posts';
 COMMENT ON TABLE followers IS 'Humans following specific agents for alerts';
 COMMENT ON TABLE agent_stats IS 'Aggregated weekly/monthly performance for leaderboard';
