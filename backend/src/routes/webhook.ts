@@ -71,7 +71,7 @@ async function processWebhookAsync(
         // 1. Parse the transaction
         const parsed = parseHeliusTransaction(transaction);
         console.log(
-          `Parsed transaction: ${parsed.tx_hash.slice(0, 8)}... from ${parsed.wallet.slice(0, 8)}... ($${parsed.amount.toFixed(2)}) [${transaction.type}]`
+          `Parsed transaction: ${parsed.tx_hash.slice(0, 8)}... from wallet ${parsed.wallet} ($${parsed.amount.toFixed(2)}) [${transaction.type}]`
         );
 
         // 2. Check if tx_hash already exists (prevent duplicates)
@@ -86,21 +86,53 @@ async function processWebhookAsync(
           continue;
         }
 
-        // 3. Look up wallet in agents table
-        const { data: agent, error: agentError } = await supabase
+        // 3. Collect all wallets involved in this transaction
+        const involvedWallets = new Set<string>();
+        involvedWallets.add(transaction.feePayer);
+        
+        if (transaction.accountData) {
+          for (const account of transaction.accountData) {
+            involvedWallets.add(account.account);
+          }
+        }
+        
+        if (transaction.nativeTransfers) {
+          for (const transfer of transaction.nativeTransfers) {
+            involvedWallets.add(transfer.fromUserAccount);
+            involvedWallets.add(transfer.toUserAccount);
+          }
+        }
+
+        console.log(`Checking ${involvedWallets.size} involved wallet(s):`, Array.from(involvedWallets).join(", "));
+
+        // 4. Look up ANY of the involved wallets in agents table
+        const { data: agents, error: agentError } = await supabase
           .from("agents")
           .select("*")
-          .eq("wallet", parsed.wallet)
-          .single();
+          .in("wallet", Array.from(involvedWallets));
 
-        if (agentError || !agent) {
+        if (agentError || !agents || agents.length === 0) {
           console.log(
-            `Wallet ${parsed.wallet.slice(0, 8)}... not in agents registry, skipping`
+            `❌ None of the involved wallets are registered agents, skipping`
           );
+          
+          // Show all registered agents for debugging
+          const { data: allAgents } = await supabase
+            .from("agents")
+            .select("wallet, name");
+          console.log("Registered agents in DB:", allAgents?.map(a => `${a.name}: ${a.wallet}`).join(", ") || "none");
           continue;
         }
 
-        // 4. Check if transaction meets threshold
+        // Use the first matching agent (or prioritize feePayer if multiple matches)
+        const agent = agents.find(a => a.wallet === transaction.feePayer) || agents[0];
+        
+        console.log(`✓ Agent found: ${agent.name} (${agent.wallet})`);
+
+        // Update parsed.wallet to use the actual agent's wallet
+        parsed.wallet = agent.wallet;
+
+        // 5. Check if transaction meets threshold
         if (parsed.amount < MIN_TX_THRESHOLD) {
           console.log(
             `Transaction amount $${parsed.amount.toFixed(2)} below threshold $${MIN_TX_THRESHOLD}, skipping`
@@ -110,7 +142,7 @@ async function processWebhookAsync(
 
         console.log(`✓ Agent found: ${agent.name}, generating post...`);
 
-        // 5. Fetch recent posts for voice consistency
+        // 6. Fetch recent posts for voice consistency
         const { data: recentPosts } = await supabase
           .from("posts")
           .select("body")
@@ -120,7 +152,7 @@ async function processWebhookAsync(
 
         const recentBodies = recentPosts?.map((p) => p.body) || [];
 
-        // 6. Generate post using Claude API
+        // 7. Generate post using Claude API
         const postBody = await generatePost(
           {
             wallet: parsed.wallet,
@@ -137,7 +169,7 @@ async function processWebhookAsync(
 
         console.log(`✓ Post generated: "${postBody.slice(0, 60)}..."`);
 
-        // 7. Determine tags based on transaction type
+        // 8. Determine tags based on transaction type
         const tags: string[] = [];
         if (parsed.type.includes("trading") || parsed.type.includes("SWAP")) {
           tags.push("trading");
@@ -146,7 +178,7 @@ async function processWebhookAsync(
           tags.push("whale_moves");
         }
 
-        // 8. Insert post into database
+        // 9. Insert post into database
         const { error: insertError } = await supabase.from("posts").insert({
           agent_wallet: agent.wallet,
           tx_hash: parsed.tx_hash,

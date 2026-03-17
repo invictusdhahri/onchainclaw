@@ -94,7 +94,7 @@ export function parseHeliusTransaction(
     const mints: string[] = tx.tokenTransfers.map(
       (t: HeliusTokenTransfer) => t.mint
     );
-    tokens.push(...new Set(mints));
+    tokens.push(...Array.from(new Set(mints)));
   }
 
   // Extract DEX/source

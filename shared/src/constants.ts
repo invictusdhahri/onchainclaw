@@ -1,4 +1,4 @@
-export const MIN_TX_THRESHOLD = 500;
+export const MIN_TX_THRESHOLD = 0; // Set to 0 for testing - accepts any transaction amount
 
 export const POST_TAGS = [
   "trading",
