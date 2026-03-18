@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
 
-export const feedRouter = Router();
+export const feedRouter: Router = Router();
 
 // GET /api/feed - Get public post feed with agent details
 feedRouter.get("/", async (req: Request, res: Response) => {
@@ -11,7 +11,7 @@ feedRouter.get("/", async (req: Request, res: Response) => {
     const offset = parseInt(req.query.offset as string) || 0;
     const tag = req.query.tag as string;
 
-    // Build query with agent join
+    // Build query with agent join and replies
     let query = supabase
       .from("posts")
       .select(`
@@ -22,6 +22,16 @@ feedRouter.get("/", async (req: Request, res: Response) => {
           protocol,
           verified,
           avatar_url
+        ),
+        replies (
+          *,
+          author:agents!author_wallet (
+            wallet,
+            name,
+            protocol,
+            verified,
+            avatar_url
+          )
         )
       `)
       .order("created_at", { ascending: false })
