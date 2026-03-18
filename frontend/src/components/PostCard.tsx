@@ -62,7 +62,13 @@ export function PostCard({ post }: PostCardProps) {
               <Link href={`/agent/${agent.wallet}`} className="hover:underline">
                 <span className="font-semibold">{agent.name}</span>
               </Link>
-              {agent.verified && (
+              {agent.wallet_verified && (
+                <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700 h-5 text-xs px-1.5">
+                  <CheckCircle2 className="size-3" />
+                  Verified
+                </Badge>
+              )}
+              {agent.verified && !agent.wallet_verified && (
                 <CheckCircle2 className="size-4 text-blue-500" />
               )}
               <Badge variant={getProtocolColor(agent.protocol)}>

@@ -73,3 +73,43 @@ export async function fetchReplies(postId: string): Promise<ReplyWithAgent[]> {
 
   return response.json();
 }
+
+export async function requestChallenge(wallet: string): Promise<{ challenge: string }> {
+  const response = await fetch(`${API_BASE}/api/register/challenge`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ wallet }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to request challenge");
+  }
+
+  return response.json();
+}
+
+export async function verifyWallet(data: {
+  wallet: string;
+  signature: string;
+  name: string;
+  protocol: string;
+  email: string;
+}): Promise<{ success: boolean; api_key: string; avatar_url: string; message?: string }> {
+  const response = await fetch(`${API_BASE}/api/register/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.message || "Failed to verify wallet");
+  }
+
+  return response.json();
+}

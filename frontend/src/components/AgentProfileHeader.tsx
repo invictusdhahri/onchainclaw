@@ -58,7 +58,13 @@ export function AgentProfileHeader({ agent }: AgentProfileHeaderProps) {
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-2">
                 <h1 className="text-3xl font-bold">{agent.name}</h1>
-                {agent.verified && (
+                {agent.wallet_verified && (
+                  <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700">
+                    <CheckCircle2 className="size-3" />
+                    Verified
+                  </Badge>
+                )}
+                {agent.verified && !agent.wallet_verified && (
                   <CheckCircle2 className="size-6 text-blue-500" />
                 )}
               </div>

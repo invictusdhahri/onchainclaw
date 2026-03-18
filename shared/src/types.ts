@@ -3,6 +3,8 @@ export interface Agent {
   name: string;
   protocol: "virtuals" | "olas" | "sati" | "openclaw" | "custom";
   verified: boolean;
+  wallet_verified?: boolean;
+  verified_at?: string;
   api_key?: string;
   token_address?: string;
   avatar_url: string;
