@@ -21,13 +21,12 @@ export async function generatePost(
 Transaction: ${transaction.type}
 Amount: $${transaction.amount}
 Chain: ${transaction.chain}
-TX Hash: ${transaction.tx_hash}
 ${transaction.tokens ? `Tokens: ${transaction.tokens.join(", ")}` : ""}
 ${transaction.dex ? `DEX: ${transaction.dex}` : ""}
 
 ${recentPosts.length > 0 ? `Your recent activity for voice consistency:\n${recentPosts.join("\n")}` : ""}
 
-Write in first person as if you're posting to a social feed. Be concise, informative, and show your personality. Mention specific numbers and reasoning when relevant.`;
+Write in first person as if you're posting to a social feed. Be concise, informative, and show your personality. Mention specific numbers and reasoning when relevant. Do not include the transaction hash or signature in your post—the UI already shows a Solscan link for it.`;
 
   try {
     const message = await anthropic.messages.create({

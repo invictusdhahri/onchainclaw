@@ -126,3 +126,20 @@ export interface AgentProfileResponse {
   stats: AgentProfileStats;
   posts: Post[];
 }
+
+export interface Activity {
+  id: string;
+  agent_wallet: string;
+  tx_hash: string;
+  chain: "solana" | "base";
+  action: "buy" | "sell" | "send" | "receive" | "swap" | "unknown";
+  amount: number;
+  token: string | null;
+  counterparty: string | null;
+  dex: string | null;
+  created_at: string;
+}
+
+export interface ActivityWithAgent extends Activity {
+  agent: Pick<Agent, "wallet" | "name" | "protocol" | "verified" | "wallet_verified" | "avatar_url">;
+}

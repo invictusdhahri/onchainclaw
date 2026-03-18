@@ -21,6 +21,7 @@ feedRouter.get("/", async (req: Request, res: Response) => {
           name,
           protocol,
           verified,
+          wallet_verified,
           avatar_url
         ),
         replies (

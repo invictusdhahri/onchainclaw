@@ -1,12 +1,79 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { verifyHeliusWebhook, parseHeliusTransaction } from "../lib/helius.js";
+import {
+  verifyHeliusWebhook,
+  parseHeliusTransaction,
+  isSystemProgramTransfer,
+} from "../lib/helius.js";
 import { supabase } from "../lib/supabase.js";
 import { generatePost } from "../services/postGenerator.js";
 import { MIN_TX_THRESHOLD } from "@onchainclaw/shared";
-import type { HeliusWebhookPayload } from "@onchainclaw/shared";
+import type { HeliusWebhookPayload, HeliusEnhancedTransaction } from "@onchainclaw/shared";
 
 export const webhookRouter = Router();
+
+/**
+ * Map Helius transaction type to human-readable action
+ */
+function mapTypeToAction(
+  type: string,
+  tx: HeliusEnhancedTransaction
+): "buy" | "sell" | "send" | "receive" | "swap" | "unknown" {
+  const upperType = type.toUpperCase();
+  
+  if (upperType.includes("SWAP")) {
+    return "swap";
+  }
+  
+  if (upperType.includes("BUY") || upperType.includes("PURCHASE")) {
+    return "buy";
+  }
+  
+  if (upperType.includes("SELL")) {
+    return "sell";
+  }
+  
+  if (upperType.includes("TRANSFER")) {
+    // Determine if send or receive based on native transfers
+    if (tx.nativeTransfers && tx.nativeTransfers.length > 0) {
+      // For now, default to "send" - could be enhanced to detect direction
+      return "send";
+    }
+  }
+  
+  return "unknown";
+}
+
+/**
+ * Find the counterparty (other wallet) in a transaction
+ */
+function findCounterparty(tx: HeliusEnhancedTransaction, agentWallet: string): string | null {
+  // Check native transfers
+  if (tx.nativeTransfers) {
+    for (const transfer of tx.nativeTransfers) {
+      if (transfer.fromUserAccount !== agentWallet) {
+        return transfer.fromUserAccount;
+      }
+      if (transfer.toUserAccount !== agentWallet) {
+        return transfer.toUserAccount;
+      }
+    }
+  }
+  
+  // Check token transfers
+  if (tx.tokenTransfers) {
+    for (const transfer of tx.tokenTransfers) {
+      if (transfer.fromUserAccount !== agentWallet) {
+        return transfer.fromUserAccount;
+      }
+      if (transfer.toUserAccount !== agentWallet) {
+        return transfer.toUserAccount;
+      }
+    }
+  }
+  
+  return null;
+}
 
 // POST /api/webhook/helius - Receive blockchain transaction webhooks
 webhookRouter.post("/helius", async (req: Request, res: Response) => {
@@ -68,6 +135,13 @@ async function processWebhookAsync(
 
     for (const transaction of payload) {
       try {
+        if (isSystemProgramTransfer(transaction)) {
+          console.log(
+            `Skipping SYSTEM_PROGRAM transfer: ${transaction.signature.slice(0, 8)}...`
+          );
+          continue;
+        }
+
         // 1. Parse the transaction
         const parsed = parseHeliusTransaction(transaction);
         console.log(
@@ -140,9 +214,39 @@ async function processWebhookAsync(
           continue;
         }
 
-        console.log(`✓ Agent found: ${agent.name}, generating post...`);
+        // 6. Always insert activity (for the ticker) - for both verified and unverified agents
+        const action = mapTypeToAction(parsed.type, transaction);
+        const counterparty = findCounterparty(transaction, agent.wallet);
+        
+        const { error: activityError } = await supabase.from("activities").insert({
+          agent_wallet: agent.wallet,
+          tx_hash: parsed.tx_hash,
+          chain: parsed.chain,
+          action,
+          amount: parsed.amount,
+          token: parsed.tokens?.[0] || null,
+          counterparty,
+          dex: parsed.dex || null,
+        });
 
-        // 6. Fetch recent posts for voice consistency
+        if (activityError) {
+          console.error("Failed to insert activity:", activityError);
+          // Continue anyway - activity is optional
+        } else {
+          console.log(`✓ Activity recorded: ${agent.name} - ${action}`);
+        }
+
+        // 7. Only generate posts for UNVERIFIED agents
+        if (agent.wallet_verified) {
+          console.log(
+            `✓ Verified agent ${agent.name} - skipping auto-post, activity recorded`
+          );
+          continue;
+        }
+
+        console.log(`✓ Unverified agent ${agent.name}, generating post...`);
+
+        // 8. Fetch recent posts for voice consistency
         const { data: recentPosts } = await supabase
           .from("posts")
           .select("body")
@@ -152,7 +256,7 @@ async function processWebhookAsync(
 
         const recentBodies = recentPosts?.map((p) => p.body) || [];
 
-        // 7. Generate post using Claude API
+        // 9. Generate post using Claude API
         const postBody = await generatePost(
           {
             wallet: parsed.wallet,
@@ -169,7 +273,7 @@ async function processWebhookAsync(
 
         console.log(`✓ Post generated: "${postBody.slice(0, 60)}..."`);
 
-        // 8. Determine tags based on transaction type
+        // 10. Determine tags based on transaction type
         const tags: string[] = [];
         if (parsed.type.includes("trading") || parsed.type.includes("SWAP")) {
           tags.push("trading");
@@ -178,7 +282,7 @@ async function processWebhookAsync(
           tags.push("whale_moves");
         }
 
-        // 9. Insert post into database
+        // 11. Insert post into database
         const { error: insertError } = await supabase.from("posts").insert({
           agent_wallet: agent.wallet,
           tx_hash: parsed.tx_hash,
@@ -201,7 +305,7 @@ async function processWebhookAsync(
       }
     }
 
-    // 9. Mark webhook log as processed
+    // 12. Mark webhook log as processed
     if (logId) {
       await supabase
         .from("webhook_logs")

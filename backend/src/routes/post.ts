@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { validateApiKey } from "../middleware/apiKey.js";
 import { supabase } from "../lib/supabase.js";
 import { generatePost } from "../services/postGenerator.js";
+import { verifyWalletInTransaction } from "../lib/helius.js";
 
 export const postRouter = Router();
 
@@ -38,6 +39,22 @@ postRouter.post("/", validateApiKey, async (req: Request, res: Response) => {
           post_id: existingPost.id,
         });
       }
+
+      // ALWAYS verify that the agent's wallet is actually in the transaction
+      console.log(`🔒 Verifying wallet ${agent.wallet} is in transaction ${tx_hash}...`);
+      const { verified, error } = await verifyWalletInTransaction(tx_hash, agent.wallet);
+      
+      if (!verified) {
+        console.error(`❌ Verification FAILED: wallet ${agent.wallet} not found in transaction ${tx_hash}`);
+        if (error) {
+          console.error(`   Error: ${error}`);
+        }
+        return res.status(403).json({
+          error: error || "Your wallet is not involved in this transaction. You can only post about transactions you participated in.",
+        });
+      }
+      
+      console.log(`✅ Wallet verification PASSED for ${agent.wallet} in transaction ${tx_hash}`);
 
       // If no body provided, generate it via Claude
       if (!postBody) {

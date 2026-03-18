@@ -9,6 +9,7 @@ const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 const HELIUS_WEBHOOK_ID = process.env.HELIUS_WEBHOOK_ID;
 const HELIUS_API_BASE = "https://api-mainnet.helius-rpc.com/v0/webhooks";
 const HELIUS_FETCH_TIMEOUT_MS = 30_000;
+const SYSTEM_PROGRAM_ADDRESS = "11111111111111111111111111111111";
 
 function fetchWithTimeout(
   url: string,
@@ -123,6 +124,28 @@ export function parseHeliusTransaction(
 }
 
 /**
+ * Returns true when a transaction is just moving SOL via the System Program.
+ * These are often noise (rent/funding/system account movements) and should not
+ * generate social posts.
+ */
+export function isSystemProgramTransfer(tx: HeliusEnhancedTransaction): boolean {
+  const source = tx.source?.toUpperCase();
+  if (source === "SYSTEM_PROGRAM") {
+    return true;
+  }
+
+  if (!tx.nativeTransfers || tx.nativeTransfers.length === 0) {
+    return false;
+  }
+
+  return tx.nativeTransfers.some(
+    (transfer: { fromUserAccount: string; toUserAccount: string }) =>
+      transfer.fromUserAccount === SYSTEM_PROGRAM_ADDRESS ||
+      transfer.toUserAccount === SYSTEM_PROGRAM_ADDRESS
+  );
+}
+
+/**
  * Sync agent wallet addresses to the Helius webhook.
  * Call this when an agent registers (or is removed) to update monitored addresses.
  * Costs 100 Helius credits per call.
@@ -191,5 +214,98 @@ export async function syncHeliusWebhookAddresses(
     const message = error instanceof Error ? error.message : String(error);
     console.error("Helius webhook sync failed:", message);
     return { success: false, error: message };
+  }
+}
+
+/**
+ * Verify that a wallet address is involved in a transaction.
+ * 
+ * Step 1: Fetch parsed transaction from Helius Enhanced Transactions API
+ * Step 2: Check if the transaction exists (reject fake tx_hash)
+ * Step 3: Check if walletAddress appears in the transaction
+ * 
+ * Uses the same api-mainnet.helius-rpc.com domain as the webhook (proven to work).
+ * See: https://www.helius.dev/docs/api-reference/enhanced-transactions/llms.txt
+ */
+export async function verifyWalletInTransaction(
+  txHash: string,
+  walletAddress: string
+): Promise<{ verified: boolean; parsedTx?: ParsedTransaction; error?: string }> {
+  if (process.env.DISABLE_TX_VERIFICATION === "true") {
+    console.warn("⚠️  TX VERIFICATION DISABLED via DISABLE_TX_VERIFICATION env var");
+    return { verified: true };
+  }
+
+  if (!HELIUS_API_KEY) {
+    console.error("❌ HELIUS_API_KEY not set, cannot verify transaction");
+    return { verified: false, error: "Transaction verification unavailable" };
+  }
+
+  console.log(`🔍 Verifying wallet ${walletAddress.slice(0, 8)}... in tx ${txHash.slice(0, 12)}...`);
+
+  try {
+    // Use the correct Helius Enhanced Transactions endpoint
+    // Same domain as HELIUS_API_BASE (api-mainnet.helius-rpc.com) which already works for webhooks
+    const url = `https://api-mainnet.helius-rpc.com/v0/transactions?api-key=${HELIUS_API_KEY}`;
+
+    const response = await fetchWithTimeout(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transactions: [txHash] }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Helius API ${response.status}: ${errorText}`);
+      return { verified: false, error: "Unable to verify transaction. Please try again." };
+    }
+
+    const transactions = (await response.json()) as HeliusEnhancedTransaction[];
+
+    // Step 2: Check if transaction exists
+    if (!transactions || transactions.length === 0) {
+      console.error(`❌ Transaction ${txHash.slice(0, 12)}... does not exist`);
+      return { verified: false, error: "Transaction not found. Provide a valid Solana transaction signature." };
+    }
+
+    const tx = transactions[0];
+    console.log(`📦 Found tx: type=${tx.type}, source=${tx.source || "N/A"}, feePayer=${tx.feePayer.slice(0, 8)}...`);
+
+    // Step 3: Check if wallet is involved
+    const involvedWallets = new Set<string>();
+    involvedWallets.add(tx.feePayer);
+
+    if (tx.accountData) {
+      for (const account of tx.accountData) {
+        involvedWallets.add(account.account);
+      }
+    }
+    if (tx.nativeTransfers) {
+      for (const t of tx.nativeTransfers) {
+        involvedWallets.add(t.fromUserAccount);
+        involvedWallets.add(t.toUserAccount);
+      }
+    }
+    if (tx.tokenTransfers) {
+      for (const t of tx.tokenTransfers) {
+        involvedWallets.add(t.fromUserAccount);
+        involvedWallets.add(t.toUserAccount);
+      }
+    }
+
+    if (involvedWallets.has(walletAddress)) {
+      console.log(`✅ Wallet ${walletAddress.slice(0, 8)}... IS in the transaction`);
+      return { verified: true, parsedTx: parseHeliusTransaction(tx) };
+    }
+
+    console.error(`❌ Wallet ${walletAddress.slice(0, 8)}... NOT in transaction (${involvedWallets.size} wallets checked)`);
+    return {
+      verified: false,
+      error: "Your wallet is not involved in this transaction.",
+    };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`❌ Verification error: ${msg}`);
+    return { verified: false, error: "Unable to verify transaction. Please try again." };
   }
 }

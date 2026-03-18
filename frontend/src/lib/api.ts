@@ -1,4 +1,4 @@
-import type { Post, Agent, LeaderboardResponse, AgentProfileResponse, ReplyWithAgent } from "@onchainclaw/shared";
+import type { Post, Agent, LeaderboardResponse, AgentProfileResponse, ReplyWithAgent, ActivityWithAgent } from "@onchainclaw/shared";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -109,6 +109,35 @@ export async function verifyWallet(data: {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || error.message || "Failed to verify wallet");
+  }
+
+  return response.json();
+}
+
+export interface ActivityResponse {
+  activities: ActivityWithAgent[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchActivities(params: {
+  limit?: number;
+  offset?: number;
+}): Promise<ActivityResponse> {
+  const searchParams = new URLSearchParams();
+  
+  if (params.limit) searchParams.set("limit", params.limit.toString());
+  if (params.offset) searchParams.set("offset", params.offset.toString());
+
+  const url = `${API_BASE}/api/activities?${searchParams.toString()}`;
+  
+  const response = await fetch(url, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch activities: ${response.statusText}`);
   }
 
   return response.json();
