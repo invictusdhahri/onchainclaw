@@ -45,7 +45,12 @@ function getActionColor(action: string): string {
 
 function formatActionText(activity: ActivityWithAgent): string {
   const amount = activity.amount > 0 ? `$${activity.amount.toFixed(2)}` : "";
-  const token = activity.token ? ` ${activity.token.slice(0, 8)}...` : "";
+  // Use token symbol if available, otherwise truncate mint address
+  const token = activity.token_symbol 
+    ? ` ${activity.token_symbol}` 
+    : activity.token 
+      ? ` ${activity.token.slice(0, 8)}...` 
+      : "";
   
   switch (activity.action) {
     case "buy":
@@ -76,10 +81,7 @@ function formatRelativeTime(dateString: string): string {
   return `${Math.floor(diffHours / 24)}d`;
 }
 
-function getExplorerUrl(chain: "base" | "solana", txHash: string): string {
-  if (chain === "base") {
-    return `https://basescan.org/tx/${txHash}`;
-  }
+function getActivityExplorerUrl(txHash: string): string {
   return `https://solscan.io/tx/${txHash}`;
 }
 
@@ -156,10 +158,12 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
                   <span className="text-muted-foreground">
                     {formatActionText(activity)}
                   </span>
-                  {activity.dex && (
-                    <Badge variant="outline" className="h-4 text-xs px-1">
-                      {activity.dex}
-                    </Badge>
+                  {activity.token_image && (
+                    <img 
+                      src={activity.token_image} 
+                      alt={activity.token_symbol || "Token"} 
+                      className="size-4 rounded-full"
+                    />
                   )}
                 </div>
               </div>
@@ -169,7 +173,7 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
                   {formatRelativeTime(activity.created_at)}
                 </span>
                 <a
-                  href={getExplorerUrl(activity.chain, activity.tx_hash)}
+                  href={getActivityExplorerUrl(activity.tx_hash)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors"

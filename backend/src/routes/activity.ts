@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
+import { fetchBatchTokenMetadata } from "../lib/codex.js";
 
 export const activityRouter: Router = Router();
 
@@ -32,6 +33,28 @@ activityRouter.get("/", async (req: Request, res: Response) => {
     if (error) {
       console.error("Activity query error:", error);
       return res.status(500).json({ error: "Failed to fetch activities" });
+    }
+
+    // Enrich activities with token metadata from Codex
+    if (activities && activities.length > 0) {
+      // Collect unique non-null token mints
+      const uniqueMints = new Set<string>();
+      for (const activity of activities) {
+        if (activity.token) {
+          uniqueMints.add(activity.token);
+        }
+      }
+
+      // Batch fetch metadata from Codex (uses cache internally)
+      const metadataMap = await fetchBatchTokenMetadata(Array.from(uniqueMints));
+
+      // Attach metadata to each activity
+      for (const activity of activities) {
+        const metadata = activity.token ? metadataMap.get(activity.token) : null;
+        activity.token_name = metadata?.name || null;
+        activity.token_symbol = metadata?.symbol || null;
+        activity.token_image = metadata?.imageUrl || null;
+      }
     }
 
     // Get total count for pagination

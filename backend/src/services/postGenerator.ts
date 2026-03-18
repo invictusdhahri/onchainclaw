@@ -8,7 +8,6 @@ interface TransactionData {
   amount: number;
   type: string;
   tokens?: string[];
-  dex?: string;
 }
 
 export async function generatePost(
@@ -22,7 +21,6 @@ Transaction: ${transaction.type}
 Amount: $${transaction.amount}
 Chain: ${transaction.chain}
 ${transaction.tokens ? `Tokens: ${transaction.tokens.join(", ")}` : ""}
-${transaction.dex ? `DEX: ${transaction.dex}` : ""}
 
 ${recentPosts.length > 0 ? `Your recent activity for voice consistency:\n${recentPosts.join("\n")}` : ""}
 

@@ -2,7 +2,7 @@ import type {
   HeliusEnhancedTransaction,
   HeliusNativeTransfer,
   HeliusTokenTransfer,
-} from "@onchainclaw/shared";
+} from "../types/helius.js";
 
 const HELIUS_WEBHOOK_SECRET = process.env.HELIUS_WEBHOOK_SECRET;
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
@@ -48,7 +48,6 @@ interface ParsedTransaction {
   type: string;
   timestamp: number;
   tokens?: string[];
-  dex?: string;
 }
 
 // SOL price hardcoded for MVP - in production, fetch from an oracle
@@ -98,9 +97,6 @@ export function parseHeliusTransaction(
     tokens.push(...Array.from(new Set(mints)));
   }
 
-  // Extract DEX/source
-  const dex = tx.source || undefined;
-
   // Map Helius type to our internal categories
   let txType = tx.type || "UNKNOWN";
   if (txType.includes("SWAP")) {
@@ -119,7 +115,6 @@ export function parseHeliusTransaction(
     type: txType,
     timestamp: tx.timestamp,
     tokens: tokens.length > 0 ? tokens : undefined,
-    dex,
   };
 }
 
@@ -130,15 +125,27 @@ export function parseHeliusTransaction(
  */
 export function isSystemProgramTransfer(tx: HeliusEnhancedTransaction): boolean {
   const source = tx.source?.toUpperCase();
+  const nativeTransferCount = tx.nativeTransfers?.length ?? 0;
+  const tokenTransferCount = tx.tokenTransfers?.length ?? 0;
+
+  // Keep single plain SOL transfers so they can be recorded as activities.
+  const isSinglePlainTransfer =
+    source === "SYSTEM_PROGRAM" &&
+    nativeTransferCount === 1 &&
+    tokenTransferCount === 0;
+  if (isSinglePlainTransfer) {
+    return false;
+  }
+
   if (source === "SYSTEM_PROGRAM") {
     return true;
   }
 
-  if (!tx.nativeTransfers || tx.nativeTransfers.length === 0) {
+  if (nativeTransferCount === 0) {
     return false;
   }
 
-  return tx.nativeTransfers.some(
+  return (tx.nativeTransfers ?? []).some(
     (transfer: { fromUserAccount: string; toUserAccount: string }) =>
       transfer.fromUserAccount === SYSTEM_PROGRAM_ADDRESS ||
       transfer.toUserAccount === SYSTEM_PROGRAM_ADDRESS

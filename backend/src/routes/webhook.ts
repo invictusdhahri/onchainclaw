@@ -7,41 +7,99 @@ import {
 } from "../lib/helius.js";
 import { supabase } from "../lib/supabase.js";
 import { generatePost } from "../services/postGenerator.js";
-import { MIN_TX_THRESHOLD } from "@onchainclaw/shared";
-import type { HeliusWebhookPayload, HeliusEnhancedTransaction } from "@onchainclaw/shared";
+import type { HeliusWebhookPayload, HeliusEnhancedTransaction } from "../types/helius.js";
 
-export const webhookRouter = Router();
+// Transaction threshold (imported from shared in runtime, defined here for TypeScript)
+const MIN_TX_THRESHOLD = 0;
+
+export const webhookRouter: Router = Router();
+
+// Solana token constants
+const WSOL_MINT = "So11111111111111111111111111111111111111112";
+const NATIVE_SOL = "11111111111111111111111111111111";
 
 /**
- * Map Helius transaction type to human-readable action
+ * Map Helius transaction type to human-readable action.
+ * On Solana, there are no native buy/sell - only swaps and transfers.
+ * Buy/sell is determined by swap direction (WSOL→Token = buy, Token→WSOL = sell).
  */
 function mapTypeToAction(
   type: string,
-  tx: HeliusEnhancedTransaction
+  tx: HeliusEnhancedTransaction,
+  agentWallet: string
 ): "buy" | "sell" | "send" | "receive" | "swap" | "unknown" {
   const upperType = type.toUpperCase();
   
-  if (upperType.includes("SWAP")) {
+  // Check if it's a swap (explicit type or inferred from token transfers)
+  const isSwap = upperType.includes("SWAP") || 
+    (tx.tokenTransfers && tx.tokenTransfers.length > 0 && 
+     (tx.tokenTransfers.map(t => t.mint).filter((v, i, a) => a.indexOf(v) === i).length >= 2));
+  
+  if (isSwap && tx.tokenTransfers && tx.tokenTransfers.length > 0) {
+    // Determine swap direction: did agent receive WSOL or SPL token?
+    let receivedWSol = false;
+    let receivedSplToken = false;
+    
+    for (const transfer of tx.tokenTransfers) {
+      if (transfer.toUserAccount === agentWallet) {
+        if (transfer.mint === WSOL_MINT) {
+          receivedWSol = true;
+        } else {
+          receivedSplToken = true;
+        }
+      }
+    }
+    
+    // Buy: Agent received SPL token (gave WSOL/SOL)
+    if (receivedSplToken && !receivedWSol) {
+      return "buy";
+    }
+    
+    // Sell: Agent received WSOL (gave SPL token)
+    if (receivedWSol && !receivedSplToken) {
+      return "sell";
+    }
+    
+    // Generic swap (token-to-token or unclear direction)
     return "swap";
   }
   
-  if (upperType.includes("BUY") || upperType.includes("PURCHASE")) {
-    return "buy";
-  }
-  
-  if (upperType.includes("SELL")) {
-    return "sell";
-  }
-  
-  if (upperType.includes("TRANSFER")) {
-    // Determine if send or receive based on native transfers
-    if (tx.nativeTransfers && tx.nativeTransfers.length > 0) {
-      // For now, default to "send" - could be enhanced to detect direction
-      return "send";
+  // Handle transfers (not swaps)
+  if (upperType.includes("TRANSFER") || (tx.nativeTransfers && tx.nativeTransfers.length > 0)) {
+    // Check if agent is receiving or sending
+    if (tx.nativeTransfers) {
+      for (const transfer of tx.nativeTransfers) {
+        if (transfer.toUserAccount === agentWallet) {
+          return "receive";
+        }
+        if (transfer.fromUserAccount === agentWallet) {
+          return "send";
+        }
+      }
     }
+    return "send"; // default to send if unclear
   }
   
   return "unknown";
+}
+
+/**
+ * Extract the non-SOL/non-WSOL token mint from a transaction.
+ * Returns the SPL token involved in a swap, or null if none found.
+ */
+function extractSplMint(tx: HeliusEnhancedTransaction): string | null {
+  if (!tx.tokenTransfers || tx.tokenTransfers.length === 0) {
+    return null;
+  }
+  
+  // Find the first non-WSOL mint
+  for (const transfer of tx.tokenTransfers) {
+    if (transfer.mint !== WSOL_MINT && transfer.mint !== NATIVE_SOL) {
+      return transfer.mint;
+    }
+  }
+  
+  return null;
 }
 
 /**
@@ -215,18 +273,19 @@ async function processWebhookAsync(
         }
 
         // 6. Always insert activity (for the ticker) - for both verified and unverified agents
-        const action = mapTypeToAction(parsed.type, transaction);
+        const action = mapTypeToAction(parsed.type, transaction, agent.wallet);
         const counterparty = findCounterparty(transaction, agent.wallet);
+        
+        // Extract the correct SPL mint (non-WSOL token for swaps)
+        const tokenMint = extractSplMint(transaction) || parsed.tokens?.[0] || null;
         
         const { error: activityError } = await supabase.from("activities").insert({
           agent_wallet: agent.wallet,
           tx_hash: parsed.tx_hash,
-          chain: parsed.chain,
           action,
           amount: parsed.amount,
-          token: parsed.tokens?.[0] || null,
+          token: tokenMint,
           counterparty,
-          dex: parsed.dex || null,
         });
 
         if (activityError) {
@@ -265,7 +324,6 @@ async function processWebhookAsync(
             amount: parsed.amount,
             type: parsed.type,
             tokens: parsed.tokens,
-            dex: parsed.dex,
           },
           agent,
           recentBodies
