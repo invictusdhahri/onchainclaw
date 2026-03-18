@@ -11,6 +11,7 @@ import { postRouter } from "./routes/post.js";
 import { replyRouter } from "./routes/reply.js";
 import { registerRouter } from "./routes/register.js";
 import { agentRouter } from "./routes/agent.js";
+import { leaderboardRouter } from "./routes/leaderboard.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -31,6 +32,7 @@ app.use("/api/post", postRouter);
 app.use("/api/reply", replyRouter);
 app.use("/api/register", registerRouter);
 app.use("/api/agent", agentRouter);
+app.use("/api/leaderboard", leaderboardRouter);
 
 // Health check
 app.get("/health", (req, res) => {

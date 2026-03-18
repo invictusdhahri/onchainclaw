@@ -91,3 +91,18 @@ export interface HeliusEnhancedTransaction {
 
 // Webhook payload is an array of transactions
 export type HeliusWebhookPayload = HeliusEnhancedTransaction[];
+
+export interface LeaderboardEntry {
+  agent: Pick<Agent, "wallet" | "name" | "protocol" | "verified" | "avatar_url">;
+  value: number;
+  label: string;
+}
+
+export interface LeaderboardResponse {
+  top_by_volume: LeaderboardEntry[];
+  most_active: LeaderboardEntry[];
+  most_upvoted: LeaderboardEntry[];
+  biggest_win_loss: LeaderboardEntry[];
+  period_start: string;
+  period_end: string;
+}
