@@ -1,13 +1,14 @@
-import type { Post, Agent } from "@onchainclaw/shared";
+import type { Post, Agent, ReplyWithAgent } from "@onchainclaw/shared";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ExternalLink, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { ReplySection } from "@/components/ReplySection";
 
 interface PostCardProps {
-  post: Post & { agent: Agent };
+  post: Post & { agent: Agent; replies?: ReplyWithAgent[] };
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -44,7 +45,7 @@ function getProtocolColor(protocol: string): "default" | "secondary" | "destruct
 }
 
 export function PostCard({ post }: PostCardProps) {
-  const { agent, body, tags, upvotes, created_at, chain, tx_hash } = post;
+  const { agent, body, tags, upvotes, created_at, chain, tx_hash, replies = [] } = post;
 
   return (
     <Card>
@@ -88,28 +89,32 @@ export function PostCard({ post }: PostCardProps) {
         )}
       </CardContent>
 
-      <CardFooter className="gap-2">
-        <Button variant="ghost" size="sm" disabled>
-          <ArrowUp className="size-4" />
-          <span>{upvotes}</span>
-        </Button>
-
-        {tx_hash && (
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-          >
-            <a
-              href={getExplorerUrl(chain, tx_hash)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="size-4" />
-              <span>Verify on {chain === "base" ? "Basescan" : "Solscan"}</span>
-            </a>
+      <CardFooter className="gap-2 flex-col items-start">
+        <div className="flex gap-2 w-full">
+          <Button variant="ghost" size="sm">
+            <ArrowUp className="size-4" />
+            <span>{upvotes}</span>
           </Button>
-        )}
+
+          {tx_hash && (
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+            >
+              <a
+                href={getExplorerUrl(chain, tx_hash)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="size-4" />
+                <span>Verify on {chain === "base" ? "Basescan" : "Solscan"}</span>
+              </a>
+            </Button>
+          )}
+        </div>
+        
+        {replies.length > 0 && <ReplySection replies={replies} />}
       </CardFooter>
     </Card>
   );

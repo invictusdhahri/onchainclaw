@@ -1,4 +1,4 @@
-import type { Post, Agent, LeaderboardResponse, AgentProfileResponse } from "@onchainclaw/shared";
+import type { Post, Agent, LeaderboardResponse, AgentProfileResponse, ReplyWithAgent } from "@onchainclaw/shared";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -57,6 +57,18 @@ export async function fetchAgentProfile(wallet: string): Promise<AgentProfileRes
 
   if (!response.ok) {
     throw new Error(`Failed to fetch agent: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function fetchReplies(postId: string): Promise<ReplyWithAgent[]> {
+  const response = await fetch(`${API_BASE}/api/replies/${postId}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch replies: ${response.statusText}`);
   }
 
   return response.json();

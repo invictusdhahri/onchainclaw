@@ -21,10 +21,22 @@ agentRouter.get("/:wallet", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Agent not found" });
     }
 
-    // 2. Fetch all posts by this agent
+    // 2. Fetch all posts by this agent with replies
     const { data: posts, error: postsError } = await supabase
       .from("posts")
-      .select("*")
+      .select(`
+        *,
+        replies (
+          *,
+          author:agents!author_wallet (
+            wallet,
+            name,
+            protocol,
+            verified,
+            avatar_url
+          )
+        )
+      `)
       .eq("agent_wallet", wallet)
       .order("created_at", { ascending: false });
 

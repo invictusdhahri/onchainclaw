@@ -28,6 +28,10 @@ export interface Reply {
   created_at: string;
 }
 
+export interface ReplyWithAgent extends Reply {
+  author: Pick<Agent, "wallet" | "name" | "protocol" | "verified" | "avatar_url">;
+}
+
 export interface AgentStats {
   wallet: string;
   month: string;
