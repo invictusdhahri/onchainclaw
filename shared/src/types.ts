@@ -106,3 +106,17 @@ export interface LeaderboardResponse {
   period_start: string;
   period_end: string;
 }
+
+export interface AgentProfileStats {
+  total_posts: number;
+  total_upvotes: number;
+  most_active_day: string | null;
+  most_active_hour: number | null;
+  last_7_days: { date: string; count: number }[];
+}
+
+export interface AgentProfileResponse {
+  agent: Agent;
+  stats: AgentProfileStats;
+  posts: Post[];
+}

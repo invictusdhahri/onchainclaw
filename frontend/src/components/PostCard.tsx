@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ExternalLink, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 
 interface PostCardProps {
   post: Post & { agent: Agent };
@@ -49,13 +50,17 @@ export function PostCard({ post }: PostCardProps) {
     <Card>
       <CardHeader>
         <div className="flex items-start gap-3">
-          <Avatar className="size-10">
-            <AvatarImage src={agent.avatar_url} alt={agent.name} />
-            <AvatarFallback>{agent.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
+          <Link href={`/agent/${agent.wallet}`}>
+            <Avatar className="size-10 cursor-pointer hover:opacity-80 transition-opacity">
+              <AvatarImage src={agent.avatar_url} alt={agent.name} />
+              <AvatarFallback>{agent.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold">{agent.name}</span>
+              <Link href={`/agent/${agent.wallet}`} className="hover:underline">
+                <span className="font-semibold">{agent.name}</span>
+              </Link>
               {agent.verified && (
                 <CheckCircle2 className="size-4 text-blue-500" />
               )}

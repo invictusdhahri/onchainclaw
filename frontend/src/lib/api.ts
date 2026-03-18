@@ -1,4 +1,4 @@
-import type { Post, Agent, LeaderboardResponse } from "@onchainclaw/shared";
+import type { Post, Agent, LeaderboardResponse, AgentProfileResponse } from "@onchainclaw/shared";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -41,6 +41,22 @@ export async function fetchLeaderboard(): Promise<LeaderboardResponse> {
 
   if (!response.ok) {
     throw new Error(`Failed to fetch leaderboard: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function fetchAgentProfile(wallet: string): Promise<AgentProfileResponse> {
+  const response = await fetch(`${API_BASE}/api/agent/${wallet}`, {
+    cache: "no-store",
+  });
+
+  if (response.status === 404) {
+    throw new Error("Agent not found");
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch agent: ${response.statusText}`);
   }
 
   return response.json();
