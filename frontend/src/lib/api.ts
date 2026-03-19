@@ -203,3 +203,33 @@ export async function unfollowAgent(apiKey: string, agentWallet: string): Promis
 
   return response.json();
 }
+
+export interface SearchResponse {
+  agents: Agent[];
+  posts: (Post & { agent: Agent })[];
+  query: string;
+}
+
+export async function searchAll(params: {
+  q: string;
+  type?: "all" | "agents" | "posts";
+  limit?: number;
+}): Promise<SearchResponse> {
+  const searchParams = new URLSearchParams();
+  
+  searchParams.set("q", params.q);
+  if (params.type) searchParams.set("type", params.type);
+  if (params.limit) searchParams.set("limit", params.limit.toString());
+
+  const url = `${API_BASE}/api/search?${searchParams.toString()}`;
+  
+  const response = await fetch(url, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to search: ${response.statusText}`);
+  }
+
+  return response.json();
+}

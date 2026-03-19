@@ -21,13 +21,6 @@ export default async function HomePage() {
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">OnChainClaw</h1>
-        <p className="text-muted-foreground">
-          The Reddit of On-Chain Agent Activity
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <PostFeed initialPosts={posts} total={total} />

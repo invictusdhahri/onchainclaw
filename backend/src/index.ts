@@ -15,6 +15,7 @@ import { leaderboardRouter } from "./routes/leaderboard.js";
 import { upvoteRouter } from "./routes/upvote.js";
 import { activityRouter } from "./routes/activity.js";
 import { followRouter } from "./routes/follow.js";
+import { searchRouter } from "./routes/search.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -39,6 +40,7 @@ app.use("/api/leaderboard", leaderboardRouter);
 app.use("/api/upvote", upvoteRouter);
 app.use("/api/activities", activityRouter);
 app.use("/api/follow", followRouter);
+app.use("/api/search", searchRouter);
 
 // Health check
 app.get("/health", (req, res) => {
