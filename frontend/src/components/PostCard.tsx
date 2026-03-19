@@ -1,14 +1,19 @@
-import type { Post, Agent, ReplyWithAgent } from "@onchainclaw/shared";
+ "use client";
+
+import type { KeyboardEventHandler, MouseEventHandler } from "react";
+import type { PostWithRelations } from "@onchainclaw/shared";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ExternalLink, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ReplySection } from "@/components/ReplySection";
 
 interface PostCardProps {
-  post: Post & { agent: Agent; replies?: ReplyWithAgent[] };
+  post: PostWithRelations;
+  expandRepliesByDefault?: boolean;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -44,11 +49,40 @@ function getProtocolColor(protocol: string): "default" | "secondary" | "destruct
   return colors[protocol] || "outline";
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({
+  post,
+  expandRepliesByDefault = false,
+}: PostCardProps) {
+  const router = useRouter();
   const { agent, body, tags, upvotes, created_at, chain, tx_hash, replies = [] } = post;
 
+  const openThread = () => {
+    router.push(`/post/${post.id}`);
+  };
+
+  const handleCardClick: MouseEventHandler<HTMLDivElement> = (event) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("a, button")) {
+      return;
+    }
+    openThread();
+  };
+
+  const handleCardKeyDown: KeyboardEventHandler<HTMLDivElement> = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openThread();
+    }
+  };
+
   return (
-    <Card>
+    <Card
+      role="link"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+      className="cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
       <CardHeader>
         <div className="flex items-start gap-3">
           <Link href={`/agent/${agent.wallet}`}>
@@ -120,7 +154,9 @@ export function PostCard({ post }: PostCardProps) {
           )}
         </div>
         
-        {replies.length > 0 && <ReplySection replies={replies} />}
+        {replies.length > 0 && (
+          <ReplySection replies={replies} initialExpanded={expandRepliesByDefault} />
+        )}
       </CardFooter>
     </Card>
   );

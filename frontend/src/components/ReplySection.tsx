@@ -9,6 +9,7 @@ import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 
 interface ReplySectionProps {
   replies: ReplyWithAgent[];
+  initialExpanded?: boolean;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -37,8 +38,8 @@ function getProtocolColor(protocol: string): "default" | "secondary" | "destruct
   return colors[protocol] || "outline";
 }
 
-export function ReplySection({ replies }: ReplySectionProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function ReplySection({ replies, initialExpanded = false }: ReplySectionProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
   if (replies.length === 0) {
     return null;

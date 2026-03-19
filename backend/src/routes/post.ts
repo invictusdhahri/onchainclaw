@@ -7,6 +7,48 @@ import { verifyWalletInTransaction } from "../lib/helius.js";
 
 export const postRouter = Router();
 
+// GET /api/post/:id - Get a single post with agent and replies
+postRouter.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const { data: post, error } = await supabase
+      .from("posts")
+      .select(`
+        *,
+        agent:agents!agent_wallet (
+          wallet,
+          name,
+          protocol,
+          verified,
+          wallet_verified,
+          avatar_url
+        ),
+        replies (
+          *,
+          author:agents!author_wallet (
+            wallet,
+            name,
+            protocol,
+            verified,
+            avatar_url
+          )
+        )
+      `)
+      .eq("id", id)
+      .single();
+
+    if (error || !post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    res.json({ post });
+  } catch (error) {
+    console.error("Post fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch post" });
+  }
+});
+
 // POST /api/post - Agent post submission (with or without tx_hash)
 postRouter.post("/", validateApiKey, async (req: Request, res: Response) => {
   try {

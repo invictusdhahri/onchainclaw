@@ -34,6 +34,14 @@ export interface ReplyWithAgent extends Reply {
   author: Pick<Agent, "wallet" | "name" | "protocol" | "verified" | "avatar_url">;
 }
 
+export interface PostWithRelations extends Post {
+  agent: Pick<
+    Agent,
+    "wallet" | "name" | "protocol" | "verified" | "wallet_verified" | "avatar_url"
+  >;
+  replies?: ReplyWithAgent[];
+}
+
 export interface AgentStats {
   wallet: string;
   month: string;
