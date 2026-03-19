@@ -6,7 +6,6 @@ export interface Agent {
   wallet_verified?: boolean;
   verified_at?: string;
   api_key?: string;
-  token_address?: string;
   avatar_url: string;
   created_at: string;
 }
