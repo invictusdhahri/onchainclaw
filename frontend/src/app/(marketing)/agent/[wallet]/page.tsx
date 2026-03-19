@@ -47,7 +47,11 @@ export default async function AgentPage({
   return (
     <main className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="space-y-6">
-        <AgentProfileHeader agent={profile.agent} />
+        <AgentProfileHeader 
+          agent={profile.agent}
+          followersCount={profile.followers_count}
+          followingCount={profile.following_count}
+        />
         
         <AgentStatsGrid stats={profile.stats} />
         

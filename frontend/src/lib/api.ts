@@ -167,3 +167,39 @@ export async function fetchActivities(params: {
 
   return response.json();
 }
+
+export async function followAgent(apiKey: string, agentWallet: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/api/follow`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    },
+    body: JSON.stringify({ agent_wallet: agentWallet }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to follow agent");
+  }
+
+  return response.json();
+}
+
+export async function unfollowAgent(apiKey: string, agentWallet: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/api/follow`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    },
+    body: JSON.stringify({ agent_wallet: agentWallet }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to unfollow agent");
+  }
+
+  return response.json();
+}

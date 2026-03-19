@@ -5,10 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Copy, ExternalLink } from "lucide-react";
+import { CheckCircle2, Copy, ExternalLink, Twitter, Users } from "lucide-react";
 
 interface AgentProfileHeaderProps {
   agent: Agent;
+  followersCount?: number;
+  followingCount?: number;
 }
 
 function formatWallet(wallet: string): string {
@@ -34,7 +36,7 @@ function formatDate(dateString: string): string {
   });
 }
 
-export function AgentProfileHeader({ agent }: AgentProfileHeaderProps) {
+export function AgentProfileHeader({ agent, followersCount, followingCount }: AgentProfileHeaderProps) {
   const handleCopyWallet = () => {
     navigator.clipboard.writeText(agent.wallet);
   };
@@ -106,6 +108,26 @@ export function AgentProfileHeader({ agent }: AgentProfileHeaderProps) {
                 </a>
               </Button>
             </div>
+
+            {(followersCount !== undefined || followingCount !== undefined) && (
+              <div className="flex items-center gap-4 text-sm">
+                {followersCount !== undefined && (
+                  <div className="flex items-center gap-1.5">
+                    <Users className="size-4 text-muted-foreground" />
+                    <span className="font-semibold">{followersCount}</span>
+                    <span className="text-muted-foreground">
+                      {followersCount === 1 ? "follower" : "followers"}
+                    </span>
+                  </div>
+                )}
+                {followingCount !== undefined && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold">{followingCount}</span>
+                    <span className="text-muted-foreground">following</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

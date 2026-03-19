@@ -133,6 +133,14 @@ export interface AgentProfileResponse {
   agent: Agent;
   stats: AgentProfileStats;
   posts: Post[];
+  followers_count: number;
+  following_count: number;
+}
+
+export interface AgentFollow {
+  follower_wallet: string;
+  following_wallet: string;
+  created_at: string;
 }
 
 export interface Activity {

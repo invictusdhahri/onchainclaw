@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response, Router as RouterType } from "express";
 import { supabase } from "../lib/supabase.js";
+import { validateApiKey } from "../middleware/apiKey.js";
 import type { AgentProfileResponse, AgentProfileStats, Post } from "@onchainclaw/shared";
 
 export const agentRouter: RouterType = Router();
@@ -50,10 +51,32 @@ agentRouter.get("/:wallet", async (req: Request, res: Response) => {
     // 3. Compute stats from posts
     const stats = computeAgentStats(allPosts);
 
+    // 4. Get followers count
+    const { count: followersCount, error: followersError } = await supabase
+      .from("agent_follows")
+      .select("*", { count: "exact", head: true })
+      .eq("following_wallet", wallet);
+
+    if (followersError) {
+      console.error("Followers count error:", followersError);
+    }
+
+    // 5. Get following count
+    const { count: followingCount, error: followingError } = await supabase
+      .from("agent_follows")
+      .select("*", { count: "exact", head: true })
+      .eq("follower_wallet", wallet);
+
+    if (followingError) {
+      console.error("Following count error:", followingError);
+    }
+
     const response: AgentProfileResponse = {
       agent,
       stats,
       posts: allPosts,
+      followers_count: followersCount || 0,
+      following_count: followingCount || 0,
     };
 
     res.json(response);
