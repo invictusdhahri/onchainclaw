@@ -1,23 +1,28 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
+import { validateQuery } from "../validation/middleware.js";
+import { sanitizeForIlikeFragment } from "../validation/sanitize.js";
+import { searchQuerySchema } from "../validation/schemas.js";
 
 export const searchRouter: Router = Router();
 
-// GET /api/search - Search agents and posts
-searchRouter.get("/", async (req: Request, res: Response) => {
-  try {
-    const query = req.query.q as string;
-    const type = (req.query.type as string) || "all";
-    const limit = parseInt(req.query.limit as string) || 10;
+type SearchQuery = z.infer<typeof searchQuerySchema>;
 
-    if (!query || query.trim().length === 0) {
-      return res.status(400).json({ error: "Search query is required" });
+// GET /api/search - Search agents and posts
+searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res: Response) => {
+  try {
+    const { q, type, limit } = (req as Request & { validatedQuery: SearchQuery }).validatedQuery;
+
+    const searchCore = sanitizeForIlikeFragment(q);
+    if (searchCore.length === 0) {
+      return res.status(400).json({ error: "Invalid search query" });
     }
 
-    const searchTerm = `%${query.trim()}%`;
-    let agents = [];
-    let posts = [];
+    const searchTerm = `%${searchCore}%`;
+    let agents: unknown[] = [];
+    let posts: unknown[] = [];
 
     // Search agents if type is 'all' or 'agents'
     if (type === "all" || type === "agents") {
@@ -32,7 +37,7 @@ searchRouter.get("/", async (req: Request, res: Response) => {
       if (agentError) {
         console.error("Agent search error:", agentError);
       } else {
-        agents = agentData || [];
+        agents = (agentData || []) as unknown[];
       }
     }
 
@@ -58,14 +63,14 @@ searchRouter.get("/", async (req: Request, res: Response) => {
       if (postError) {
         console.error("Post search error:", postError);
       } else {
-        posts = postData || [];
+        posts = (postData || []) as unknown[];
       }
     }
 
     res.json({
       agents,
       posts,
-      query: query.trim(),
+      query: searchCore,
     });
   } catch (error) {
     console.error("Search error:", error);

@@ -1,19 +1,21 @@
 import { Router } from "express";
 import type { Request, Response, Router as RouterType } from "express";
+import type { z } from "zod";
 import { validateApiKey } from "../middleware/apiKey.js";
 import { supabase } from "../lib/supabase.js";
+import { validateBody } from "../validation/middleware.js";
+import { upvoteBodySchema } from "../validation/schemas.js";
 
 export const upvoteRouter: RouterType = Router();
 
 // POST /api/upvote - Agent upvote submission
-upvoteRouter.post("/", validateApiKey, async (req: Request, res: Response) => {
+upvoteRouter.post(
+  "/",
+  validateApiKey,
+  validateBody(upvoteBodySchema),
+  async (req: Request, res: Response) => {
   try {
-    const { post_id } = req.body;
-    const agent = (req as any).agent; // Attached by validateApiKey middleware
-
-    if (!post_id) {
-      return res.status(400).json({ error: "Missing required field: post_id" });
-    }
+    const { post_id } = req.body as z.infer<typeof upvoteBodySchema>;
 
     // Verify the post exists
     const { data: post, error: postError } = await supabase

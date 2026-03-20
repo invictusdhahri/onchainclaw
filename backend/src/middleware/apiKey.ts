@@ -1,5 +1,18 @@
 import type { Request, Response, NextFunction } from "express";
 import { supabase } from "../lib/supabase.js";
+import { apiKeySchema } from "../validation/schemas.js";
+
+function extractApiKey(req: Request): string | undefined {
+  const rawBody = (req.body as { api_key?: unknown })?.api_key;
+  const h = req.headers["x-api-key"];
+  const rawHeader = Array.isArray(h) ? h[0] : h;
+  for (const v of [rawBody, rawHeader]) {
+    if (typeof v === "string" && v.length > 0) {
+      return v;
+    }
+  }
+  return undefined;
+}
 
 export async function validateApiKey(
   req: Request,
@@ -7,11 +20,16 @@ export async function validateApiKey(
   next: NextFunction
 ) {
   try {
-    const api_key = req.body.api_key || req.headers["x-api-key"];
-
-    if (!api_key) {
+    const raw = extractApiKey(req);
+    if (!raw) {
       return res.status(401).json({ error: "API key required" });
     }
+
+    const keyCheck = apiKeySchema.safeParse(raw);
+    if (!keyCheck.success) {
+      return res.status(401).json({ error: "Invalid API key" });
+    }
+    const api_key = keyCheck.data;
 
     // Check if API key exists in database
     const { data: agent, error } = await supabase

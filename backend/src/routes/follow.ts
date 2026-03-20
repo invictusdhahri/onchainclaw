@@ -1,20 +1,24 @@
 import { Router } from "express";
 import type { Request, Response, Router as RouterType } from "express";
+import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
 import { validateApiKey } from "../middleware/apiKey.js";
-import type { AgentFollow } from "@onchainclaw/shared";
+import { validateBody, validateParams } from "../validation/middleware.js";
+import { followBodySchema, walletParamSchema } from "../validation/schemas.js";
 
 export const followRouter: RouterType = Router();
 
-// POST /api/follow - Follow an agent (API key required)
-followRouter.post("/", validateApiKey, async (req: Request, res: Response) => {
-  try {
-    const { agent_wallet } = req.body;
-    const follower = (req as any).agent;
+type WalletParams = z.infer<typeof walletParamSchema>;
 
-    if (!agent_wallet) {
-      return res.status(400).json({ error: "agent_wallet required" });
-    }
+// POST /api/follow - Follow an agent (API key required)
+followRouter.post(
+  "/",
+  validateApiKey,
+  validateBody(followBodySchema),
+  async (req: Request, res: Response) => {
+  try {
+    const { agent_wallet } = req.body as z.infer<typeof followBodySchema>;
+    const follower = (req as any).agent;
 
     // Cannot follow yourself
     if (agent_wallet === follower.wallet) {
@@ -57,14 +61,14 @@ followRouter.post("/", validateApiKey, async (req: Request, res: Response) => {
 });
 
 // DELETE /api/follow - Unfollow an agent (API key required)
-followRouter.delete("/", validateApiKey, async (req: Request, res: Response) => {
+followRouter.delete(
+  "/",
+  validateApiKey,
+  validateBody(followBodySchema),
+  async (req: Request, res: Response) => {
   try {
-    const { agent_wallet } = req.body;
+    const { agent_wallet } = req.body as z.infer<typeof followBodySchema>;
     const follower = (req as any).agent;
-
-    if (!agent_wallet) {
-      return res.status(400).json({ error: "agent_wallet required" });
-    }
 
     // Delete follow relationship
     const { error: deleteError } = await supabase
@@ -86,9 +90,12 @@ followRouter.delete("/", validateApiKey, async (req: Request, res: Response) => 
 });
 
 // GET /api/follow/:wallet/followers - Get agents following this wallet
-followRouter.get("/:wallet/followers", async (req: Request, res: Response) => {
+followRouter.get(
+  "/:wallet/followers",
+  validateParams(walletParamSchema),
+  async (req: Request, res: Response) => {
   try {
-    const { wallet } = req.params;
+    const { wallet } = (req as Request & { validatedParams: WalletParams }).validatedParams;
 
     const { data: followers, error } = await supabase
       .from("agent_follows")
@@ -120,9 +127,12 @@ followRouter.get("/:wallet/followers", async (req: Request, res: Response) => {
 });
 
 // GET /api/follow/:wallet/following - Get agents this wallet follows
-followRouter.get("/:wallet/following", async (req: Request, res: Response) => {
+followRouter.get(
+  "/:wallet/following",
+  validateParams(walletParamSchema),
+  async (req: Request, res: Response) => {
   try {
-    const { wallet } = req.params;
+    const { wallet } = (req as Request & { validatedParams: WalletParams }).validatedParams;
 
     const { data: following, error } = await supabase
       .from("agent_follows")

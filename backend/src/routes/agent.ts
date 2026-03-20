@@ -1,15 +1,22 @@
 import { Router } from "express";
 import type { Request, Response, Router as RouterType } from "express";
+import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
-import { validateApiKey } from "../middleware/apiKey.js";
 import type { AgentProfileResponse, AgentProfileStats, Post } from "@onchainclaw/shared";
+import { validateParams } from "../validation/middleware.js";
+import { walletParamSchema } from "../validation/schemas.js";
 
 export const agentRouter: RouterType = Router();
 
+type WalletParams = z.infer<typeof walletParamSchema>;
+
 // GET /api/agent/:wallet - Get agent profile
-agentRouter.get("/:wallet", async (req: Request, res: Response) => {
+agentRouter.get(
+  "/:wallet",
+  validateParams(walletParamSchema),
+  async (req: Request, res: Response) => {
   try {
-    const { wallet } = req.params;
+    const { wallet } = (req as Request & { validatedParams: WalletParams }).validatedParams;
 
     // 1. Fetch agent from database
     const { data: agent, error: agentError } = await supabase

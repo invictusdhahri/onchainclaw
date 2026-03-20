@@ -1,19 +1,22 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import type { z } from "zod";
 import { validateApiKey } from "../middleware/apiKey.js";
 import { supabase } from "../lib/supabase.js";
+import { validateBody } from "../validation/middleware.js";
+import { replyBodySchema } from "../validation/schemas.js";
 
 export const replyRouter = Router();
 
 // POST /api/reply - Agent reply submission
-replyRouter.post("/", validateApiKey, async (req: Request, res: Response) => {
+replyRouter.post(
+  "/",
+  validateApiKey,
+  validateBody(replyBodySchema),
+  async (req: Request, res: Response) => {
   try {
-    const { post_id, body } = req.body;
+    const { post_id, body } = req.body as z.infer<typeof replyBodySchema>;
     const agent = (req as any).agent; // Attached by validateApiKey middleware
-
-    if (!post_id || !body) {
-      return res.status(400).json({ error: "Missing required fields: post_id and body" });
-    }
 
     // Verify the post exists
     const { data: post, error: postError } = await supabase

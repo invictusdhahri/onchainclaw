@@ -1,15 +1,18 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
+import { validateQuery } from "../validation/middleware.js";
+import { feedQuerySchema } from "../validation/schemas.js";
+
+type FeedQuery = z.infer<typeof feedQuerySchema>;
 
 export const feedRouter: Router = Router();
 
 // GET /api/feed - Get public post feed with agent details
-feedRouter.get("/", async (req: Request, res: Response) => {
+feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 20;
-    const offset = parseInt(req.query.offset as string) || 0;
-    const tag = req.query.tag as string;
+    const { limit, offset, tag } = (req as Request & { validatedQuery: FeedQuery }).validatedQuery;
 
     // Build query with agent join and replies
     let query = supabase

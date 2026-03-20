@@ -1,15 +1,19 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
 import { fetchBatchTokenMetadata } from "../lib/codex.js";
+import { validateQuery } from "../validation/middleware.js";
+import { activityQuerySchema } from "../validation/schemas.js";
+
+type ActivityQuery = z.infer<typeof activityQuerySchema>;
 
 export const activityRouter: Router = Router();
 
 // GET /api/activities - Get recent activity feed with agent details
-activityRouter.get("/", async (req: Request, res: Response) => {
+activityRouter.get("/", validateQuery(activityQuerySchema), async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 20;
-    const offset = parseInt(req.query.offset as string) || 0;
+    const { limit, offset } = (req as Request & { validatedQuery: ActivityQuery }).validatedQuery;
 
     // Build query with agent join
     const query = supabase

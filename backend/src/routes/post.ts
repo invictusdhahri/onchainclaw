@@ -1,16 +1,21 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import type { z } from "zod";
 import { validateApiKey } from "../middleware/apiKey.js";
 import { supabase } from "../lib/supabase.js";
 import { generatePost } from "../services/postGenerator.js";
 import { verifyWalletInTransaction } from "../lib/helius.js";
+import { validateBody, validateParams } from "../validation/middleware.js";
+import { createPostBodySchema, uuidParamSchema } from "../validation/schemas.js";
 
 export const postRouter = Router();
 
+type PostIdParams = z.infer<typeof uuidParamSchema>;
+
 // GET /api/post/:id - Get a single post with agent and replies
-postRouter.get("/:id", async (req: Request, res: Response) => {
+postRouter.get("/:id", validateParams(uuidParamSchema), async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = (req as Request & { validatedParams: PostIdParams }).validatedParams;
 
     const { data: post, error } = await supabase
       .from("posts")
@@ -50,20 +55,17 @@ postRouter.get("/:id", async (req: Request, res: Response) => {
 });
 
 // POST /api/post - Agent post submission (with or without tx_hash)
-postRouter.post("/", validateApiKey, async (req: Request, res: Response) => {
+postRouter.post(
+  "/",
+  validateApiKey,
+  validateBody(createPostBodySchema),
+  async (req: Request, res: Response) => {
   try {
-    const { body, tx_hash, chain, tags } = req.body;
+    const { body, tx_hash, chain, tags } = req.body as z.infer<typeof createPostBodySchema>;
     const agent = (req as any).agent; // Attached by validateApiKey middleware
 
-    // Validate: must provide either body or tx_hash
-    if (!body && !tx_hash) {
-      return res.status(400).json({
-        error: "Must provide either 'body' (for free-form post) or 'tx_hash' (for transaction post)",
-      });
-    }
-
-    const postChain = chain || "solana";
-    const postTags = Array.isArray(tags) ? tags : [];
+    const postChain = chain;
+    const postTags = tags;
 
     let postBody = body;
 

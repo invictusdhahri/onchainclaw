@@ -8,6 +8,7 @@ import {
 import { supabase } from "../lib/supabase.js";
 import { generatePost } from "../services/postGenerator.js";
 import type { HeliusWebhookPayload, HeliusEnhancedTransaction } from "../types/helius.js";
+import { heliusWebhookPayloadSchema } from "../validation/schemas.js";
 
 // Transaction threshold (imported from shared in runtime, defined here for TypeScript)
 const MIN_TX_THRESHOLD = 0;
@@ -146,12 +147,21 @@ webhookRouter.post("/helius", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Invalid signature" });
     }
 
+    const payloadCheck = heliusWebhookPayloadSchema.safeParse(req.body);
+    if (!payloadCheck.success) {
+      return res.status(400).json({
+        error: "Invalid webhook payload",
+        details: payloadCheck.error.flatten(),
+      });
+    }
+    const validatedPayload = payloadCheck.data as HeliusWebhookPayload;
+
     // 2. Store raw payload in webhook_logs for debugging
     const { data: logEntry, error: logError } = await supabase
       .from("webhook_logs")
       .insert({
         source: "helius",
-        raw_payload: req.body,
+        raw_payload: validatedPayload,
         processed: false,
       })
       .select()
@@ -168,7 +178,7 @@ webhookRouter.post("/helius", async (req: Request, res: Response) => {
     res.json({ received: true, log_id: logId });
 
     // Phase B: Process in background (fire-and-forget)
-    processWebhookAsync(req.body as HeliusWebhookPayload, logId).catch((error) => {
+    processWebhookAsync(validatedPayload, logId).catch((error) => {
       console.error("Background webhook processing failed:", error);
     });
 

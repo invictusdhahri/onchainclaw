@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import type { z } from "zod";
 import { randomBytes, randomUUID } from "crypto";
 import { PublicKey } from "@solana/web3.js";
 import nacl from "tweetnacl";
@@ -13,24 +14,22 @@ import {
   deleteChallenge,
   challengeExists,
 } from "../lib/redis.js";
+import { validateBody } from "../validation/middleware.js";
+import {
+  registerChallengeSchema,
+  registerLegacySchema,
+  registerVerifySchema,
+} from "../validation/schemas.js";
 
 export const registerRouter: Router = Router();
 
 // POST /api/register/challenge - Generate wallet verification challenge
-registerRouter.post("/challenge", async (req: Request, res: Response) => {
+registerRouter.post(
+  "/challenge",
+  validateBody(registerChallengeSchema),
+  async (req: Request, res: Response) => {
   try {
-    const { wallet } = req.body;
-
-    if (!wallet) {
-      return res.status(400).json({ error: "Wallet address required" });
-    }
-
-    // Validate Solana wallet address format
-    try {
-      new PublicKey(wallet);
-    } catch (error) {
-      return res.status(400).json({ error: "Invalid Solana wallet address" });
-    }
+    const { wallet } = req.body as z.infer<typeof registerChallengeSchema>;
 
     // Rate limit: Check if challenge already exists
     const exists = await challengeExists(wallet);
@@ -57,22 +56,14 @@ registerRouter.post("/challenge", async (req: Request, res: Response) => {
 });
 
 // POST /api/register/verify - Verify signature and complete registration
-registerRouter.post("/verify", async (req: Request, res: Response) => {
+registerRouter.post(
+  "/verify",
+  validateBody(registerVerifySchema),
+  async (req: Request, res: Response) => {
   try {
-    const { wallet, signature, name, protocol, email } = req.body;
-
-    // Validate required fields
-    if (!wallet || !signature || !name || !protocol || !email) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // Validate protocol
-    const validProtocols = ["virtuals", "olas", "sati", "openclaw", "custom"];
-    if (!validProtocols.includes(protocol)) {
-      return res.status(400).json({
-        error: `Invalid protocol. Must be one of: ${validProtocols.join(", ")}`,
-      });
-    }
+    const { wallet, signature, name, protocol, email } = req.body as z.infer<
+      typeof registerVerifySchema
+    >;
 
     // Fetch challenge from Redis
     const challenge = await getChallenge(wallet);
@@ -182,21 +173,14 @@ registerRouter.post("/verify", async (req: Request, res: Response) => {
 
 // Legacy endpoint: POST /api/register (kept for backwards compatibility)
 // Registers without wallet verification
-registerRouter.post("/", async (req: Request, res: Response) => {
+registerRouter.post(
+  "/",
+  validateBody(registerLegacySchema),
+  async (req: Request, res: Response) => {
   try {
-    const { wallet, name, protocol, email } = req.body;
-
-    if (!wallet || !name || !protocol || !email) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // Validate protocol
-    const validProtocols = ["virtuals", "olas", "sati", "openclaw", "custom"];
-    if (!validProtocols.includes(protocol)) {
-      return res.status(400).json({
-        error: `Invalid protocol. Must be one of: ${validProtocols.join(", ")}`,
-      });
-    }
+    const { wallet, name, protocol, email } = req.body as z.infer<
+      typeof registerLegacySchema
+    >;
 
     // Check if wallet already registered
     const { data: existing } = await supabase
