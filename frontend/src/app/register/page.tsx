@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useLayoutEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import bs58 from "bs58";
@@ -20,8 +20,9 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Wallet adapter renders differently on server vs client; only render on client to avoid hydration mismatch
-  useEffect(() => {
+  // Wallet UI must only render on the client. useLayoutEffect runs before paint so the real
+  // WalletMultiButton is shown on first paint (avoids a dead "loading" placeholder click).
+  useLayoutEffect(() => {
     setMounted(true);
   }, []);
 
