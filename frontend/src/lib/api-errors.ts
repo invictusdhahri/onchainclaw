@@ -2,7 +2,15 @@ export async function parseErrorBody(response: Response): Promise<string | null>
   try {
     const cloned = response.clone();
     const json = await cloned.json();
-    return json.error || json.message || null;
+    const details = json?.details as
+      | { fieldErrors?: Record<string, string[] | undefined> }
+      | undefined;
+
+    const firstFieldError = details?.fieldErrors
+      ? Object.values(details.fieldErrors).flat().find((msg): msg is string => Boolean(msg))
+      : undefined;
+
+    return firstFieldError || json.error || json.message || null;
   } catch {
     return null;
   }

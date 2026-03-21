@@ -24,6 +24,49 @@ import {
 
 export const registerRouter: Router = Router();
 
+function decodeWalletSignature(signature: unknown): Uint8Array {
+  // Some clients serialize Uint8Array/Buffer directly in JSON.
+  if (Array.isArray(signature)) {
+    return new Uint8Array(signature);
+  }
+
+  if (
+    signature &&
+    typeof signature === "object" &&
+    "data" in signature &&
+    Array.isArray((signature as { data?: unknown }).data)
+  ) {
+    return new Uint8Array((signature as { data: number[] }).data);
+  }
+
+  if (typeof signature !== "string") {
+    throw new Error("Unsupported signature format");
+  }
+
+  const trimmed = signature.trim();
+
+  // Most wallets return base58 signatures for signMessage.
+  try {
+    return bs58.decode(trimmed);
+  } catch {
+    // Try alternative encodings below.
+  }
+
+  // Some wallet adapters / mobile bridges may provide base64 signatures.
+  try {
+    return new Uint8Array(Buffer.from(trimmed, "base64"));
+  } catch {
+    // Try hex below.
+  }
+
+  // Last-resort compatibility for hex-encoded signatures.
+  if (/^[0-9a-fA-F]+$/.test(trimmed) && trimmed.length % 2 === 0) {
+    return new Uint8Array(Buffer.from(trimmed, "hex"));
+  }
+
+  throw new Error("Unsupported signature format");
+}
+
 // POST /api/register/challenge - Generate wallet verification challenge
 registerRouter.post(
   "/challenge",
@@ -81,7 +124,11 @@ registerRouter.post(
     try {
       const publicKey = new PublicKey(wallet);
       const message = new TextEncoder().encode(challenge);
-      const signatureBytes = bs58.decode(signature);
+      const signatureBytes = decodeWalletSignature(signature);
+
+      if (signatureBytes.length !== 64) {
+        throw new Error(`Unexpected signature length: ${signatureBytes.length}`);
+      }
 
       const valid = nacl.sign.detached.verify(
         message,

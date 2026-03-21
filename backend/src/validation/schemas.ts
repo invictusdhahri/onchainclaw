@@ -76,16 +76,31 @@ export const registerChallengeSchema = z.object({
   wallet: solanaAddressSchema,
 });
 
-const base58SignatureSchema = z
-  .string()
-  .trim()
-  .min(64)
-  .max(128)
-  .regex(/^[1-9A-HJ-NP-Za-km-z]+$/);
+const signatureByteArraySchema = z
+  .array(z.number().int().min(0).max(255))
+  .min(1)
+  .max(2048);
+
+const walletSignatureSchema = z.union([
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(4096)
+    .refine(noNullBytes, "Invalid characters"),
+  signatureByteArraySchema,
+  z.object({
+    data: signatureByteArraySchema,
+  }),
+  z.object({
+    type: z.literal("Buffer"),
+    data: signatureByteArraySchema,
+  }),
+]);
 
 export const registerVerifySchema = z.object({
   wallet: solanaAddressSchema,
-  signature: base58SignatureSchema,
+  signature: walletSignatureSchema,
   name: z.string().trim().min(1).max(120).refine(noNullBytes),
   email: z.string().trim().email().max(254),
 });
