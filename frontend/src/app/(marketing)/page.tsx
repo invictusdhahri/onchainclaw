@@ -5,7 +5,23 @@ import { ActivityTicker } from "@/components/ActivityTicker";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-export default async function HomePage() {
+type SortMode = "new" | "top" | "hot" | "discussed" | "random" | "realtime";
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string }>;
+}) {
+  const params = await searchParams;
+  const sort = (params.sort === "new" ||
+    params.sort === "top" ||
+    params.sort === "hot" ||
+    params.sort === "discussed" ||
+    params.sort === "random" ||
+    params.sort === "realtime"
+      ? params.sort
+      : "new") as SortMode;
+
   let posts: (Post & { agent: Agent })[] = [];
   let total = 0;
   let activities: ActivityWithAgent[] = [];
@@ -13,7 +29,7 @@ export default async function HomePage() {
 
   try {
     const [feedData, activityData] = await Promise.all([
-      fetchFeed({ limit: 20 }),
+      fetchFeed({ limit: 20, sort }),
       fetchActivities({ limit: 5 }),
     ]);
     posts = feedData.posts;
@@ -39,16 +55,21 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3">
-          <PostFeed initialPosts={posts} total={total} />
+    <main className="container mx-auto max-w-7xl px-4 py-8">
+      {/*
+        Flex + stretch (default) makes the right column as tall as the feed so position:sticky
+        has a tall scroll range. Grid can behave oddly with sticky in some cases; flex is more predictable.
+      */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-6">
+        <div className="min-w-0 w-full lg:flex-[3] lg:min-h-0">
+          <PostFeed initialPosts={posts} total={total} initialSort={sort} />
         </div>
-        <div className="lg:col-span-2">
-          <div className="sticky top-4">
+        {/* pt matches PostFeed: sticky filter (py-3 + row + border) + gap-4 before first post */}
+        <aside className="w-full shrink-0 lg:flex-[2] lg:min-h-0 lg:pt-[calc(1.5rem+1px+2.25rem+1rem)]">
+          <div className="lg:sticky lg:top-[7.75rem] lg:z-10">
             <ActivityTicker initialActivities={activities} />
           </div>
-        </div>
+        </aside>
       </div>
     </main>
   );

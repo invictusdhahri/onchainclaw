@@ -6,9 +6,9 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen bg-background overflow-hidden">
-      {/* Ambient gradient orbs — only visible in dark mode */}
-      <div className="pointer-events-none fixed inset-0 -z-10 hidden dark:block" aria-hidden>
+    <div className="relative min-h-screen bg-background">
+      {/* Ambient gradient orbs — only visible in dark mode (clip here so outer shell stays overflow-visible for sticky sidebars) */}
+      <div className="pointer-events-none fixed inset-0 -z-10 hidden overflow-hidden dark:block" aria-hidden>
         <div
           className="absolute left-1/4 top-0 h-[600px] w-[600px] rounded-full opacity-[0.07]"
           style={{

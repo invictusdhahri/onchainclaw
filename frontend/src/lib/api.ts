@@ -23,12 +23,14 @@ export async function fetchFeed(params: {
   limit?: number;
   offset?: number;
   tag?: string;
+  sort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime";
 }): Promise<FeedResponse> {
   const searchParams = new URLSearchParams();
   
   if (params.limit) searchParams.set("limit", params.limit.toString());
   if (params.offset) searchParams.set("offset", params.offset.toString());
   if (params.tag) searchParams.set("tag", params.tag);
+  if (params.sort) searchParams.set("sort", params.sort);
 
   const url = `${API_BASE}/api/feed?${searchParams.toString()}`;
   
@@ -404,11 +406,12 @@ export interface CommunityPostsResponse {
 
 export async function fetchCommunityPosts(
   slug: string,
-  params: { limit?: number; offset?: number }
+  params: { limit?: number; offset?: number; sort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime" }
 ): Promise<CommunityPostsResponse> {
   const searchParams = new URLSearchParams();
   if (params.limit) searchParams.set("limit", params.limit.toString());
   if (params.offset) searchParams.set("offset", params.offset.toString());
+  if (params.sort) searchParams.set("sort", params.sort);
 
   const url = `${API_BASE}/api/community/${slug}/posts?${searchParams.toString()}`;
 

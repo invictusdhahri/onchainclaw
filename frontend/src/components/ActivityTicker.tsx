@@ -158,14 +158,14 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Activity className="size-5" />
+      <Card className="border-2">
+        <CardHeader className="pb-3 bg-gradient-to-br from-emerald-500/5 to-sky-500/5">
+          <CardTitle className="text-lg font-bold flex items-center gap-2">
+            <Activity className="size-5 text-emerald-500" />
             Live Activity
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 p-3 rounded-lg">
@@ -185,14 +185,14 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
 
   if (error) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Activity className="size-5" />
+      <Card className="border-2">
+        <CardHeader className="pb-3 bg-gradient-to-br from-emerald-500/5 to-sky-500/5">
+          <CardTitle className="text-lg font-bold flex items-center gap-2">
+            <Activity className="size-5 text-emerald-500" />
             Live Activity
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <div className="text-sm text-muted-foreground">{error}</div>
         </CardContent>
       </Card>
@@ -200,68 +200,92 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
   }
 
   if (activities.length === 0) {
-    return null;
+    return (
+      <Card className="border-2 shadow-lg">
+        <CardHeader className="pb-3 bg-gradient-to-br from-emerald-500/5 to-sky-500/5">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Activity className="size-5 text-emerald-500" />
+              Live Activity
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <span className="live-dot opacity-40" title="Waiting for data" />
+              <span className="text-xs font-semibold text-muted-foreground">LIVE</span>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground font-medium">Real-time on-chain actions</p>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground text-center py-6">
+            No recent activity yet. Check back soon.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
+    <Card className="border-2 shadow-lg">
+      <CardHeader className="pb-3 bg-gradient-to-br from-emerald-500/5 to-sky-500/5">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Activity className="size-5" />
+          <CardTitle className="text-lg font-bold flex items-center gap-2">
+            <Activity className="size-5 text-emerald-500" />
             Live Activity
           </CardTitle>
-          <span className="live-dot" title="Live" />
+          <div className="flex items-center gap-2">
+            <span className="live-dot" title="Live" />
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">LIVE</span>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground">Real-time on-chain actions</p>
+        <p className="text-xs text-muted-foreground font-medium">Real-time on-chain actions</p>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
+      <CardContent className="pt-4">
+        <div className="space-y-1.5">
           {activities.map((activity, index) => (
             <div
               key={activity.id}
-              className={`flex items-start gap-3 p-3 rounded-lg border-l-[3px] transition-all duration-200 ${getActionStyle(activity.action)} ${
+              className={`flex items-start gap-2.5 p-2.5 rounded-lg border-l-[3px] transition-all duration-200 ${getActionStyle(activity.action)} ${
                 index === 0 && newTopId === activity.id ? "animate-bounce-in" : ""
               }`}
             >
               <Link href={`/agent/${activity.agent.wallet}`}>
-                <Avatar className="size-8 cursor-pointer hover:opacity-80 transition-opacity">
+                <Avatar className="size-7 cursor-pointer hover:opacity-80 transition-opacity ring-2 ring-background">
                   <AvatarImage src={activity.agent.avatar_url} alt={activity.agent.name} />
                   <AvatarFallback className="text-xs">{activity.agent.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
               </Link>
               
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <Link href={`/agent/${activity.agent.wallet}`} className="hover:underline">
-                    <span className="font-semibold text-sm">{activity.agent.name}</span>
+                    <span className="font-bold text-xs">{activity.agent.name}</span>
                   </Link>
                   {activity.agent.wallet_verified && (
-                    <Badge variant="default" className="gap-0.5 bg-emerald-500/90 hover:bg-emerald-500 h-5 text-xs px-1.5">
+                    <Badge variant="default" className="gap-0.5 bg-emerald-500/90 hover:bg-emerald-500 h-4 text-[10px] px-1">
                       ✓
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-start gap-1.5 text-sm mt-0.5 min-w-0">
+                <div className="flex items-start gap-1.5 text-xs mt-0.5 min-w-0">
                   {getActionIcon(activity.action)}
-                  <span className="text-muted-foreground leading-snug break-words">
+                  <span className="text-muted-foreground leading-tight break-words">
                     {formatActionText(activity)}
                   </span>
                   {activity.token_image && (
                     <img 
                       src={activity.token_image} 
                       alt={activity.token_symbol || "Token"} 
-                      className="size-4 rounded-full ring-1 ring-border/20 shrink-0 mt-0.5"
+                      className="size-3.5 rounded-full ring-1 ring-border/20 shrink-0 mt-0.5"
                     />
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <RelativeTime
                   date={activity.created_at}
                   variant="compact"
-                  className="text-xs text-muted-foreground whitespace-nowrap"
+                  className="text-[10px] text-muted-foreground whitespace-nowrap"
                 />
                 <a
                   href={getActivityExplorerUrl(activity.tx_hash)}
@@ -269,7 +293,7 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
                   rel="noopener noreferrer"
                   className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
                 >
-                  <ExternalLink className="size-4" />
+                  <ExternalLink className="size-3.5" />
                 </a>
               </div>
             </div>
