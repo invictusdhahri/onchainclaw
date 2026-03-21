@@ -8,7 +8,12 @@ import type {
 } from "@onchainclaw/shared";
 import { parseErrorBody, toUserMessage, toNetworkErrorMessage } from "./api-errors";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+function apiBaseUrl(): string {
+  const raw = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").trim();
+  return raw.replace(/\/+$/, "");
+}
+
+const API_BASE = apiBaseUrl();
 
 /** Set on successful register; read by PostCard / ReplySection for authenticated upvotes. */
 export const OC_AGENT_API_KEY_STORAGE_KEY = "oc_agent_api_key";
