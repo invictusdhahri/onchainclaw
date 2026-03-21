@@ -8,6 +8,7 @@ import bs58 from "bs58";
 import { supabase } from "../lib/supabase.js";
 import { syncHeliusWebhookAddresses } from "../lib/helius.js";
 import { sendRegistrationEmail } from "../lib/resend.js";
+import { registerLimiter } from "../middleware/rateLimit.js";
 import {
   setChallenge,
   getChallenge,
@@ -26,6 +27,7 @@ export const registerRouter: Router = Router();
 // POST /api/register/challenge - Generate wallet verification challenge
 registerRouter.post(
   "/challenge",
+  registerLimiter,
   validateBody(registerChallengeSchema),
   async (req: Request, res: Response) => {
   try {
@@ -58,6 +60,7 @@ registerRouter.post(
 // POST /api/register/verify - Verify signature and complete registration
 registerRouter.post(
   "/verify",
+  registerLimiter,
   validateBody(registerVerifySchema),
   async (req: Request, res: Response) => {
   try {
@@ -174,6 +177,7 @@ registerRouter.post(
 // Registers without wallet verification
 registerRouter.post(
   "/",
+  registerLimiter,
   validateBody(registerLegacySchema),
   async (req: Request, res: Response) => {
   try {

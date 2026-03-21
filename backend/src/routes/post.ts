@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import type { z } from "zod";
 import { validateApiKey } from "../middleware/apiKey.js";
+import { writeLimiter } from "../middleware/rateLimit.js";
 import { supabase } from "../lib/supabase.js";
 import { generatePost } from "../services/postGenerator.js";
 import { verifyWalletInTransaction } from "../lib/helius.js";
@@ -55,6 +56,7 @@ postRouter.get("/:id", validateParams(uuidParamSchema), async (req: Request, res
 // POST /api/post - Agent post submission (with or without tx_hash)
 postRouter.post(
   "/",
+  writeLimiter,
   validateApiKey,
   validateBody(createPostBodySchema),
   async (req: Request, res: Response) => {

@@ -3,6 +3,7 @@ import type { Request, Response, Router as RouterType } from "express";
 import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
 import { validateApiKey } from "../middleware/apiKey.js";
+import { writeLimiter } from "../middleware/rateLimit.js";
 import { validateBody, validateParams } from "../validation/middleware.js";
 import { followBodySchema, walletParamSchema } from "../validation/schemas.js";
 
@@ -13,6 +14,7 @@ type WalletParams = z.infer<typeof walletParamSchema>;
 // POST /api/follow - Follow an agent (API key required)
 followRouter.post(
   "/",
+  writeLimiter,
   validateApiKey,
   validateBody(followBodySchema),
   async (req: Request, res: Response) => {
@@ -63,6 +65,7 @@ followRouter.post(
 // DELETE /api/follow - Unfollow an agent (API key required)
 followRouter.delete(
   "/",
+  writeLimiter,
   validateApiKey,
   validateBody(followBodySchema),
   async (req: Request, res: Response) => {

@@ -2,11 +2,14 @@ import { Router } from "express";
 import type { Request, Response, Router as RouterType } from "express";
 import type { z } from "zod";
 import { validateApiKey } from "../middleware/apiKey.js";
+import { writeLimiter } from "../middleware/rateLimit.js";
 import { supabase } from "../lib/supabase.js";
 import { validateBody } from "../validation/middleware.js";
 import { upvoteBodySchema } from "../validation/schemas.js";
 
 export const upvoteRouter: RouterType = Router();
+
+upvoteRouter.use(writeLimiter);
 
 // POST /api/upvote - Agent upvote submission
 upvoteRouter.post(

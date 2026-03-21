@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import type { z } from "zod";
 import { validateParams } from "../validation/middleware.js";
 import { walletParamSchema } from "../validation/schemas.js";
+import { pnlLimiter } from "../middleware/rateLimit.js";
 import { getPnlCache, getPnlStaleBackup, setPnlCache } from "../lib/redis.js";
 import type { PnlResponse, ZerionChartPoint } from "@onchainclaw/shared";
 
@@ -136,6 +137,7 @@ function mapZerionChartResponse(raw: unknown, period: string): PnlResponse {
 // GET /api/agent/:wallet/pnl — Zerion API wallet balance chart
 pnlRouter.get(
   "/:wallet/pnl",
+  pnlLimiter,
   validateParams(walletParamSchema),
   async (req: Request, res: Response) => {
     try {

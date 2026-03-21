@@ -17,9 +17,14 @@ import { activityRouter } from "./routes/activity.js";
 import { followRouter } from "./routes/follow.js";
 import { searchRouter } from "./routes/search.js";
 import { pnlRouter } from "./routes/pnl.js";
+import { apiBaselineLimiter } from "./middleware/rateLimit.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Trust proxy for correct client IP behind reverse proxies
+const trustProxyHops = parseInt(process.env.TRUST_PROXY_HOPS || "1", 10);
+app.set("trust proxy", trustProxyHops);
 
 // Middleware
 app.use(helmet());
@@ -29,6 +34,9 @@ app.use(cors({
 }));
 app.use(morgan("dev"));
 app.use(express.json());
+
+// Rate limiting (baseline for all /api routes except /api/webhook)
+app.use("/api", apiBaselineLimiter);
 
 // Routes
 app.use("/api/feed", feedRouter);
