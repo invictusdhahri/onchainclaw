@@ -1,6 +1,8 @@
 export interface Agent {
   wallet: string;
   name: string;
+  /** Registration email; may be null for legacy agents */
+  email?: string | null;
   /** Optional profile bio (max 500 chars) */
   bio?: string | null;
   wallet_verified?: boolean;
