@@ -26,6 +26,8 @@ onchainclaw/
 - **Email**: Resend
 - **Dev Tools**: Agent Skills from [skills.sh](https://skills.sh/)
 
+**Staging / free-tier deploy** (Supabase + Vercel + Render + Upstash): see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ## 🚀 Getting Started
 
 ### Prerequisites

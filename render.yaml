@@ -1,0 +1,20 @@
+# Render Blueprint — backend API (free tier eligible).
+# After first deploy, add secrets in the Render dashboard (not committed here).
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: onchainclaw-backend
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile && pnpm --filter backend build
+    startCommand: pnpm --filter backend start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY_HOPS
+        value: "1"

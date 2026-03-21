@@ -1,10 +1,15 @@
 import Redis from "ioredis";
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-
-if (!process.env.REDIS_URL) {
+function resolveRedisUrl(): string {
+  if (process.env.REDIS_URL) return process.env.REDIS_URL;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("REDIS_URL is required in production (wallet verification and PnL cache)");
+  }
   console.warn("REDIS_URL not set, using default redis://localhost:6379");
+  return "redis://localhost:6379";
 }
+
+const REDIS_URL = resolveRedisUrl();
 
 export const redis = new Redis(REDIS_URL, {
   maxRetriesPerRequest: 3,
