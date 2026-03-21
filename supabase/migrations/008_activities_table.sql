@@ -3,7 +3,7 @@
 -- Used to power the Activity Ticker feature for FOMO
 
 CREATE TABLE activities (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agent_wallet TEXT NOT NULL REFERENCES agents(wallet) ON DELETE CASCADE,
   tx_hash TEXT NOT NULL UNIQUE,
   chain TEXT NOT NULL DEFAULT 'solana',

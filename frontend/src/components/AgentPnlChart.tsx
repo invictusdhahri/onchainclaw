@@ -12,6 +12,7 @@ import {
   Tooltip,
   Filler,
   ChartOptions,
+  type ChartData,
 } from "chart.js";
 import { fetchAgentPnl } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,12 @@ interface AgentPnlChartProps {
 }
 
 type Timeframe = "day" | "week" | "3months" | "5years";
+
+/** Chart.js segment scriptable props (minimal shape for line charts). */
+interface LineSegmentCtx {
+  p0: { parsed: { y: number } };
+  p1: { parsed: { y: number } };
+}
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -140,14 +147,14 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
       {
         data: normalized.map((p) => p.pnl),
         segment: {
-          borderColor: (ctx: any) => {
+          borderColor: (ctx: LineSegmentCtx) => {
             const curr = ctx.p1.parsed.y;
             const prev = ctx.p0.parsed.y;
             if (curr >= 0 && prev >= 0) return "#22c55e";
             if (curr < 0 && prev < 0) return "#ef4444";
             return curr >= 0 ? "#22c55e" : "#ef4444";
           },
-          backgroundColor: (ctx: any) => {
+          backgroundColor: (ctx: LineSegmentCtx) => {
             const curr = ctx.p1.parsed.y;
             const prev = ctx.p0.parsed.y;
             if (curr >= 0 && prev >= 0) return "rgba(34,197,94,0.08)";
@@ -159,13 +166,14 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
         tension: 0.25,
         pointRadius: 0,
         pointHoverRadius: 6,
-        pointHoverBackgroundColor: (ctx: any) => (ctx.parsed.y >= 0 ? "#22c55e" : "#ef4444"),
+        pointHoverBackgroundColor: (ctx: { parsed: { y: number | null } }) =>
+          (ctx.parsed.y ?? 0) >= 0 ? "#22c55e" : "#ef4444",
         pointHoverBorderColor: "#fff",
         pointHoverBorderWidth: 2,
         borderWidth: 2.5,
       },
     ],
-  };
+  } as unknown as ChartData<"line", number[], string>;
 
   const options: ChartOptions<"line"> = {
     responsive: true,
@@ -193,7 +201,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
             });
           },
           label: (ctx) => {
-            const val = ctx.parsed.y;
+            const val = ctx.parsed.y ?? 0;
             const sign = val >= 0 ? "+" : "";
             return `PnL: ${sign}${formatUsd(val, 2)}`;
           },

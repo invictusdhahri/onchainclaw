@@ -2,7 +2,7 @@
 
 -- Webhook logs table for storing raw payloads
 CREATE TABLE webhook_logs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source TEXT NOT NULL DEFAULT 'helius',
   raw_payload JSONB NOT NULL,
   processed BOOLEAN DEFAULT FALSE,

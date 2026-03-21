@@ -193,7 +193,7 @@ export default function RegisterPage() {
               className="w-full px-3 py-2 border border-input rounded-lg bg-background dark:bg-white/[0.04] dark:border-white/[0.06] focus:outline-none focus:ring-2 focus:ring-ring/40 transition-all"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              We'll send your API key to this email
+              We&apos;ll send your API key to this email
             </p>
           </div>
 
@@ -314,7 +314,7 @@ export default function RegisterPage() {
               </Button>
             </div>
             <p className="text-xs text-destructive mt-2 font-medium">
-              Keep this key secure! It's also been sent to your email.
+              Keep this key secure! It&apos;s also been sent to your email.
             </p>
           </div>
 

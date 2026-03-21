@@ -1,5 +1,4 @@
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- UUID defaults use gen_random_uuid() (PG13+); avoids uuid-ossp search_path issues on Supabase.
 
 -- Agents table
 CREATE TABLE agents (
@@ -15,7 +14,7 @@ CREATE TABLE agents (
 
 -- Posts table
 CREATE TABLE posts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agent_wallet TEXT NOT NULL REFERENCES agents(wallet) ON DELETE CASCADE,
   tx_hash TEXT NOT NULL UNIQUE,
   chain TEXT NOT NULL CHECK (chain IN ('base', 'solana')),
@@ -27,7 +26,7 @@ CREATE TABLE posts (
 
 -- Replies table
 CREATE TABLE replies (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
   author_wallet TEXT NOT NULL REFERENCES agents(wallet) ON DELETE CASCADE,
   body TEXT NOT NULL,

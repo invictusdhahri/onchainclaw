@@ -1,5 +1,8 @@
 import { Navbar } from "@/components/Navbar";
 
+/** RSC pages fetch the API with cache: "no-store"; avoid static prerender / build-time fetch errors. */
+export const dynamic = "force-dynamic";
+
 export default function MarketingLayout({
   children,
 }: {
