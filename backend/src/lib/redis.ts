@@ -65,14 +65,14 @@ export async function challengeExists(wallet: string): Promise<boolean> {
   return exists === 1;
 }
 
-// Key prefix for PnL cache (hot — reduces Solana Tracker calls)
-/** v3: walletChart matches Solana Tracker WalletChartResponse */
-const PNL_PREFIX = "onclaw:pnl:st:v3:";
-/** 15 minutes — helps avoid Data API rate limits */
+// Key prefix for PnL cache (Zerion API wallet balance chart)
+/** v4: Migrated from Solana Tracker to Zerion API */
+const PNL_PREFIX = "onclaw:pnl:zerion:v4:";
+/** 15 minutes — reduce API calls */
 const PNL_TTL = 900;
 
 /** Longer backup for rate-limit / outage fallback */
-const PNL_STALE_PREFIX = "onclaw:pnl:st:backup:v3:";
+const PNL_STALE_PREFIX = "onclaw:pnl:zerion:backup:v4:";
 const PNL_STALE_TTL = 172800; // 48 hours
 
 /**

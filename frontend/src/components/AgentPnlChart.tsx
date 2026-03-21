@@ -17,7 +17,7 @@ import { fetchAgentPnl } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { PnlResponse, SolanaTrackerChartDataPoint } from "@onchainclaw/shared";
+import type { PnlResponse } from "@onchainclaw/shared";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
@@ -25,87 +25,13 @@ interface AgentPnlChartProps {
   wallet: string;
 }
 
-type Timeframe = "24h" | "7d" | "30d" | "ALL";
+type Timeframe = "day" | "week" | "3months" | "5years";
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
-const MS_DAY = 24 * 60 * 60 * 1000;
-const MS_HOUR = 60 * 60 * 1000;
 
 interface CachedPnlData {
   data: PnlResponse;
   timestamp: number;
-}
-
-function timeframeCutoffMs(tf: Timeframe, now: number): number {
-  switch (tf) {
-    case "24h": return now - 24 * MS_HOUR;
-    case "7d":  return now - 7 * MS_DAY;
-    case "30d": return now - 30 * MS_DAY;
-    default:    return 0;
-  }
-}
-
-function filterChartData(
-  rows: SolanaTrackerChartDataPoint[] | undefined,
-  tf: Timeframe
-): SolanaTrackerChartDataPoint[] {
-  if (!rows?.length) return [];
-  if (tf === "ALL") return [...rows];
-  const now = Date.now();
-  const cutoff = timeframeCutoffMs(tf, now);
-  const filtered = rows.filter((p) => p.timestamp >= cutoff);
-  return filtered.length >= 2 ? filtered : rows;
-}
-
-type ChartBuild = { points: { timestamp: number; valueUsd: number }[]; source: "walletChart" | "stub" };
-
-function buildChartPoints(data: PnlResponse, tf: Timeframe): ChartBuild {
-  const chart = data.walletChart?.chartData;
-  if (chart?.length) {
-    const filtered = filterChartData(chart, tf);
-    if (filtered.length >= 2) {
-      return {
-        source: "walletChart",
-        points: filtered.map((p) => ({ timestamp: p.timestamp, valueUsd: p.value })),
-      };
-    }
-  }
-
-  const now = Date.now();
-  const realizedAll = data.summary.realizedUsd;
-  const chartPnl = data.walletChart?.pnl;
-  const h = data.historic;
-
-  switch (tf) {
-    case "24h": {
-      const end = chartPnl?.["24h"]?.value ?? h?.d1?.realizedChangeUsd ?? realizedAll;
-      return { source: "stub", points: [{ timestamp: now - 24 * MS_HOUR, valueUsd: 0 }, { timestamp: now, valueUsd: end }] };
-    }
-    case "7d": {
-      const end = h?.d7?.realizedChangeUsd ?? realizedAll;
-      return { source: "stub", points: [{ timestamp: now - 7 * MS_DAY, valueUsd: 0 }, { timestamp: now, valueUsd: end }] };
-    }
-    case "30d": {
-      const end = chartPnl?.["30d"]?.value ?? h?.d30?.realizedChangeUsd ?? realizedAll;
-      return { source: "stub", points: [{ timestamp: now - 30 * MS_DAY, valueUsd: 0 }, { timestamp: now, valueUsd: end }] };
-    }
-    default: {
-      const start = data.pnlSince ?? now - 365 * MS_DAY;
-      return { source: "stub", points: [{ timestamp: start, valueUsd: 0 }, { timestamp: now, valueUsd: realizedAll }] };
-    }
-  }
-}
-
-function headlinePnl(data: PnlResponse, tf: Timeframe): number {
-  const all = data.summary.realizedUsd;
-  const pnl = data.walletChart?.pnl;
-  const h = data.historic;
-  switch (tf) {
-    case "24h": return pnl?.["24h"]?.value ?? h?.d1?.realizedChangeUsd ?? all;
-    case "7d":  return h?.d7?.realizedChangeUsd ?? all;
-    case "30d": return pnl?.["30d"]?.value ?? h?.d30?.realizedChangeUsd ?? all;
-    default:    return all;
-  }
 }
 
 function formatUsd(n: number, decimals = 2): string {
@@ -122,19 +48,19 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
   const [pnlData, setPnlData] = useState<PnlResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState<Timeframe>("30d");
+  const [timeframe, setTimeframe] = useState<Timeframe>("3months");
 
   useEffect(() => {
     async function loadPnl() {
       try {
         setLoading(true);
         setError(null);
-        const cacheKey = `pnl:st:v3:${wallet}`;
+        const cacheKey = `pnl:zerion:v4:${wallet}:${timeframe}`;
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
           try {
             const c: CachedPnlData = JSON.parse(cached);
-            if (Date.now() - c.timestamp < CACHE_TTL_MS && c.data?.provider === "solana-tracker") {
+            if (Date.now() - c.timestamp < CACHE_TTL_MS && c.data?.provider === "zerion") {
               setPnlData(c.data);
               setLoading(false);
               return;
@@ -144,7 +70,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
             localStorage.removeItem(cacheKey);
           }
         }
-        const data = await fetchAgentPnl(wallet);
+        const data = await fetchAgentPnl(wallet, timeframe);
         setPnlData(data);
         localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
       } catch (err) {
@@ -154,19 +80,16 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
       }
     }
     loadPnl();
-  }, [wallet]);
-
-  const { rawPoints, chartSource } = useMemo(() => {
-    if (!pnlData) return { rawPoints: [] as { timestamp: number; valueUsd: number }[], chartSource: "stub" as const };
-    const b = buildChartPoints(pnlData, timeframe);
-    return { rawPoints: b.points, chartSource: b.source };
-  }, [pnlData, timeframe]);
+  }, [wallet, timeframe]);
 
   const normalized = useMemo(() => {
-    if (!rawPoints.length) return [];
-    const base = rawPoints[0].valueUsd;
-    return rawPoints.map((p) => ({ timestamp: p.timestamp, pnl: p.valueUsd - base }));
-  }, [rawPoints]);
+    if (!pnlData?.chartData.length) return [];
+    const base = pnlData.chartData[0].value;
+    return pnlData.chartData.map((p) => ({
+      timestampMs: p.timestamp * 1000,
+      pnl: p.value - base,
+    }));
+  }, [pnlData]);
 
   if (loading) {
     return (
@@ -198,7 +121,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
     );
   }
 
-  const headline = headlinePnl(pnlData, timeframe);
+  const headline = normalized[normalized.length - 1].pnl;
   const headlinePositive = headline >= 0;
 
   const allY = normalized.map((p) => p.pnl);
@@ -211,7 +134,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
 
   const chartData = {
     labels: normalized.map((p) =>
-      new Date(p.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      new Date(p.timestampMs).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     ),
     datasets: [
       {
@@ -222,7 +145,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
             const prev = ctx.p0.parsed.y;
             if (curr >= 0 && prev >= 0) return "#22c55e";
             if (curr < 0 && prev < 0) return "#ef4444";
-            return curr >= prev ? "#22c55e" : "#ef4444";
+            return curr >= 0 ? "#22c55e" : "#ef4444";
           },
           backgroundColor: (ctx: any) => {
             const curr = ctx.p1.parsed.y;
@@ -233,7 +156,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
           },
         },
         fill: true,
-        tension: chartSource === "walletChart" ? 0.25 : 0.35,
+        tension: 0.25,
         pointRadius: 0,
         pointHoverRadius: 6,
         pointHoverBackgroundColor: (ctx: any) => (ctx.parsed.y >= 0 ? "#22c55e" : "#ef4444"),
@@ -262,7 +185,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
           title: (items) => {
             if (!items.length) return "";
             const idx = items[0].dataIndex;
-            const ts = normalized[idx].timestamp;
+            const ts = normalized[idx].timestampMs;
             return new Date(ts).toLocaleDateString("en-US", {
               year: "numeric",
               month: "short",
@@ -311,12 +234,12 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
             <p className="text-xs text-muted-foreground mt-0.5">
               via{" "}
               <a
-                href="https://docs.solanatracker.io/"
+                href="https://developers.zerion.io/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2 hover:text-foreground"
               >
-                Solana Tracker
+                Zerion API
               </a>
             </p>
             {pnlData.stale && (
@@ -327,10 +250,10 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
           </div>
           <Tabs value={timeframe} onValueChange={(v) => setTimeframe(v as Timeframe)}>
             <TabsList>
-              <TabsTrigger value="24h">24h</TabsTrigger>
-              <TabsTrigger value="7d">7d</TabsTrigger>
-              <TabsTrigger value="30d">30d</TabsTrigger>
-              <TabsTrigger value="ALL">All</TabsTrigger>
+              <TabsTrigger value="day">1d</TabsTrigger>
+              <TabsTrigger value="week">7d</TabsTrigger>
+              <TabsTrigger value="3months">3m</TabsTrigger>
+              <TabsTrigger value="5years">All</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -345,13 +268,9 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
             {headlinePositive ? "+" : ""}
             {formatUsd(headline, 2)}
           </p>
-          {timeframe === "ALL" && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Unrealized: {pnlData.summary.unrealizedUsd >= 0 ? "+" : ""}
-              {formatUsd(pnlData.summary.unrealizedUsd, 2)}
-              &ensp;·&ensp;Total: {formatUsd(pnlData.summary.totalUsd, 2)}
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Portfolio value change
+          </p>
         </div>
         <div className="h-[200px]">
           <Line data={chartData} options={options} />

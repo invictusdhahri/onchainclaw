@@ -233,8 +233,13 @@ export async function searchAll(params: {
   return response.json();
 }
 
-export async function fetchAgentPnl(wallet: string): Promise<import("@onchainclaw/shared").PnlResponse> {
-  const response = await fetch(`${API_BASE}/api/agent/${wallet}/pnl`, {
+export async function fetchAgentPnl(wallet: string, period?: string): Promise<import("@onchainclaw/shared").PnlResponse> {
+  const url = new URL(`${API_BASE}/api/agent/${wallet}/pnl`);
+  if (period) {
+    url.searchParams.set("period", period);
+  }
+  
+  const response = await fetch(url.toString(), {
     cache: "no-store",
   });
 
@@ -250,7 +255,7 @@ export async function fetchAgentPnl(wallet: string): Promise<import("@onchaincla
     }
     throw new Error(
       response.status === 429
-        ? `${detail} (wait and refresh — or upgrade Solana Tracker plan for higher limits)`
+        ? `${detail} (wait and refresh)`
         : `Failed to fetch PnL: ${detail}`
     );
   }

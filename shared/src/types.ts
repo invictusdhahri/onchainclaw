@@ -160,71 +160,39 @@ export interface ActivityWithAgent extends Activity {
   token_image?: string | null;
 }
 
-/** One interval from Solana Tracker historic PnL (showHistoricPnL) */
-export interface PnlHistoricWindow {
-  realizedChangeUsd: number;
-  totalChangeUsd: number;
-  unrealizedChangeUsd?: number;
-}
-
 /**
- * One row of `chartData` from GET /wallet/{owner}/chart (Solana Tracker WalletChartResponse).
- * @see https://docs.solanatracker.io/data-api/wallet/get-wallet-portfolio-chart
+ * Chart data point from Zerion API wallet balance chart.
+ * @see https://developers.zerion.io/reference/getwalletchart
  */
-export interface SolanaTrackerChartDataPoint {
-  date: string;
+export interface ZerionChartPoint {
+  /** Unix timestamp in seconds */
   timestamp: number;
+  /** Portfolio value in USD at this timestamp */
   value: number;
-  pnlPercentage: number;
 }
 
 /**
- * `pnl` block from wallet chart response (24h / 30d windows in API).
- */
-export interface SolanaTrackerWalletChartPnl {
-  "24h": { value: number; percentage: number };
-  "30d": { value: number; percentage: number };
-}
-
-/**
- * Normalized agent PnL from Solana Tracker Data API (GET /pnl/{wallet}).
- * @see https://docs.solanatracker.io/data-api/pnl/get-wallet-pnl
+ * Normalized agent PnL from Zerion API wallet balance chart.
+ * @see https://developers.zerion.io/reference/getwalletchart
  */
 export interface PnlResponse {
-  provider: "solana-tracker";
-  /** When PnL tracking started (ms), if provided */
-  pnlSince: number | null;
-  summary: {
-    realizedUsd: number;
-    unrealizedUsd: number;
-    totalUsd: number;
-    totalInvestedUsd?: number;
-    totalWins?: number;
-    totalLosses?: number;
-    averageBuyAmountUsd?: number;
-    winPercentage?: number;
-    lossPercentage?: number;
-    neutralPercentage?: number;
+  provider: "zerion";
+  /** Chart period used (hour, day, week, month, year, max) */
+  period: string;
+  /** Start of chart period (ISO 8601) */
+  beginAt: string;
+  /** End of chart period (ISO 8601) */
+  endAt: string;
+  /** Summary statistics */
+  stats: {
+    first: number;
+    min: number;
+    avg: number;
+    max: number;
+    last: number;
   };
-  /** 1d / 7d / 30d buckets when showHistoricPnL=true (aggregates only — not a time series) */
-  historic?: {
-    d1?: PnlHistoricWindow;
-    d7?: PnlHistoricWindow;
-    d30?: PnlHistoricWindow;
-  };
-  /**
-   * GET /wallet/{owner}/chart — same shape as Solana Tracker (chartData + pnl + statistics).
-   * @see https://docs.solanatracker.io/data-api/wallet/get-wallet-portfolio-chart
-   */
-  walletChart?: {
-    chartData: SolanaTrackerChartDataPoint[];
-    pnl: SolanaTrackerWalletChartPnl;
-    statistics?: {
-      dailyOutliersRemoved: number;
-      chartOutliersRemoved: number;
-      totalDataPoints: number;
-    };
-  };
-  /** Served from backup cache when Solana Tracker returned 429 */
+  /** Time series data points [timestamp_seconds, value_usd] */
+  chartData: ZerionChartPoint[];
+  /** Served from backup cache when Zerion API unavailable */
   stale?: boolean;
 }
