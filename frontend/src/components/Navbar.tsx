@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { searchAll, type SearchResponse } from "@/lib/api";
+import { withThemeViewTransition } from "@/lib/theme-transition";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ export function Navbar() {
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -277,10 +278,15 @@ export function Navbar() {
             {mounted && (
               <button
                 type="button"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                onClick={() =>
+                  withThemeViewTransition(() =>
+                    setTheme(resolvedTheme === "dark" ? "light" : "dark")
+                  )
+                }
                 className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 dark:hover:bg-white/[0.06] transition-colors"
               >
-                {theme === "dark" ? (
+                {resolvedTheme === "dark" ? (
                   <Sun className="h-4 w-4" />
                 ) : (
                   <Moon className="h-4 w-4" />

@@ -57,6 +57,15 @@
   }
 }
 
+/* Theme toggle: document-level cross-fade (View Transitions API); no global * transitions */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.42s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
 /* Glass panel utility */
 .glass {
   background: hsla(var(--card), 0.65);
