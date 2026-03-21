@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { searchAll, type SearchResponse } from "@/lib/api";
@@ -9,17 +10,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-type SearchFilter = "all" | "agents" | "posts";
-
 export function Navbar() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
+  const router = useRouter();
+  const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -29,13 +28,21 @@ export function Navbar() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement !== inputRef.current) {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const editable =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        target?.isContentEditable;
+      if (e.key === "/" && !editable) {
         e.preventDefault();
         inputRef.current?.focus();
       }
       if (e.key === "Escape") {
         setShowResults(false);
-        inputRef.current?.blur();
+        if (document.activeElement === inputRef.current) {
+          inputRef.current?.blur();
+        }
       }
     };
 
@@ -55,39 +62,56 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
+    const ac = new AbortController();
     const debounceTimer = setTimeout(async () => {
-      if (searchQuery.trim().length > 0) {
+      if (query.trim().length > 0) {
         setIsSearching(true);
+        setShowResults(true);
         setSearchError(null);
         try {
-          const results = await searchAll({ 
-            q: searchQuery, 
-            type: searchFilter,
-            limit: 5 
+          const results = await searchAll({
+            q: query,
+            type: "all",
+            limit: 5,
           });
-          setSearchResults(results);
-          setShowResults(true);
+          if (!ac.signal.aborted) {
+            setSearchResults(results);
+            setShowResults(true);
+          }
         } catch (err) {
-          setSearchError(err instanceof Error ? err.message : "Search failed");
-          setSearchResults(null);
-          setShowResults(true);
-          console.error("Search failed:", err);
+          if (!ac.signal.aborted) {
+            setSearchError(err instanceof Error ? err.message : "Search failed");
+            setSearchResults(null);
+            setShowResults(true);
+            console.error("Search failed:", err);
+          }
         } finally {
-          setIsSearching(false);
+          if (!ac.signal.aborted) setIsSearching(false);
         }
       } else {
-        setSearchResults(null);
-        setShowResults(false);
-        setSearchError(null);
+        if (!ac.signal.aborted) {
+          setSearchResults(null);
+          setShowResults(false);
+          setSearchError(null);
+        }
       }
     }, 300);
 
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery, searchFilter]);
+    return () => {
+      ac.abort();
+      clearTimeout(debounceTimer);
+    };
+  }, [query]);
+
+  const submitSearch = () => {
+    setShowResults(false);
+    const trimmed = query.trim();
+    router.push(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : "/search");
+  };
 
   const handleResultClick = () => {
     setShowResults(false);
-    setSearchQuery("");
+    setQuery("");
     setSearchResults(null);
   };
 
@@ -107,35 +131,35 @@ export function Navbar() {
           </Link>
 
           <div className="flex-1 max-w-xl relative" ref={searchRef}>
-            <div className="flex gap-2 items-center">
-              <div className="flex gap-0.5 border border-border/50 rounded-lg p-0.5 bg-muted/50 dark:bg-white/[0.04] dark:border-white/[0.06]">
-                {(["all", "agents", "posts"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setSearchFilter(f)}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 capitalize ${
-                      searchFilter === f
-                        ? "bg-background shadow-sm text-foreground dark:bg-white/10 dark:shadow-none"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
-              </div>
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[1.125rem] w-[1.125rem] text-muted-foreground/70" />
+            <form
+              role="search"
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitSearch();
+              }}
+            >
+              <div className="relative">
+                <button
+                  type="submit"
+                  className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-md p-0 text-muted-foreground/70 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                  aria-label="Search"
+                >
+                  <Search className="h-[1.125rem] w-[1.125rem]" />
+                </button>
                 <input
                   ref={inputRef}
-                  type="text"
-                  placeholder={`Search ${searchFilter === "all" ? "agents, posts" : searchFilter}... (Press /)`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  type="search"
+                  name="q"
+                  placeholder="Search… (Press /)"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
                   onFocus={() => searchResults && setShowResults(true)}
+                  autoComplete="off"
+                  spellCheck={false}
                   className="w-full pl-10 pr-4 py-2.5 border border-border/50 rounded-lg bg-background/80 dark:bg-white/[0.04] dark:border-white/[0.06] text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/30 transition-all"
                 />
               </div>
-            </div>
+            </form>
 
             {showResults && searchError && (
               <div className="absolute top-full mt-2 w-full rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl dark:border-white/[0.08] p-4 z-50">
@@ -227,6 +251,16 @@ export function Navbar() {
                         ))}
                       </div>
                     )}
+
+                    <div className="border-t border-border/30 dark:border-white/[0.04] p-2">
+                      <button
+                        type="button"
+                        onClick={() => submitSearch()}
+                        className="w-full rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-accent/60 dark:hover:bg-white/[0.05] transition-colors"
+                      >
+                        See all results
+                      </button>
+                    </div>
                   </>
                 )}
               </div>
@@ -242,6 +276,7 @@ export function Navbar() {
           <div className="flex items-center gap-1">
             {mounted && (
               <button
+                type="button"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 dark:hover:bg-white/[0.06] transition-colors"
               >
