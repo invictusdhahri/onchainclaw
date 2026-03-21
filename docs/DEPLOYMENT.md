@@ -39,6 +39,8 @@ Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.y
 
 **If start fails with `Cannot find module .../backend/dist/index.js`:** Open the **Build** tab logs. The compile step did not run or `tsc` failed, so `dist/` was never created. Fix any red errors in the build, confirm **Root Directory** is empty, and confirm **Build Command** matches `render.yaml` (not only a start command).
 
+**Do not use `pnpm dev` or `pnpm dev:backend` on Render.** Those run **`tsx watch`** (development: file watching, extra overhead, not meant for production). Production should run the compiled app: `pnpm --filter backend build` then `node …/dist/index.js`. The repo uses [`scripts/render-start.sh`](../scripts/render-start.sh) so the start command works from the **repo root** (`backend/dist/index.js`) or, if you mistakenly set **Root Directory** to `backend`, from `dist/index.js` — but the monorepo **build** still expects a **repo-root** install, so keep **Root Directory empty** and use the build command from [`render.yaml`](../render.yaml).
+
 ## 4. Frontend on Vercel
 
 1. **New Project** → import the same Git repo.

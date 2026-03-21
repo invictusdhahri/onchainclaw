@@ -11,8 +11,8 @@ services:
     # Avoid `corepack enable` — Render's build FS is read-only under /usr/bin (EROFS).
     # Explicit `tsc -p backend` + file check so a failed compile fails the build (not a missing dist at start).
     buildCommand: npm install -g pnpm@9.15.0 && pnpm install --frozen-lockfile && pnpm --filter backend build && test -f backend/dist/index.js
-    # From repo root (see DEPLOYMENT.md: do not set Render "Root Directory" to `backend`).
-    startCommand: node backend/dist/index.js
+    # Repo root or Root Directory = backend (see scripts/render-start.sh).
+    startCommand: sh scripts/render-start.sh
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
