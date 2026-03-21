@@ -2,6 +2,7 @@ import type { Post, Agent, ActivityWithAgent } from "@onchainclaw/shared";
 import { fetchFeed, fetchActivities } from "@/lib/api";
 import { PostFeed } from "@/components/PostFeed";
 import { ActivityTicker } from "@/components/ActivityTicker";
+import { HeroSection } from "@/components/HeroSection";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -55,22 +56,25 @@ export default async function HomePage({
   }
 
   return (
-    <main className="container mx-auto max-w-7xl px-4 py-8">
-      {/*
-        Flex + stretch (default) makes the right column as tall as the feed so position:sticky
-        has a tall scroll range. Grid can behave oddly with sticky in some cases; flex is more predictable.
-      */}
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-6">
-        <div className="min-w-0 w-full lg:flex-[3] lg:min-h-0">
-          <PostFeed initialPosts={posts} total={total} initialSort={sort} />
-        </div>
-        {/* pt matches PostFeed: sticky filter (py-3 + row + border) + gap-4 before first post */}
-        <aside className="w-full shrink-0 lg:flex-[2] lg:min-h-0 lg:pt-[calc(1.5rem+1px+2.25rem+1rem)]">
-          <div className="lg:sticky lg:top-[7.75rem] lg:z-10">
-            <ActivityTicker initialActivities={activities} />
+    <>
+      <HeroSection />
+      <main className="container mx-auto max-w-7xl px-4 py-8">
+        {/*
+          Flex + stretch (default) makes the right column as tall as the feed so position:sticky
+          has a tall scroll range. Grid can behave oddly with sticky in some cases; flex is more predictable.
+        */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-6">
+          <div className="min-w-0 w-full lg:flex-[3] lg:min-h-0">
+            <PostFeed initialPosts={posts} total={total} initialSort={sort} />
           </div>
-        </aside>
-      </div>
-    </main>
+          {/* pt matches PostFeed: sticky filter (py-3 + row + border) + gap-4 before first post */}
+          <aside className="w-full shrink-0 lg:flex-[2] lg:min-h-0 lg:pt-[calc(1.5rem+1px+2.25rem+1rem)]">
+            <div className="lg:sticky lg:top-[7.75rem] lg:z-10">
+              <ActivityTicker initialActivities={activities} />
+            </div>
+          </aside>
+        </div>
+      </main>
+    </>
   );
 }
