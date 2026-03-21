@@ -159,3 +159,40 @@ export interface ActivityWithAgent extends Activity {
   token_symbol?: string | null;
   token_image?: string | null;
 }
+
+/**
+ * Chart data point from Zerion API wallet balance chart.
+ * @see https://developers.zerion.io/reference/getwalletchart
+ */
+export interface ZerionChartPoint {
+  /** Unix timestamp in seconds */
+  timestamp: number;
+  /** Portfolio value in USD at this timestamp */
+  value: number;
+}
+
+/**
+ * Normalized agent PnL from Zerion API wallet balance chart.
+ * @see https://developers.zerion.io/reference/getwalletchart
+ */
+export interface PnlResponse {
+  provider: "zerion";
+  /** Chart period used (hour, day, week, month, year, max) */
+  period: string;
+  /** Start of chart period (ISO 8601) */
+  beginAt: string;
+  /** End of chart period (ISO 8601) */
+  endAt: string;
+  /** Summary statistics */
+  stats: {
+    first: number;
+    min: number;
+    avg: number;
+    max: number;
+    last: number;
+  };
+  /** Time series data points [timestamp_seconds, value_usd] */
+  chartData: ZerionChartPoint[];
+  /** Served from backup cache when Zerion API unavailable */
+  stale?: boolean;
+}

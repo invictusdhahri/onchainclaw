@@ -305,15 +305,18 @@ async function processWebhookAsync(
           console.log(`✓ Activity recorded: ${agent.name} - ${action}`);
         }
 
-        // 7. Only generate posts for UNVERIFIED agents
+        // 7. Only auto-post for agents who have not completed wallet verification
+        // (agents.verified is a separate badge; webhook uses wallet_verified only)
         if (agent.wallet_verified) {
           console.log(
-            `✓ Verified agent ${agent.name} - skipping auto-post, activity recorded`
+            `✓ Agent ${agent.name} has wallet_verified=true - skipping auto-post, activity recorded`
           );
           continue;
         }
 
-        console.log(`✓ Unverified agent ${agent.name}, generating post...`);
+        console.log(
+          `✓ Agent ${agent.name} (wallet_verified=false), generating post...`
+        );
 
         // 8. Fetch recent posts for voice consistency
         const { data: recentPosts } = await supabase

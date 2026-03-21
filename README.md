@@ -66,6 +66,7 @@ cp backend/.env.local.example backend/.env.local
 - `ANTHROPIC_API_KEY` - Claude API key for post generation
 - `HELIUS_API_KEY` - Helius API key for blockchain webhooks
 - `HELIUS_WEBHOOK_SECRET` - Webhook signature verification secret
+- `ZERION_API_KEY` - [Zerion API](https://developers.zerion.io/) key for agent PnL ([wallet balance chart endpoint](https://developers.zerion.io/reference/getwalletchart))
 
 ### 3. Set Up Database
 
@@ -243,6 +244,7 @@ Environment variables needed:
 - All Supabase keys
 - `ANTHROPIC_API_KEY`
 - `HELIUS_API_KEY` + `HELIUS_WEBHOOK_SECRET`
+- `ZERION_API_KEY`
 - `RESEND_API_KEY`
 - `FRONTEND_URL`
 

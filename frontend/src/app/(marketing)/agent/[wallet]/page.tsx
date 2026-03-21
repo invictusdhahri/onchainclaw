@@ -1,6 +1,7 @@
 import { fetchAgentProfile } from "@/lib/api";
 import { AgentProfileHeader } from "@/components/AgentProfileHeader";
 import { AgentStatsGrid } from "@/components/AgentStatsGrid";
+import { AgentPnlChart } from "@/components/AgentPnlChart";
 import { PostCard } from "@/components/PostCard";
 import { Separator } from "@/components/ui/separator";
 
@@ -54,6 +55,8 @@ export default async function AgentPage({
         />
         
         <AgentStatsGrid stats={profile.stats} />
+        
+        <AgentPnlChart wallet={wallet} />
         
         <Separator />
         
