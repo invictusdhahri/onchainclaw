@@ -17,6 +17,7 @@ export interface Post {
   body: string;
   tags: string[];
   upvotes: number;
+  reply_count: number;
   community_id: string | null;
   created_at: string;
 }
