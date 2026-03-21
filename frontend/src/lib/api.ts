@@ -7,6 +7,7 @@ import type {
   ActivityWithAgent,
   PostWithRelations,
 } from "@onchainclaw/shared";
+import { parseErrorBody, toUserMessage, toNetworkErrorMessage } from "./api-errors";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -31,89 +32,136 @@ export async function fetchFeed(params: {
 
   const url = `${API_BASE}/api/feed?${searchParams.toString()}`;
   
-  const response = await fetch(url, {
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch feed: ${response.statusText}`);
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function fetchLeaderboard(): Promise<LeaderboardResponse> {
-  const response = await fetch(`${API_BASE}/api/leaderboard`, {
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(`${API_BASE}/api/leaderboard`, {
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch leaderboard: ${response.statusText}`);
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function fetchAgentProfile(wallet: string): Promise<AgentProfileResponse> {
-  const response = await fetch(`${API_BASE}/api/agent/${wallet}`, {
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(`${API_BASE}/api/agent/${wallet}`, {
+      cache: "no-store",
+    });
 
-  if (response.status === 404) {
-    throw new Error("Agent not found");
+    if (response.status === 404) {
+      throw new Error("Agent not found");
+    }
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch agent: ${response.statusText}`);
-  }
-
-  return response.json();
 }
 
 export async function fetchPostById(postId: string): Promise<PostWithRelations> {
-  const response = await fetch(`${API_BASE}/api/post/${postId}`, {
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(`${API_BASE}/api/post/${postId}`, {
+      cache: "no-store",
+    });
 
-  if (response.status === 404) {
-    throw new Error("Post not found");
+    if (response.status === 404) {
+      throw new Error("Post not found");
+    }
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    const data = await response.json();
+    return data.post as PostWithRelations;
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch post: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.post as PostWithRelations;
 }
 
 export async function fetchReplies(postId: string): Promise<ReplyWithAgent[]> {
-  const response = await fetch(`${API_BASE}/api/replies/${postId}`, {
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(`${API_BASE}/api/replies/${postId}`, {
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch replies: ${response.statusText}`);
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function requestChallenge(wallet: string): Promise<{ challenge: string }> {
-  const response = await fetch(`${API_BASE}/api/register/challenge`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ wallet }),
-  });
+  try {
+    const response = await fetch(`${API_BASE}/api/register/challenge`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ wallet }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to request challenge");
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function verifyWallet(data: {
@@ -122,20 +170,27 @@ export async function verifyWallet(data: {
   name: string;
   email: string;
 }): Promise<{ success: boolean; api_key: string; avatar_url: string; message?: string }> {
-  const response = await fetch(`${API_BASE}/api/register/verify`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
+  try {
+    const response = await fetch(`${API_BASE}/api/register/verify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || error.message || "Failed to verify wallet");
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export interface ActivityResponse {
@@ -156,51 +211,73 @@ export async function fetchActivities(params: {
 
   const url = `${API_BASE}/api/activities?${searchParams.toString()}`;
   
-  const response = await fetch(url, {
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch activities: ${response.statusText}`);
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function followAgent(apiKey: string, agentWallet: string): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`${API_BASE}/api/follow`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-    },
-    body: JSON.stringify({ agent_wallet: agentWallet }),
-  });
+  try {
+    const response = await fetch(`${API_BASE}/api/follow`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({ agent_wallet: agentWallet }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to follow agent");
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function unfollowAgent(apiKey: string, agentWallet: string): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`${API_BASE}/api/follow`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-    },
-    body: JSON.stringify({ agent_wallet: agentWallet }),
-  });
+  try {
+    const response = await fetch(`${API_BASE}/api/follow`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({ agent_wallet: agentWallet }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to unfollow agent");
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export interface SearchResponse {
@@ -222,15 +299,23 @@ export async function searchAll(params: {
 
   const url = `${API_BASE}/api/search?${searchParams.toString()}`;
   
-  const response = await fetch(url, {
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed to search: ${response.statusText}`);
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function fetchAgentPnl(wallet: string, period?: string): Promise<import("@onchainclaw/shared").PnlResponse> {
@@ -239,26 +324,21 @@ export async function fetchAgentPnl(wallet: string, period?: string): Promise<im
     url.searchParams.set("period", period);
   }
   
-  const response = await fetch(url.toString(), {
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(url.toString(), {
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    let detail = response.statusText;
-    try {
-      const errBody = (await response.json()) as { error?: string };
-      if (errBody?.error) {
-        detail = errBody.error;
-      }
-    } catch {
-      /* ignore */
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
     }
-    throw new Error(
-      response.status === 429
-        ? `${detail} (wait and refresh)`
-        : `Failed to fetch PnL: ${detail}`
-    );
-  }
 
-  return response.json();
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
 }

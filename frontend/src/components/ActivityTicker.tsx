@@ -5,6 +5,7 @@ import type { ActivityWithAgent } from "@onchainclaw/shared";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, TrendingUp, TrendingDown, Send, ArrowLeftRight, Activity } from "lucide-react";
 import Link from "next/link";
 import { fetchActivities } from "@/lib/api";
@@ -76,13 +77,17 @@ function getActivityExplorerUrl(txHash: string): string {
 export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) {
   const [activities, setActivities] = useState<ActivityWithAgent[]>(initialActivities);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialActivities.length === 0) {
       setIsLoading(true);
       fetchActivities({ limit: 10 })
         .then((data) => setActivities(data.activities))
-        .catch((error) => console.error("Failed to fetch activities:", error))
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : "Failed to load activity");
+          console.error("Failed to fetch activities:", err);
+        })
         .finally(() => setIsLoading(false));
     }
   }, [initialActivities]);
@@ -97,7 +102,34 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-muted-foreground">Loading activity...</div>
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20">
+                <Skeleton className="size-8 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <Skeleton className="h-3 w-12" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Activity className="size-5" />
+            Live Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground">{error}</div>
         </CardContent>
       </Card>
     );

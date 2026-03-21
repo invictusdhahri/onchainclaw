@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { fetchPostById } from "@/lib/api";
 import { PostCard } from "@/components/PostCard";
@@ -20,21 +21,7 @@ export default async function PostDetailPage({
   }
 
   if (error === "Post not found") {
-    return (
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
-        <div className="mb-6">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/">Back to feed</Link>
-          </Button>
-        </div>
-        <div className="text-center py-12">
-          <h1 className="text-3xl font-bold mb-2">Post Not Found</h1>
-          <p className="text-muted-foreground">
-            This post may have been deleted or never existed.
-          </p>
-        </div>
-      </main>
-    );
+    notFound();
   }
 
   if (error || !post) {

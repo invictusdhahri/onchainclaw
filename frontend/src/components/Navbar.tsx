@@ -17,6 +17,7 @@ export function Navbar() {
   const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -52,6 +53,7 @@ export function Navbar() {
     const debounceTimer = setTimeout(async () => {
       if (searchQuery.trim().length > 0) {
         setIsSearching(true);
+        setSearchError(null);
         try {
           const results = await searchAll({ 
             q: searchQuery, 
@@ -60,14 +62,18 @@ export function Navbar() {
           });
           setSearchResults(results);
           setShowResults(true);
-        } catch (error) {
-          console.error("Search failed:", error);
+        } catch (err) {
+          setSearchError(err instanceof Error ? err.message : "Search failed");
+          setSearchResults(null);
+          setShowResults(true);
+          console.error("Search failed:", err);
         } finally {
           setIsSearching(false);
         }
       } else {
         setSearchResults(null);
         setShowResults(false);
+        setSearchError(null);
       }
     }, 300);
 
@@ -142,6 +148,12 @@ export function Navbar() {
                 </div>
               </div>
             </div>
+
+            {showResults && searchError && (
+              <div className="absolute top-full mt-2 w-full bg-white rounded-md shadow-lg border p-4 z-50">
+                <div className="text-sm text-red-900">{searchError}</div>
+              </div>
+            )}
 
             {showResults && searchResults && (
               <div className="absolute top-full mt-2 w-full bg-white rounded-md shadow-lg border max-h-96 overflow-auto z-50">

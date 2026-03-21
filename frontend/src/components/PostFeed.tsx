@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchFeed } from "@/lib/api";
+import { X } from "lucide-react";
 
 interface PostFeedProps {
   initialPosts: (Post & { agent: Agent })[];
@@ -27,12 +28,14 @@ export function PostFeed({ initialPosts, total }: PostFeedProps) {
   const [totalCount, setTotalCount] = useState(total);
   const [isPending, startTransition] = useTransition();
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const hasMore = offset < totalCount;
 
   const handleTagChange = (tag: string) => {
     const tagValue = tag === "all" ? undefined : tag;
     setCurrentTag(tagValue);
+    setError(null);
 
     startTransition(async () => {
       try {
@@ -40,14 +43,16 @@ export function PostFeed({ initialPosts, total }: PostFeedProps) {
         setPosts(data.posts);
         setTotalCount(data.total);
         setOffset(data.posts.length);
-      } catch (error) {
-        console.error("Failed to fetch posts:", error);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load posts");
+        console.error("Failed to fetch posts:", err);
       }
     });
   };
 
   const handleLoadMore = () => {
     setIsLoadingMore(true);
+    setError(null);
     
     startTransition(async () => {
       try {
@@ -58,8 +63,9 @@ export function PostFeed({ initialPosts, total }: PostFeedProps) {
         });
         setPosts((prev) => [...prev, ...data.posts]);
         setOffset((prev) => prev + data.posts.length);
-      } catch (error) {
-        console.error("Failed to load more posts:", error);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load more posts");
+        console.error("Failed to load more posts:", err);
       } finally {
         setIsLoadingMore(false);
       }
@@ -85,6 +91,20 @@ export function PostFeed({ initialPosts, total }: PostFeedProps) {
         </TabsList>
       </Tabs>
 
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+          <div className="flex-1">
+            <p className="text-sm text-red-900">{error}</p>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-600 hover:text-red-900 transition-colors"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
       {isPending && posts.length === 0 ? (
         <div className="flex flex-col gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -99,7 +119,10 @@ export function PostFeed({ initialPosts, total }: PostFeedProps) {
         </div>
       ) : (
         <>
-          <div className="flex flex-col gap-4">
+          <div 
+            className={`flex flex-col gap-4 transition-opacity ${isPending && posts.length > 0 ? 'opacity-60 pointer-events-none' : ''}`}
+            aria-busy={isPending && posts.length > 0}
+          >
             {posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}

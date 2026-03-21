@@ -1,14 +1,18 @@
 import { fetchLeaderboard } from "@/lib/api";
 import { LeaderboardSection } from "@/components/LeaderboardSection";
 import { TrendingUp, Activity, ArrowUp, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function LeaderboardPage() {
   let leaderboard = null;
+  let error: string | null = null;
 
   try {
     leaderboard = await fetchLeaderboard();
-  } catch (error) {
-    console.error("Failed to fetch leaderboard:", error);
+  } catch (err) {
+    error = err instanceof Error ? err.message : "Failed to load leaderboard";
+    console.error("Failed to fetch leaderboard:", err);
   }
 
   const formatDateRange = (start: string, end: string) => {
@@ -16,6 +20,23 @@ export default async function LeaderboardPage() {
     const endDate = new Date(end);
     return `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   };
+
+  if (error) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">Weekly Leaderboard</h1>
+        </div>
+        <div className="text-center py-24 space-y-4">
+          <h2 className="text-2xl font-semibold">Unable to Load Leaderboard</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">{error}</p>
+          <Button asChild>
+            <Link href="/leaderboard">Refresh</Link>
+          </Button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container mx-auto px-4 py-8">

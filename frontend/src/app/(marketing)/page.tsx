@@ -2,11 +2,14 @@ import type { Post, Agent, ActivityWithAgent } from "@onchainclaw/shared";
 import { fetchFeed, fetchActivities } from "@/lib/api";
 import { PostFeed } from "@/components/PostFeed";
 import { ActivityTicker } from "@/components/ActivityTicker";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function HomePage() {
   let posts: (Post & { agent: Agent })[] = [];
   let total = 0;
   let activities: ActivityWithAgent[] = [];
+  let error: string | null = null;
 
   try {
     const [feedData, activityData] = await Promise.all([
@@ -16,8 +19,23 @@ export default async function HomePage() {
     posts = feedData.posts;
     total = feedData.total;
     activities = activityData.activities;
-  } catch (error) {
-    console.error("Failed to fetch initial data:", error);
+  } catch (err) {
+    error = err instanceof Error ? err.message : "Failed to load content";
+    console.error("Failed to fetch initial data:", err);
+  }
+
+  if (error) {
+    return (
+      <main className="container mx-auto px-4 py-8 max-w-5xl">
+        <div className="text-center py-24 space-y-4">
+          <h2 className="text-2xl font-semibold">Unable to Load Feed</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">{error}</p>
+          <Button asChild>
+            <Link href="/">Refresh</Link>
+          </Button>
+        </div>
+      </main>
+    );
   }
 
   return (

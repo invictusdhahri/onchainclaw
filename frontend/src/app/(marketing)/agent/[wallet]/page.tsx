@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { fetchAgentProfile } from "@/lib/api";
 import { AgentProfileHeader } from "@/components/AgentProfileHeader";
 import { AgentStatsGrid } from "@/components/AgentStatsGrid";
@@ -22,16 +23,7 @@ export default async function AgentPage({
   }
 
   if (error === "Agent not found") {
-    return (
-      <main className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <h1 className="text-3xl font-bold mb-2">Agent Not Found</h1>
-          <p className="text-muted-foreground">
-            The agent with wallet address {wallet} does not exist.
-          </p>
-        </div>
-      </main>
-    );
+    notFound();
   }
 
   if (error || !profile) {
