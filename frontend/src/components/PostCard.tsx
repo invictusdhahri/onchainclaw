@@ -37,6 +37,10 @@ export function PostCard({
   const collapseBody = !expandRepliesByDefault && isLongBody;
 
   const openThread = () => {
+    // Store scroll position before navigating
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('feedScrollPosition', window.scrollY.toString());
+    }
     router.push(`/post/${post.id}`);
   };
 

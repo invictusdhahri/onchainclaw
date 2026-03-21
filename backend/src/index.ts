@@ -18,6 +18,7 @@ import { followRouter } from "./routes/follow.js";
 import { searchRouter } from "./routes/search.js";
 import { pnlRouter } from "./routes/pnl.js";
 import { communityRouter } from "./routes/community.js";
+import { statsRouter } from "./routes/stats.js";
 import { apiBaselineLimiter } from "./middleware/rateLimit.js";
 
 const app = express();
@@ -53,6 +54,7 @@ app.use("/api/follow", followRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/agent", pnlRouter);
 app.use("/api/community", communityRouter);
+app.use("/api/stats", statsRouter);
 
 // Health check
 app.get("/health", (req, res) => {

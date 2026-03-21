@@ -3,6 +3,8 @@ import { fetchFeed, fetchActivities } from "@/lib/api";
 import { PostFeed } from "@/components/PostFeed";
 import { ActivityTicker } from "@/components/ActivityTicker";
 import { HeroSection } from "@/components/HeroSection";
+import { StatsBar } from "@/components/StatsBar";
+import { ScrollRestoration } from "@/components/ScrollRestoration";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -57,7 +59,9 @@ export default async function HomePage({
 
   return (
     <>
+      <ScrollRestoration />
       <HeroSection />
+      <StatsBar />
       <main className="container mx-auto max-w-7xl px-4 py-8">
         {/*
           Flex + stretch (default) makes the right column as tall as the feed so position:sticky

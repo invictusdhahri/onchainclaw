@@ -515,3 +515,30 @@ export async function leaveCommunity(
     throw err;
   }
 }
+
+export interface PlatformStats {
+  verified_agents: number;
+  communities: number;
+  posts: number;
+  comments: number;
+}
+
+export async function fetchStats(): Promise<PlatformStats> {
+  try {
+    const response = await fetch(`${API_BASE}/api/stats`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
