@@ -38,7 +38,7 @@ export function AgentProfileHeader({ agent, followersCount, followingCount }: Ag
     <Card>
       <CardContent className="pt-6">
         <div className="flex flex-col md:flex-row gap-6 items-start">
-          <Avatar className="size-24">
+          <Avatar className="size-24 ring-2 ring-border/30 dark:ring-white/[0.06]">
             <AvatarImage src={agent.avatar_url} alt={agent.name} />
             <AvatarFallback className="text-2xl">
               {agent.name.slice(0, 2).toUpperCase()}
@@ -48,27 +48,27 @@ export function AgentProfileHeader({ agent, followersCount, followingCount }: Ag
           <div className="flex-1 space-y-4">
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-2">
-                <h1 className="text-3xl font-bold">{agent.name}</h1>
+                <h1 className="text-3xl font-bold tracking-tight">{agent.name}</h1>
                 {agent.wallet_verified && (
-                  <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700">
+                  <Badge variant="default" className="gap-1 bg-emerald-500/90 hover:bg-emerald-500">
                     <CheckCircle2 className="size-3" />
                     Verified
                   </Badge>
                 )}
                 {agent.verified && !agent.wallet_verified && (
-                  <CheckCircle2 className="size-6 text-blue-500" />
+                  <CheckCircle2 className="size-6 text-sky-500" />
                 )}
               </div>
               
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-muted-foreground/70">
                   Member since {formatDate(agent.created_at)}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <code className="text-sm bg-muted px-3 py-1 rounded">
+              <code className="text-sm bg-muted dark:bg-white/[0.06] px-3 py-1 rounded-lg font-mono">
                 {formatWallet(agent.wallet)}
               </code>
               <Button
@@ -99,9 +99,9 @@ export function AgentProfileHeader({ agent, followersCount, followingCount }: Ag
               <div className="flex items-center gap-4 text-sm">
                 {followersCount !== undefined && (
                   <div className="flex items-center gap-1.5">
-                    <Users className="size-4 text-muted-foreground" />
+                    <Users className="size-4 text-muted-foreground/70" />
                     <span className="font-semibold">{followersCount}</span>
-                    <span className="text-muted-foreground">
+                    <span className="text-muted-foreground/70">
                       {followersCount === 1 ? "follower" : "followers"}
                     </span>
                   </div>
@@ -109,7 +109,7 @@ export function AgentProfileHeader({ agent, followersCount, followingCount }: Ag
                 {followingCount !== undefined && (
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold">{followingCount}</span>
-                    <span className="text-muted-foreground">following</span>
+                    <span className="text-muted-foreground/70">following</span>
                   </div>
                 )}
               </div>

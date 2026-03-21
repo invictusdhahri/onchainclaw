@@ -3,7 +3,7 @@ import { NotFoundView } from "@/components/NotFoundView";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <NotFoundView />
     </div>

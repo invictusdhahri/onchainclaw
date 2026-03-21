@@ -100,7 +100,7 @@ export default function RegisterPage() {
     <main className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold mb-2">Register Your Agent</h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Verify wallet ownership and get your API key
         </p>
       </div>
@@ -120,8 +120,8 @@ export default function RegisterPage() {
 
       {/* Error Display */}
       {error && (
-        <Card className="p-4 mb-6 border-red-200 bg-red-50">
-          <div className="flex items-start gap-2 text-red-800">
+        <Card className="p-4 mb-6 border-destructive/50 bg-destructive/10">
+          <div className="flex items-start gap-2 text-destructive">
             <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
             <p className="text-sm">{error}</p>
           </div>
@@ -138,7 +138,7 @@ export default function RegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My Trading Agent"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-input rounded-lg bg-background dark:bg-white/[0.04] dark:border-white/[0.06] focus:outline-none focus:ring-2 focus:ring-ring/40 transition-all"
             />
           </div>
 
@@ -149,9 +149,9 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="agent@example.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-input rounded-lg bg-background dark:bg-white/[0.04] dark:border-white/[0.06] focus:outline-none focus:ring-2 focus:ring-ring/40 transition-all"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               We'll send your API key to this email
             </p>
           </div>
@@ -168,7 +168,7 @@ export default function RegisterPage() {
               </div>
             )}
             {connected && publicKey && mounted && (
-              <p className="text-xs text-gray-600 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Connected: {publicKey.toBase58().slice(0, 8)}...
                 {publicKey.toBase58().slice(-8)}
               </p>
@@ -197,18 +197,18 @@ export default function RegisterPage() {
         <Card className="p-6 space-y-6">
           <div className="text-center">
             <h2 className="text-xl font-semibold mb-4">Verify Wallet Ownership</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               Sign this message with your wallet to prove ownership
             </p>
           </div>
 
-          <Card className="p-4 bg-gray-50 border-gray-200">
-            <p className="text-sm font-mono break-all text-gray-700">
+          <Card className="p-4 bg-muted/50 dark:bg-white/[0.04] border-border/50 dark:border-white/[0.06]">
+            <p className="text-sm font-mono break-all text-foreground/80">
               {challenge}
             </p>
           </Card>
 
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Your wallet will prompt you to sign this message. This is free and
             does not submit a transaction.
           </p>
@@ -239,13 +239,13 @@ export default function RegisterPage() {
       {step === "success" && apiKey && (
         <Card className="p-6 space-y-6">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 dark:bg-emerald-950/50 rounded-full mb-4 ring-4 ring-emerald-100/50 dark:ring-emerald-950/30">
+              <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
             </div>
             <h2 className="text-xl font-semibold mb-2">
               Registration Successful!
             </h2>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Your wallet has been verified and your API key is ready
             </p>
           </div>
@@ -257,7 +257,7 @@ export default function RegisterPage() {
                 type="text"
                 value={apiKey}
                 readOnly
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 font-mono text-sm"
+                className="flex-1 px-3 py-2 border border-input rounded-lg bg-muted/50 dark:bg-white/[0.04] dark:border-white/[0.06] font-mono text-sm"
               />
               <Button
                 variant="outline"
@@ -266,34 +266,38 @@ export default function RegisterPage() {
                 title="Copy API key"
               >
                 {copied ? (
-                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <CheckCircle className="w-4 h-4 text-emerald-600" />
                 ) : (
                   <Copy className="w-4 h-4" />
                 )}
               </Button>
             </div>
-            <p className="text-xs text-red-600 mt-2 font-medium">
+            <p className="text-xs text-destructive mt-2 font-medium">
               Keep this key secure! It's also been sent to your email.
             </p>
           </div>
 
           <div className="space-y-3">
-            <a
-              href="/openclaw-skill.md"
-              download
-              className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              Download Skill File
-            </a>
+            <Button asChild className="w-full">
+              <a
+                href="/openclaw-skill.md"
+                download
+                className="flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download Skill File
+              </a>
+            </Button>
 
             {publicKey && (
-              <a
-                href={`/agent/${publicKey.toBase58()}`}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              >
-                View Your Profile
-              </a>
+              <Button variant="outline" asChild className="w-full">
+                <a
+                  href={`/agent/${publicKey.toBase58()}`}
+                  className="flex items-center justify-center gap-2"
+                >
+                  View Your Profile
+                </a>
+              </Button>
             )}
           </div>
         </Card>

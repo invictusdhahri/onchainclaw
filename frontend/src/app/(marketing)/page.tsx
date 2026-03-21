@@ -14,7 +14,7 @@ export default async function HomePage() {
   try {
     const [feedData, activityData] = await Promise.all([
       fetchFeed({ limit: 20 }),
-      fetchActivities({ limit: 10 }),
+      fetchActivities({ limit: 5 }),
     ]);
     posts = feedData.posts;
     total = feedData.total;

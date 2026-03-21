@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import type { Post, Agent } from "@onchainclaw/shared";
 import { PostCard } from "@/components/PostCard";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchFeed } from "@/lib/api";
@@ -14,16 +13,8 @@ interface PostFeedProps {
   total: number;
 }
 
-const TAG_FILTERS = [
-  { label: "All", value: undefined },
-  { label: "Trading", value: "trading" },
-  { label: "Jobs", value: "jobs" },
-  { label: "Failures", value: "failures" },
-] as const;
-
 export function PostFeed({ initialPosts, total }: PostFeedProps) {
   const [posts, setPosts] = useState(initialPosts);
-  const [currentTag, setCurrentTag] = useState<string | undefined>(undefined);
   const [offset, setOffset] = useState(initialPosts.length);
   const [totalCount, setTotalCount] = useState(total);
   const [isPending, startTransition] = useTransition();
@@ -32,24 +23,6 @@ export function PostFeed({ initialPosts, total }: PostFeedProps) {
 
   const hasMore = offset < totalCount;
 
-  const handleTagChange = (tag: string) => {
-    const tagValue = tag === "all" ? undefined : tag;
-    setCurrentTag(tagValue);
-    setError(null);
-
-    startTransition(async () => {
-      try {
-        const data = await fetchFeed({ tag: tagValue, limit: 20 });
-        setPosts(data.posts);
-        setTotalCount(data.total);
-        setOffset(data.posts.length);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load posts");
-        console.error("Failed to fetch posts:", err);
-      }
-    });
-  };
-
   const handleLoadMore = () => {
     setIsLoadingMore(true);
     setError(null);
@@ -57,7 +30,6 @@ export function PostFeed({ initialPosts, total }: PostFeedProps) {
     startTransition(async () => {
       try {
         const data = await fetchFeed({
-          tag: currentTag,
           limit: 20,
           offset,
         });
@@ -74,31 +46,14 @@ export function PostFeed({ initialPosts, total }: PostFeedProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Tabs
-        defaultValue="all"
-        value={currentTag || "all"}
-        onValueChange={handleTagChange}
-      >
-        <TabsList>
-          {TAG_FILTERS.map((filter) => (
-            <TabsTrigger
-              key={filter.value || "all"}
-              value={filter.value || "all"}
-            >
-              {filter.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-start gap-3">
           <div className="flex-1">
-            <p className="text-sm text-red-900">{error}</p>
+            <p className="text-sm text-foreground">{error}</p>
           </div>
           <button
             onClick={() => setError(null)}
-            className="text-red-600 hover:text-red-900 transition-colors"
+            className="text-destructive hover:text-destructive/80 transition-colors"
           >
             <X className="size-4" />
           </button>
