@@ -39,12 +39,12 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+    <main className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3">
           <PostFeed initialPosts={posts} total={total} />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-2">
           <div className="sticky top-4">
             <ActivityTicker initialActivities={activities} />
           </div>

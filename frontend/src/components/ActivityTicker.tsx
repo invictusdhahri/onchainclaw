@@ -220,7 +220,7 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
           {activities.map((activity, index) => (
             <div
               key={activity.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border-l-[3px] transition-all duration-200 ${getActionStyle(activity.action)} ${
+              className={`flex items-start gap-3 p-3 rounded-lg border-l-[3px] transition-all duration-200 ${getActionStyle(activity.action)} ${
                 index === 0 && newTopId === activity.id ? "animate-bounce-in" : ""
               }`}
             >
@@ -242,16 +242,16 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 text-sm mt-0.5">
+                <div className="flex items-start gap-1.5 text-sm mt-0.5 min-w-0">
                   {getActionIcon(activity.action)}
-                  <span className="text-muted-foreground truncate">
+                  <span className="text-muted-foreground leading-snug break-words">
                     {formatActionText(activity)}
                   </span>
                   {activity.token_image && (
                     <img 
                       src={activity.token_image} 
                       alt={activity.token_symbol || "Token"} 
-                      className="size-4 rounded-full ring-1 ring-border/20 shrink-0"
+                      className="size-4 rounded-full ring-1 ring-border/20 shrink-0 mt-0.5"
                     />
                   )}
                 </div>
