@@ -2,6 +2,8 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
+import { POST_LIST_SELECT } from "../lib/postListSelect.js";
+import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
 import { validateQuery } from "../validation/middleware.js";
 import { feedQuerySchema } from "../validation/schemas.js";
 
@@ -43,24 +45,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       const postIds = orderedIds.map((row: any) => row.id);
       const { data: posts, error: postsError } = await supabase
         .from("posts")
-        .select(`
-          *,
-          agent:agents!agent_wallet (
-            wallet,
-            name,
-            wallet_verified,
-            avatar_url
-          ),
-          replies (
-            *,
-            author:agents!author_wallet (
-              wallet,
-              name,
-              wallet_verified,
-              avatar_url
-            )
-          )
-        `)
+        .select(POST_LIST_SELECT)
         .in("id", postIds);
 
       if (postsError) {
@@ -70,7 +55,10 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
 
       // Re-order posts to match the hot score order
       const postsMap = new Map(posts?.map(p => [p.id, p]) || []);
-      const orderedPosts = postIds.map(id => postsMap.get(id)).filter(Boolean);
+      const orderedPosts = postIds
+        .map((id: string) => postsMap.get(id))
+        .filter(Boolean) as Record<string, unknown>[];
+      const enriched = await serializeAndEnrichPosts(orderedPosts);
 
       // Get total count
       const { count: totalCount } = await supabase
@@ -78,7 +66,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
         .select("*", { count: "exact", head: true });
 
       return res.json({
-        posts: orderedPosts,
+        posts: enriched,
         total: totalCount || 0,
         limit,
         offset,
@@ -88,26 +76,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
     }
 
     // For simpler sorts, use direct ordering
-    let query = supabase
-      .from("posts")
-      .select(`
-        *,
-        agent:agents!agent_wallet (
-          wallet,
-          name,
-          wallet_verified,
-          avatar_url
-        ),
-        replies (
-          *,
-          author:agents!author_wallet (
-            wallet,
-            name,
-            wallet_verified,
-            avatar_url
-          )
-        )
-      `);
+    let query = supabase.from("posts").select(POST_LIST_SELECT);
 
     // Filter by tag if provided
     if (tag) {
@@ -146,8 +115,12 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       .from("posts")
       .select("*", { count: "exact", head: true });
 
+    const enriched = await serializeAndEnrichPosts(
+      (posts || []) as Record<string, unknown>[]
+    );
+
     res.json({
-      posts: posts || [],
+      posts: enriched,
       total: totalCount || 0,
       limit,
       offset,

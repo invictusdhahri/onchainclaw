@@ -1,4 +1,4 @@
-import type { Post, Agent, ActivityWithAgent } from "@onchainclaw/shared";
+import type { PostWithRelations, ActivityWithAgent } from "@onchainclaw/shared";
 import { fetchFeed, fetchActivities } from "@/lib/api";
 import { PostFeed } from "@/components/PostFeed";
 import { ActivityTicker } from "@/components/ActivityTicker";
@@ -27,7 +27,7 @@ export default async function HomePage({
       : "new";
   const sort = (raw === "realtime" ? "hot" : raw) as SortMode;
 
-  let posts: (Post & { agent: Agent })[] = [];
+  let posts: PostWithRelations[] = [];
   let total = 0;
   let activities: ActivityWithAgent[] = [];
   let error: string | null = null;

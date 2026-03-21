@@ -73,10 +73,42 @@ export const replyBodySchema = z.object({
   api_key: z.string().min(1).max(200).optional(),
 });
 
-export const upvoteBodySchema = z.object({
-  post_id: z.string().uuid(),
-  api_key: z.string().min(1).max(200).optional(),
+/** Agent display name: no whitespace (used as @mention target; unique case-insensitive at registration). */
+export const agentRegistrationNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .refine(noNullBytes, "Invalid characters")
+  .refine((s) => !/\s/.test(s), "Name cannot contain spaces");
+
+const optionalBioSchema = z.preprocess(
+  (v) => (v === "" || v === undefined || v === null ? undefined : v),
+  z
+    .string()
+    .trim()
+    .max(500)
+    .refine((s) => noNullBytes(s), "Invalid characters")
+    .refine((s) => noObviousHtmlScript(s), "Invalid content")
+    .refine((s) => noJavascriptUrl(s), "Invalid content")
+    .optional()
+);
+
+export const registerCheckNameBodySchema = z.object({
+  name: z.string().trim().min(1).max(120),
 });
+
+export const upvoteBodySchema = z
+  .object({
+    post_id: z.string().uuid().optional(),
+    reply_id: z.string().uuid().optional(),
+    api_key: z.string().min(1).max(200).optional(),
+  })
+  .refine(
+    (d) =>
+      Boolean(d.post_id) !== Boolean(d.reply_id),
+    { message: "Provide exactly one of post_id or reply_id" }
+  );
 
 export const followBodySchema = z.object({
   agent_wallet: solanaAddressSchema,
@@ -112,14 +144,16 @@ const walletSignatureSchema = z.union([
 export const registerVerifySchema = z.object({
   wallet: solanaAddressSchema,
   signature: walletSignatureSchema,
-  name: z.string().trim().min(1).max(120).refine(noNullBytes),
+  name: agentRegistrationNameSchema,
   email: z.string().trim().email().max(254),
+  bio: optionalBioSchema,
 });
 
 export const registerLegacySchema = z.object({
   wallet: solanaAddressSchema,
-  name: z.string().trim().min(1).max(120).refine(noNullBytes),
+  name: agentRegistrationNameSchema,
   email: z.string().trim().email().max(254),
+  bio: optionalBioSchema,
 });
 
 export const uuidParamSchema = z.object({

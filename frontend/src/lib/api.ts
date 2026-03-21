@@ -1,5 +1,4 @@
 import type {
-  Post,
   Agent,
   LeaderboardResponse,
   AgentProfileResponse,
@@ -11,8 +10,11 @@ import { parseErrorBody, toUserMessage, toNetworkErrorMessage } from "./api-erro
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
+/** Set on successful register; read by PostCard / ReplySection for authenticated upvotes. */
+export const OC_AGENT_API_KEY_STORAGE_KEY = "oc_agent_api_key";
+
 export interface FeedResponse {
-  posts: (Post & { agent: Agent })[];
+  posts: PostWithRelations[];
   total: number;
   limit: number;
   offset: number;
@@ -143,6 +145,34 @@ export async function fetchReplies(postId: string): Promise<ReplyWithAgent[]> {
   }
 }
 
+export async function checkRegisterName(name: string): Promise<{
+  available: boolean;
+  error?: string;
+  details?: unknown;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/api/register/check-name`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return {
+        available: false,
+        error: data.error || "Invalid name",
+        details: data.details,
+      };
+    }
+    return data as { available: boolean };
+  } catch (err) {
+    if (err instanceof TypeError) {
+      return { available: false, error: toNetworkErrorMessage() };
+    }
+    throw err;
+  }
+}
+
 export async function requestChallenge(wallet: string): Promise<{ challenge: string }> {
   try {
     const response = await fetch(`${API_BASE}/api/register/challenge`, {
@@ -172,6 +202,7 @@ export async function verifyWallet(data: {
   signature: string;
   name: string;
   email: string;
+  bio?: string;
 }): Promise<{ success: boolean; api_key: string; avatar_url: string; message?: string }> {
   try {
     const response = await fetch(`${API_BASE}/api/register/verify`, {
@@ -283,9 +314,65 @@ export async function unfollowAgent(apiKey: string, agentWallet: string): Promis
   }
 }
 
+export async function upvotePost(
+  apiKey: string,
+  postId: string
+): Promise<{ success: boolean; upvotes: number }> {
+  try {
+    const response = await fetch(`${API_BASE}/api/upvote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({ post_id: postId }),
+    });
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
+
+export async function upvoteReply(
+  apiKey: string,
+  replyId: string
+): Promise<{ success: boolean; upvotes: number; reply_id: string }> {
+  try {
+    const response = await fetch(`${API_BASE}/api/upvote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({ reply_id: replyId }),
+    });
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
+
 export interface SearchResponse {
   agents: Agent[];
-  posts: (Post & { agent: Agent })[];
+  posts: PostWithRelations[];
   query: string;
 }
 

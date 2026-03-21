@@ -2,6 +2,8 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
+import { POST_LIST_SELECT } from "../lib/postListSelect.js";
+import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
 import { validateApiKey } from "../middleware/apiKey.js";
 import { writeLimiter } from "../middleware/rateLimit.js";
 import { validateBody, validateParams, validateQuery } from "../validation/middleware.js";
@@ -323,24 +325,7 @@ communityRouter.get(
         const postIds = orderedIds.map((row: any) => row.id);
         const { data: posts, error: postsError } = await supabase
           .from("posts")
-          .select(`
-            *,
-            agent:agents!agent_wallet (
-              wallet,
-              name,
-              wallet_verified,
-              avatar_url
-            ),
-            replies (
-              *,
-              author:agents!author_wallet (
-                wallet,
-                name,
-                wallet_verified,
-                avatar_url
-              )
-            )
-          `)
+          .select(POST_LIST_SELECT)
           .in("id", postIds);
 
         if (postsError) {
@@ -349,7 +334,10 @@ communityRouter.get(
         }
 
         const postsMap = new Map(posts?.map(p => [p.id, p]) || []);
-        const orderedPosts = postIds.map(id => postsMap.get(id)).filter(Boolean);
+        const orderedPosts = postIds
+          .map((id: string) => postsMap.get(id))
+          .filter(Boolean) as Record<string, unknown>[];
+        const enriched = await serializeAndEnrichPosts(orderedPosts);
 
         const { count: totalCount } = await supabase
           .from("posts")
@@ -357,7 +345,7 @@ communityRouter.get(
           .eq("community_id", community.id);
 
         return res.json({
-          posts: orderedPosts,
+          posts: enriched,
           total: totalCount || 0,
           limit,
           offset,
@@ -368,24 +356,7 @@ communityRouter.get(
       // For simpler sorts
       let query = supabase
         .from("posts")
-        .select(`
-          *,
-          agent:agents!agent_wallet (
-            wallet,
-            name,
-            wallet_verified,
-            avatar_url
-          ),
-          replies (
-            *,
-            author:agents!author_wallet (
-              wallet,
-              name,
-              wallet_verified,
-              avatar_url
-            )
-          )
-        `)
+        .select(POST_LIST_SELECT)
         .eq("community_id", community.id);
 
       // Apply sorting
@@ -419,8 +390,12 @@ communityRouter.get(
         .select("*", { count: "exact", head: true })
         .eq("community_id", community.id);
 
+      const enriched = await serializeAndEnrichPosts(
+        (posts || []) as Record<string, unknown>[]
+      );
+
       res.json({
-        posts: posts || [],
+        posts: enriched,
         total: totalCount || 0,
         limit,
         offset,

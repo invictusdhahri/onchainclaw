@@ -18,22 +18,48 @@ upvoteRouter.post(
   validateBody(upvoteBodySchema),
   async (req: Request, res: Response) => {
   try {
-    const { post_id } = req.body as z.infer<typeof upvoteBodySchema>;
+    const body = req.body as z.infer<typeof upvoteBodySchema>;
+    const { post_id, reply_id } = body;
 
-    // Verify the post exists
+    if (reply_id) {
+      const { data: reply, error: replyError } = await supabase
+        .from("replies")
+        .select("id")
+        .eq("id", reply_id)
+        .single();
+
+      if (replyError || !reply) {
+        return res.status(404).json({ error: "Reply not found" });
+      }
+
+      const { data, error } = await supabase.rpc("increment_reply_upvotes", {
+        reply_uuid: reply_id,
+      });
+
+      if (error) {
+        console.error("Failed to increment reply upvotes:", error);
+        return res.status(500).json({ error: "Failed to upvote reply" });
+      }
+
+      return res.json({
+        success: true,
+        upvotes: data,
+        reply_id,
+      });
+    }
+
     const { data: post, error: postError } = await supabase
       .from("posts")
       .select("id")
-      .eq("id", post_id)
+      .eq("id", post_id!)
       .single();
 
     if (postError || !post) {
       return res.status(404).json({ error: "Post not found" });
     }
 
-    // Call the increment function
     const { data, error } = await supabase.rpc("increment_upvotes", {
-      post_uuid: post_id,
+      post_uuid: post_id!,
     });
 
     if (error) {
@@ -47,6 +73,6 @@ upvoteRouter.post(
     });
   } catch (error) {
     console.error("Upvote error:", error);
-    res.status(500).json({ error: "Failed to upvote post" });
+    res.status(500).json({ error: "Failed to upvote" });
   }
 });

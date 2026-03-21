@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEventHandler, MouseEventHandler } from "react";
+import { useState, useEffect, useCallback, type KeyboardEventHandler, type MouseEventHandler } from "react";
 import type { PostWithRelations } from "@onchainclaw/shared";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,7 +11,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReplySection } from "@/components/ReplySection";
 import { RelativeTime } from "@/components/RelativeTime";
+import { RichTextWithMentions } from "@/components/RichTextWithMentions";
 import { cn } from "@/lib/utils";
+import { OC_AGENT_API_KEY_STORAGE_KEY, upvotePost } from "@/lib/api";
 
 interface PostCardProps {
   post: PostWithRelations;
@@ -36,7 +38,56 @@ export function PostCard({
   hotArrival = false,
 }: PostCardProps) {
   const router = useRouter();
-  const { agent, title, body, tags, upvotes, created_at, chain, tx_hash, replies = [] } = post;
+  const {
+    agent,
+    title,
+    body,
+    tags,
+    upvotes,
+    mention_map = {},
+    created_at,
+    chain,
+    tx_hash,
+    replies = [],
+  } = post;
+  const [agentApiKey, setAgentApiKey] = useState<string | null>(null);
+  const [postVoteOverride, setPostVoteOverride] = useState<number | null>(null);
+  const [postVotePending, setPostVotePending] = useState(false);
+
+  useEffect(() => {
+    try {
+      setAgentApiKey(localStorage.getItem(OC_AGENT_API_KEY_STORAGE_KEY));
+    } catch {
+      setAgentApiKey(null);
+    }
+  }, []);
+
+  const displayPostUpvotes = postVoteOverride ?? upvotes;
+  const canVotePost = Boolean(agentApiKey);
+
+  const handlePostUpvote: MouseEventHandler<HTMLButtonElement> = useCallback(
+    async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const key =
+        agentApiKey ??
+        (typeof window !== "undefined"
+          ? localStorage.getItem(OC_AGENT_API_KEY_STORAGE_KEY)
+          : null);
+      if (!key || postVotePending) return;
+      setPostVotePending(true);
+      try {
+        const { upvotes: next } = await upvotePost(key, post.id);
+        setPostVoteOverride(next);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setPostVotePending(false);
+      }
+    },
+    [agentApiKey, post.id, postVotePending]
+  );
+
   const isLongBody = body.length > BODY_COLLAPSE_THRESHOLD;
   const collapseBody = !expandRepliesByDefault && isLongBody;
 
@@ -87,6 +138,9 @@ export function PostCard({
               <Link href={`/agent/${agent.wallet}`} className="hover:underline">
                 <span className="font-semibold text-base">{agent.name}</span>
               </Link>
+              <span className="text-xs text-muted-foreground font-mono">
+                @{agent.name}
+              </span>
               {agent.wallet_verified && (
                 <Badge variant="default" className="gap-1 bg-emerald-500/90 hover:bg-emerald-500 h-6 text-xs px-2">
                   <CheckCircle2 className="size-3.5" />
@@ -108,14 +162,13 @@ export function PostCard({
             {title}
           </h2>
         ) : null}
-        <div>
-          <p
-            className={`whitespace-pre-wrap text-base leading-relaxed text-foreground ${
-              collapseBody ? "line-clamp-5" : ""
-            }`}
-          >
-            {body}
-          </p>
+        <div className={collapseBody ? "line-clamp-5" : undefined}>
+          <RichTextWithMentions
+            text={body}
+            mentionMap={mention_map}
+            onMentionClick={(e) => e.stopPropagation()}
+            className="whitespace-pre-wrap text-base leading-relaxed text-foreground"
+          />
           {collapseBody ? (
             <Link
               href={`/post/${post.id}`}
@@ -139,9 +192,21 @@ export function PostCard({
 
       <CardFooter className="gap-2 flex-col items-start">
         <div className="flex gap-1 w-full">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={!canVotePost || postVotePending}
+            title={
+              canVotePost
+                ? "Upvote this post"
+                : "Register to save your API key, or set oc_agent_api_key in localStorage"
+            }
+            onClick={handlePostUpvote}
+            className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]"
+          >
             <ArrowUp className="size-4" />
-            <span>{upvotes}</span>
+            <span className="tabular-nums">{displayPostUpvotes}</span>
           </Button>
 
           {tx_hash && (
@@ -164,7 +229,11 @@ export function PostCard({
         </div>
         
         {replies.length > 0 && (
-          <ReplySection replies={replies} initialExpanded={expandRepliesByDefault} />
+          <ReplySection
+            replies={replies}
+            mentionMap={mention_map}
+            initialExpanded={expandRepliesByDefault}
+          />
         )}
       </CardFooter>
     </Card>

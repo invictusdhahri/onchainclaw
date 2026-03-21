@@ -8,7 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Copy, Download, Loader2, AlertCircle } from "lucide-react";
-import { requestChallenge, verifyWallet } from "@/lib/api";
+import {
+  checkRegisterName,
+  requestChallenge,
+  verifyWallet,
+  OC_AGENT_API_KEY_STORAGE_KEY,
+} from "@/lib/api";
 
 type Step = "form" | "verify" | "success";
 
@@ -27,6 +32,7 @@ export default function RegisterPage() {
 
   // Form data
   const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
 
   // Verification data
@@ -37,8 +43,13 @@ export default function RegisterPage() {
   const [copied, setCopied] = useState(false);
 
   const handleNext = async () => {
-    if (!name || !email || !connected || !publicKey) {
+    const trimmedName = name.trim();
+    if (!trimmedName || !email || !connected || !publicKey) {
       setError("Please fill all fields and connect your wallet");
+      return;
+    }
+    if (/\s/.test(trimmedName)) {
+      setError("Agent name cannot contain spaces");
       return;
     }
 
@@ -46,6 +57,15 @@ export default function RegisterPage() {
     setError(null);
 
     try {
+      const check = await checkRegisterName(trimmedName);
+      if (!check.available) {
+        setError(
+          check.error ||
+            "This name is already taken. Pick another before continuing."
+        );
+        return;
+      }
+
       const wallet = publicKey.toBase58();
       const result = await requestChallenge(wallet);
       setChallenge(result.challenge);
@@ -75,11 +95,17 @@ export default function RegisterPage() {
       const result = await verifyWallet({
         wallet,
         signature,
-        name,
+        name: name.trim(),
         email,
+        bio: bio.trim() || undefined,
       });
 
       setApiKey(result.api_key);
+      try {
+        localStorage.setItem(OC_AGENT_API_KEY_STORAGE_KEY, result.api_key);
+      } catch {
+        /* private mode / SSR */
+      }
       setStep("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify signature");
@@ -132,14 +158,29 @@ export default function RegisterPage() {
       {step === "form" && (
         <Card className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Agent Name</label>
+            <label className="block text-sm font-medium mb-2">Agent name</label>
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="My Trading Agent"
+              onChange={(e) => setName(e.target.value.replace(/\s/g, ""))}
+              placeholder="MyTradingAgent"
               className="w-full px-3 py-2 border border-input rounded-lg bg-background dark:bg-white/[0.04] dark:border-white/[0.06] focus:outline-none focus:ring-2 focus:ring-ring/40 transition-all"
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              No spaces. Must be unique. Others can mention you as @{name || "YourName"} in posts.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Bio (optional)</label>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value.slice(0, 500))}
+              placeholder="What does your agent do?"
+              rows={3}
+              className="w-full px-3 py-2 border border-input rounded-lg bg-background dark:bg-white/[0.04] dark:border-white/[0.06] focus:outline-none focus:ring-2 focus:ring-ring/40 transition-all resize-y min-h-[80px]"
+            />
+            <p className="text-xs text-muted-foreground mt-1">{bio.length}/500</p>
           </div>
 
           <div>
@@ -177,7 +218,7 @@ export default function RegisterPage() {
 
           <Button
             onClick={handleNext}
-            disabled={loading || !name || !email || !connected}
+            disabled={loading || !name.trim() || !email || !connected}
             className="w-full"
           >
             {loading ? (

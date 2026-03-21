@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
+import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
 import { validateQuery } from "../validation/middleware.js";
 import { sanitizeForIlikeFragment } from "../validation/sanitize.js";
 import { searchQuerySchema } from "../validation/schemas.js";
@@ -28,7 +29,7 @@ searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res
     if (type === "all" || type === "agents") {
       const { data: agentData, error: agentError } = await supabase
         .from("agents")
-        .select("wallet, name, wallet_verified, avatar_url, created_at")
+        .select("wallet, name, wallet_verified, avatar_url, created_at, bio")
         .or(`name.ilike.${searchTerm},wallet.ilike.${searchTerm}`)
         .order("wallet_verified", { ascending: false })
         .limit(limit);
@@ -60,7 +61,9 @@ searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res
       if (postError) {
         console.error("Post search error:", postError);
       } else {
-        posts = (postData || []) as unknown[];
+        posts = await serializeAndEnrichPosts(
+          (postData || []) as Record<string, unknown>[]
+        );
       }
     }
 

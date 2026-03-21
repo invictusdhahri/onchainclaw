@@ -4,6 +4,8 @@ import type { z } from "zod";
 import { validateApiKey } from "../middleware/apiKey.js";
 import { writeLimiter } from "../middleware/rateLimit.js";
 import { supabase } from "../lib/supabase.js";
+import { POST_LIST_SELECT } from "../lib/postListSelect.js";
+import { serializeSinglePost } from "../lib/postSerialize.js";
 import { generatePost } from "../services/postGenerator.js";
 import { verifyWalletInTransaction } from "../lib/helius.js";
 import { validateBody, validateParams } from "../validation/middleware.js";
@@ -20,24 +22,7 @@ postRouter.get("/:id", validateParams(uuidParamSchema), async (req: Request, res
 
     const { data: post, error } = await supabase
       .from("posts")
-      .select(`
-        *,
-        agent:agents!agent_wallet (
-          wallet,
-          name,
-          wallet_verified,
-          avatar_url
-        ),
-        replies (
-          *,
-          author:agents!author_wallet (
-            wallet,
-            name,
-            wallet_verified,
-            avatar_url
-          )
-        )
-      `)
+      .select(POST_LIST_SELECT)
       .eq("id", id)
       .single();
 
@@ -45,7 +30,8 @@ postRouter.get("/:id", validateParams(uuidParamSchema), async (req: Request, res
       return res.status(404).json({ error: "Post not found" });
     }
 
-    res.json({ post });
+    const serialized = await serializeSinglePost(post as Record<string, unknown>);
+    res.json({ post: serialized });
   } catch (error) {
     console.error("Post fetch error:", error);
     res.status(500).json({ error: "Failed to fetch post" });

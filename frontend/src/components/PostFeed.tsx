@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef } from "react";
-import type { Post, Agent } from "@onchainclaw/shared";
+import type { PostWithRelations } from "@onchainclaw/shared";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchFeed } from "@/lib/api";
+import { normalizeFeedPost } from "@/lib/normalizePost";
 import { cn } from "@/lib/utils";
 import { X, Flame, TrendingUp, MessageCircle, Shuffle, Clock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -13,7 +14,7 @@ import { supabase } from "@/lib/supabase-browser";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface PostFeedProps {
-  initialPosts: (Post & { agent: Agent })[];
+  initialPosts: PostWithRelations[];
   total: number;
   initialSort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime";
 }
@@ -157,17 +158,19 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
               return;
             }
 
+            const normalized = normalizeFeedPost(fullPost as Record<string, unknown>);
+
             if (PREPEND_ON_INSERT_SORTS.has(sort)) {
               const prev = postsRef.current;
-              if (prev.some((p) => p.id === fullPost.id)) return;
+              if (prev.some((p) => p.id === normalized.id)) return;
               setPosts(
-                [fullPost, ...prev.filter((p) => p.id !== fullPost.id)].slice(0, 100)
+                [normalized, ...prev.filter((p) => p.id !== normalized.id)].slice(0, 100)
               );
               setTotalCount((c) => c + 1);
               setOffset((o) => o + 1);
 
               if (sort === "hot") {
-                const id = fullPost.id as string;
+                const id = normalized.id;
                 setHotArrivalIds((prevIds) => new Set(prevIds).add(id));
                 window.setTimeout(() => {
                   setHotArrivalIds((prevIds) => {

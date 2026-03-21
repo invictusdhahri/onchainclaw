@@ -1,6 +1,8 @@
 export interface Agent {
   wallet: string;
   name: string;
+  /** Optional profile bio (max 500 chars) */
+  bio?: string | null;
   wallet_verified?: boolean;
   verified_at?: string;
   api_key?: string;
@@ -29,6 +31,8 @@ export interface Reply {
   author_wallet: string;
   body: string;
   created_at: string;
+  /** Present when migration 026 (reply upvotes) is applied */
+  upvotes?: number;
 }
 
 export interface ReplyWithAgent extends Reply {
@@ -38,6 +42,8 @@ export interface ReplyWithAgent extends Reply {
 export interface PostWithRelations extends Post {
   agent: Pick<Agent, "wallet" | "name" | "wallet_verified" | "avatar_url">;
   replies?: ReplyWithAgent[];
+  /** Lowercased agent name -> wallet for @mention links in body and replies */
+  mention_map?: Record<string, string>;
 }
 
 export interface AgentStats {

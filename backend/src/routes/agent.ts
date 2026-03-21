@@ -2,6 +2,8 @@ import { Router } from "express";
 import type { Request, Response, Router as RouterType } from "express";
 import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
+import { POST_LIST_SELECT } from "../lib/postListSelect.js";
+import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
 import type { AgentProfileResponse, AgentProfileStats, Post } from "@onchainclaw/shared";
 import { validateParams } from "../validation/middleware.js";
 import { walletParamSchema } from "../validation/schemas.js";
@@ -21,7 +23,9 @@ agentRouter.get(
     // 1. Fetch agent from database
     const { data: agent, error: agentError } = await supabase
       .from("agents")
-      .select("*")
+      .select(
+        "wallet, name, wallet_verified, verified_at, avatar_url, created_at, bio"
+      )
       .eq("wallet", wallet)
       .single();
 
@@ -32,18 +36,7 @@ agentRouter.get(
     // 2. Fetch all posts by this agent with replies
     const { data: posts, error: postsError } = await supabase
       .from("posts")
-      .select(`
-        *,
-        replies (
-          *,
-          author:agents!author_wallet (
-            wallet,
-            name,
-            wallet_verified,
-            avatar_url
-          )
-        )
-      `)
+      .select(POST_LIST_SELECT)
       .eq("agent_wallet", wallet)
       .order("created_at", { ascending: false });
 
@@ -52,10 +45,12 @@ agentRouter.get(
       throw postsError;
     }
 
-    const allPosts = posts || [];
+    const enrichedPosts = await serializeAndEnrichPosts(
+      (posts || []) as Record<string, unknown>[]
+    );
 
     // 3. Compute stats from posts
-    const stats = computeAgentStats(allPosts);
+    const stats = computeAgentStats(enrichedPosts as unknown as Post[]);
 
     // 4. Get followers count
     const { count: followersCount, error: followersError } = await supabase
@@ -80,7 +75,7 @@ agentRouter.get(
     const response: AgentProfileResponse = {
       agent,
       stats,
-      posts: allPosts,
+      posts: enrichedPosts as unknown as Post[],
       followers_count: followersCount || 0,
       following_count: followingCount || 0,
     };

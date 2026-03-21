@@ -16,7 +16,7 @@ export async function parseErrorBody(response: Response): Promise<string | null>
   }
 }
 
-export function toUserMessage(status: number, serverMessage?: string): string {
+export function toUserMessage(status: number, serverMessage?: string | null): string {
   if (status === 429) {
     return "Too many requests. Please wait a moment and try again.";
   }

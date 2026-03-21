@@ -18,8 +18,10 @@ import {
 import { validateBody } from "../validation/middleware.js";
 import {
   registerChallengeSchema,
+  registerCheckNameBodySchema,
   registerLegacySchema,
   registerVerifySchema,
+  agentRegistrationNameSchema,
 } from "../validation/schemas.js";
 
 export const registerRouter: Router = Router();
@@ -67,6 +69,37 @@ function decodeWalletSignature(signature: unknown): Uint8Array {
   throw new Error("Unsupported signature format");
 }
 
+// POST /api/register/check-name — availability before verify (name = @mention, no spaces)
+registerRouter.post(
+  "/check-name",
+  registerLimiter,
+  validateBody(registerCheckNameBodySchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { name: raw } = req.body as z.infer<typeof registerCheckNameBodySchema>;
+      const parsed = agentRegistrationNameSchema.safeParse(raw);
+      if (!parsed.success) {
+        return res.status(400).json({
+          available: false,
+          error: "Invalid name",
+          details: parsed.error.flatten(),
+        });
+      }
+      const { data: taken, error } = await supabase.rpc("agent_name_taken", {
+        p_name: parsed.data,
+      });
+      if (error) {
+        console.error("agent_name_taken RPC error:", error);
+        return res.status(500).json({ error: "Failed to check name" });
+      }
+      res.json({ available: !taken });
+    } catch (error) {
+      console.error("Check name error:", error);
+      res.status(500).json({ error: "Failed to check name" });
+    }
+  }
+);
+
 // POST /api/register/challenge - Generate wallet verification challenge
 registerRouter.post(
   "/challenge",
@@ -107,7 +140,7 @@ registerRouter.post(
   validateBody(registerVerifySchema),
   async (req: Request, res: Response) => {
   try {
-    const { wallet, signature, name, email } = req.body as z.infer<
+    const { wallet, signature, name, email, bio } = req.body as z.infer<
       typeof registerVerifySchema
     >;
 
@@ -167,6 +200,21 @@ registerRouter.post(
       });
     }
 
+    const { data: nameTaken, error: nameRpcError } = await supabase.rpc(
+      "agent_name_taken",
+      { p_name: name }
+    );
+    if (nameRpcError) {
+      console.error("agent_name_taken RPC error:", nameRpcError);
+      return res.status(500).json({ error: "Registration failed" });
+    }
+    if (nameTaken) {
+      return res.status(409).json({
+        error: "Name already taken",
+        message: "Another agent already uses this name. Choose a different name.",
+      });
+    }
+
     // Generate API key
     const api_key = `oc_${randomBytes(32).toString("hex")}`;
 
@@ -177,6 +225,7 @@ registerRouter.post(
     const { error: insertError } = await supabase.from("agents").insert({
       wallet,
       name,
+      bio: bio ?? null,
       wallet_verified: true,
       verified_at: new Date().toISOString(),
       api_key,
@@ -227,7 +276,7 @@ registerRouter.post(
   validateBody(registerLegacySchema),
   async (req: Request, res: Response) => {
   try {
-    const { wallet, name, email } = req.body as z.infer<
+    const { wallet, name, email, bio } = req.body as z.infer<
       typeof registerLegacySchema
     >;
 
@@ -245,6 +294,21 @@ registerRouter.post(
       });
     }
 
+    const { data: nameTakenLegacy, error: nameRpcErrLegacy } = await supabase.rpc(
+      "agent_name_taken",
+      { p_name: name }
+    );
+    if (nameRpcErrLegacy) {
+      console.error("agent_name_taken RPC error:", nameRpcErrLegacy);
+      return res.status(500).json({ error: "Registration failed" });
+    }
+    if (nameTakenLegacy) {
+      return res.status(409).json({
+        error: "Name already taken",
+        message: "Another agent already uses this name. Choose a different name.",
+      });
+    }
+
     // Generate API key
     const api_key = `oc_${randomBytes(32).toString("hex")}`;
 
@@ -255,6 +319,7 @@ registerRouter.post(
     const { error: insertError } = await supabase.from("agents").insert({
       wallet,
       name,
+      bio: bio ?? null,
       api_key,
       avatar_url,
     });

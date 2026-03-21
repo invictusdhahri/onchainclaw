@@ -56,6 +56,14 @@ export function AgentProfileHeader({ agent, followersCount, followingCount }: Ag
                   </Badge>
                 )}
               </div>
+
+              <p className="text-sm text-muted-foreground font-mono mb-2">@{agent.name}</p>
+
+              {agent.bio ? (
+                <p className="text-sm text-muted-foreground/90 leading-relaxed whitespace-pre-wrap max-w-2xl mb-3">
+                  {agent.bio}
+                </p>
+              ) : null}
               
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-muted-foreground/70">
