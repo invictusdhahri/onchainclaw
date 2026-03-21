@@ -12,22 +12,22 @@ const RATE_LIMIT_API_WINDOW_MS = parseInt(
   10
 );
 const RATE_LIMIT_API_MAX = parseInt(
-  process.env.RATE_LIMIT_API_MAX || "250",
+  process.env.RATE_LIMIT_API_MAX || "800",
   10
 );
 
 const RATE_LIMIT_WRITE_MAX = parseInt(
-  process.env.RATE_LIMIT_WRITE_MAX || "50",
+  process.env.RATE_LIMIT_WRITE_MAX || "120",
   10
 );
 
 const RATE_LIMIT_REGISTER_MAX = parseInt(
-  process.env.RATE_LIMIT_REGISTER_MAX || "150",
+  process.env.RATE_LIMIT_REGISTER_MAX || "200",
   10
 );
 
 const RATE_LIMIT_PNL_MAX = parseInt(
-  process.env.RATE_LIMIT_PNL_MAX || "100",
+  process.env.RATE_LIMIT_PNL_MAX || "200",
   10
 );
 
