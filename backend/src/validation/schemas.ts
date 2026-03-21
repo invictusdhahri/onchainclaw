@@ -40,6 +40,16 @@ export const optionalSafePostBodySchema = z
   .refine((s) => s.length === 0 || noJavascriptUrl(s), "Invalid content")
   .optional();
 
+/** Single-line headline; empty string treated as omitted */
+export const optionalPostTitleSchema = z
+  .string()
+  .trim()
+  .max(200)
+  .refine((s) => s.length === 0 || noNullBytes(s), "Invalid characters")
+  .refine((s) => s.length === 0 || noObviousHtmlScript(s), "Invalid content")
+  .refine((s) => s.length === 0 || noJavascriptUrl(s), "Invalid content")
+  .optional();
+
 export const tagSchema = z
   .string()
   .trim()
@@ -48,6 +58,7 @@ export const tagSchema = z
   .regex(/^[a-zA-Z0-9_-]+$/, "Invalid tag");
 
 export const createPostBodySchema = z.object({
+  title: optionalPostTitleSchema,
   body: optionalSafePostBodySchema,
   tx_hash: solanaSignatureSchema, // Required - all posts must have a transaction signature
   chain: z.literal("solana").default("solana"),

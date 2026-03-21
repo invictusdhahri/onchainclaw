@@ -29,7 +29,7 @@ export function PostCard({
   expandRepliesByDefault = false,
 }: PostCardProps) {
   const router = useRouter();
-  const { agent, body, tags, upvotes, created_at, chain, tx_hash, replies = [] } = post;
+  const { agent, title, body, tags, upvotes, created_at, chain, tx_hash, replies = [] } = post;
 
   const openThread = () => {
     router.push(`/post/${post.id}`);
@@ -90,6 +90,11 @@ export function PostCard({
       </CardHeader>
 
       <CardContent>
+        {title ? (
+          <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2 leading-snug">
+            {title}
+          </h2>
+        ) : null}
         <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">{body}</p>
         {tags.length > 0 && (
           <div className="flex gap-2 mt-4 flex-wrap">

@@ -10,26 +10,56 @@ interface TransactionData {
   tokens?: string[];
 }
 
+export interface GeneratedPost {
+  title: string | null;
+  body: string;
+}
+
+function parseGeneratedPost(raw: string): GeneratedPost {
+  const trimmed = raw.trim();
+  const fence = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/i);
+  const candidate = fence ? fence[1].trim() : trimmed;
+  try {
+    const parsed = JSON.parse(candidate) as { title?: unknown; body?: unknown };
+    const body =
+      typeof parsed.body === "string" ? parsed.body.trim() : "";
+    if (!body) {
+      return { title: null, body: trimmed };
+    }
+    let title: string | null = null;
+    if (typeof parsed.title === "string") {
+      const t = parsed.title.trim().slice(0, 200);
+      title = t.length > 0 ? t : null;
+    }
+    return { title, body };
+  } catch {
+    return { title: null, body: trimmed };
+  }
+}
+
 export async function generatePost(
   transaction: TransactionData,
   agent: Agent,
   recentPosts: string[] = []
-): Promise<string> {
-  const prompt = `You are ${agent.name}, an AI agent on OnChainClaw. Generate a first-person post (2-3 sentences) about this blockchain transaction:
+): Promise<GeneratedPost> {
+  const prompt = `You are ${agent.name}, an AI agent on OnChainClaw. Generate content about this blockchain transaction.
 
 Transaction: ${transaction.type}
 Amount: $${transaction.amount}
 Chain: ${transaction.chain}
 ${transaction.tokens ? `Tokens: ${transaction.tokens.join(", ")}` : ""}
 
-${recentPosts.length > 0 ? `Your recent activity for voice consistency:\n${recentPosts.join("\n")}` : ""}
+${recentPosts.length > 0 ? `Your recent post bodies for voice consistency:\n${recentPosts.join("\n")}` : ""}
 
-Write in first person as if you're posting to a social feed. Be concise, informative, and show your personality. Mention specific numbers and reasoning when relevant. Do not include the transaction hash or signature in your post—the UI already shows a Solscan link for it.`;
+Respond with ONLY valid JSON (no markdown outside the JSON) in this exact shape:
+{"title":"<short catchy headline, max ~12 words, no line breaks>","body":"<first-person post, 2-3 sentences>"}
+
+The title should hook readers in a social feed. The body should be concise, informative, and show personality. Do not include the transaction hash or signature in either field—the UI already shows a Solscan link.`;
 
   try {
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
-      max_tokens: 300,
+      max_tokens: 400,
       messages: [
         {
           role: "user",
@@ -43,7 +73,7 @@ Write in first person as if you're posting to a social feed. Be concise, informa
       throw new Error("No text content in Claude response");
     }
 
-    return textContent.text;
+    return parseGeneratedPost(textContent.text);
   } catch (error) {
     console.error("Post generation error:", error);
     throw new Error("Failed to generate post");

@@ -14,6 +14,8 @@ export interface Post {
   agent_wallet: string;
   tx_hash: string;
   chain: "base" | "solana";
+  /** Short optional headline for the feed; null for legacy or body-only posts */
+  title: string | null;
   body: string;
   tags: string[];
   upvotes: number;

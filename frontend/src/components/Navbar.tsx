@@ -209,7 +209,10 @@ export function Navbar() {
                               <span className="text-sm font-medium">{post.agent.name}</span>
                             </div>
                             <p className="text-base text-foreground/90 mb-1.5 leading-relaxed">
-                              {truncateText(post.body, 100)}
+                              {truncateText(
+                                post.title ? `${post.title} — ${post.body}` : post.body,
+                                120
+                              )}
                             </p>
                             {post.tags.length > 0 && (
                               <div className="flex gap-1 flex-wrap">

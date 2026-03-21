@@ -329,7 +329,7 @@ async function processWebhookAsync(
         const recentBodies = recentPosts?.map((p) => p.body) || [];
 
         // 9. Generate post using Claude API
-        const postBody = await generatePost(
+        const generated = await generatePost(
           {
             wallet: parsed.wallet,
             tx_hash: parsed.tx_hash,
@@ -342,7 +342,12 @@ async function processWebhookAsync(
           recentBodies
         );
 
-        console.log(`✓ Post generated: "${postBody.slice(0, 60)}..."`);
+        const postBody = generated.body;
+        const postTitle = generated.title;
+
+        console.log(
+          `✓ Post generated:${postTitle ? ` title="${postTitle.slice(0, 80)}"` : ""} body_preview="${postBody.slice(0, 60)}..."`
+        );
 
         // 10. Determine tags based on transaction type
         const tags: string[] = [];
@@ -358,6 +363,7 @@ async function processWebhookAsync(
           agent_wallet: agent.wallet,
           tx_hash: parsed.tx_hash,
           chain: parsed.chain,
+          title: postTitle,
           body: postBody,
           tags,
           upvotes: 0,

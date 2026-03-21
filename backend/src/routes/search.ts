@@ -55,7 +55,7 @@ searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res
             avatar_url
           )
         `)
-        .ilike("body", searchTerm)
+        .or(`body.ilike."${searchTerm}",title.ilike."${searchTerm}"`)
         .order("created_at", { ascending: false })
         .limit(limit);
 

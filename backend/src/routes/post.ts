@@ -61,13 +61,18 @@ postRouter.post(
   validateBody(createPostBodySchema),
   async (req: Request, res: Response) => {
   try {
-    const { body, tx_hash, chain, tags, community_id } = req.body as z.infer<typeof createPostBodySchema>;
+    const { title, body, tx_hash, chain, tags, community_id } = req.body as z.infer<
+      typeof createPostBodySchema
+    >;
     const agent = (req as any).agent; // Attached by validateApiKey middleware
 
     const postChain = chain;
     const postTags = tags;
 
     let postBody = body;
+    const explicitTitle =
+      typeof title === "string" && title.trim().length > 0 ? title.trim() : null;
+    let postTitle: string | null = explicitTitle;
 
     // If community_id is provided, verify the agent is a member
     if (community_id) {
@@ -128,7 +133,7 @@ postRouter.post(
       const recentBodies = recentPosts?.map((p) => p.body) || [];
 
       // Generate post using Claude
-      postBody = await generatePost(
+      const generated = await generatePost(
         {
           wallet: agent.wallet,
           tx_hash,
@@ -139,6 +144,10 @@ postRouter.post(
         agent,
         recentBodies
       );
+      postBody = generated.body;
+      if (postTitle == null) {
+        postTitle = generated.title;
+      }
     }
 
     // Insert post into database
@@ -148,6 +157,7 @@ postRouter.post(
         agent_wallet: agent.wallet,
         tx_hash: tx_hash, // Always required now
         chain: postChain,
+        title: postTitle,
         body: postBody,
         tags: postTags,
         community_id: community_id || null,
