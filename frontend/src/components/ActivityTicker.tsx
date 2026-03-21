@@ -19,15 +19,15 @@ interface ActivityTickerProps {
 function getActionIcon(action: string) {
   switch (action) {
     case "buy":
-      return <TrendingUp className="size-4 shrink-0 text-emerald-500" />;
+      return <TrendingUp className="size-3.5 text-emerald-500" />;
     case "sell":
-      return <TrendingDown className="size-4 shrink-0 text-rose-500" />;
+      return <TrendingDown className="size-3.5 text-rose-500" />;
     case "send":
-      return <Send className="size-4 shrink-0 text-sky-500" />;
+      return <Send className="size-3.5 text-sky-500" />;
     case "swap":
-      return <ArrowLeftRight className="size-4 shrink-0 text-violet-500" />;
+      return <ArrowLeftRight className="size-3.5 text-violet-500" />;
     default:
-      return <Activity className="size-4 shrink-0 text-muted-foreground" />;
+      return <Activity className="size-3.5 text-muted-foreground" />;
   }
 }
 
@@ -160,8 +160,8 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
     return (
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Activity className="size-5" />
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+            <Activity className="size-4" />
             Live Activity
           </CardTitle>
         </CardHeader>
@@ -169,12 +169,12 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 p-3 rounded-lg">
-                <Skeleton className="size-8 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-32" />
+                <Skeleton className="size-7 rounded-full" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-20" />
+                  <Skeleton className="h-3 w-28" />
                 </div>
-                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-3 w-10" />
               </div>
             ))}
           </div>
@@ -187,8 +187,8 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
     return (
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Activity className="size-5" />
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+            <Activity className="size-4" />
             Live Activity
           </CardTitle>
         </CardHeader>
@@ -207,42 +207,42 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Activity className="size-5" />
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+            <Activity className="size-4" />
             Live Activity
           </CardTitle>
           <span className="live-dot" title="Live" />
         </div>
-        <p className="text-sm text-muted-foreground">Real-time on-chain actions</p>
+        <p className="text-xs text-muted-foreground/60">Real-time on-chain actions</p>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {activities.map((activity, index) => (
             <div
               key={activity.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border-l-[3px] transition-all duration-200 ${getActionStyle(activity.action)} ${
+              className={`flex items-center gap-3 p-2.5 rounded-lg border-l-[3px] transition-all duration-200 ${getActionStyle(activity.action)} ${
                 index === 0 && newTopId === activity.id ? "animate-bounce-in" : ""
               }`}
             >
               <Link href={`/agent/${activity.agent.wallet}`}>
-                <Avatar className="size-8 cursor-pointer hover:opacity-80 transition-opacity">
+                <Avatar className="size-7 cursor-pointer hover:opacity-80 transition-opacity">
                   <AvatarImage src={activity.agent.avatar_url} alt={activity.agent.name} />
-                  <AvatarFallback className="text-xs">{activity.agent.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="text-[10px]">{activity.agent.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
               </Link>
               
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
                   <Link href={`/agent/${activity.agent.wallet}`} className="hover:underline">
-                    <span className="font-semibold text-sm">{activity.agent.name}</span>
+                    <span className="font-medium text-xs">{activity.agent.name}</span>
                   </Link>
                   {activity.agent.wallet_verified && (
-                    <Badge variant="default" className="gap-0.5 bg-emerald-500/90 hover:bg-emerald-500 h-5 text-xs px-1.5">
+                    <Badge variant="default" className="gap-0.5 bg-emerald-500/90 hover:bg-emerald-500 h-3.5 text-[9px] px-1 rounded-sm">
                       ✓
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 text-sm mt-0.5">
+                <div className="flex items-center gap-1 text-xs">
                   {getActionIcon(activity.action)}
                   <span className="text-muted-foreground truncate">
                     {formatActionText(activity)}
@@ -251,25 +251,25 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
                     <img 
                       src={activity.token_image} 
                       alt={activity.token_symbol || "Token"} 
-                      className="size-4 rounded-full ring-1 ring-border/20 shrink-0"
+                      className="size-3.5 rounded-full ring-1 ring-border/20"
                     />
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <RelativeTime
                   date={activity.created_at}
                   variant="compact"
-                  className="text-xs text-muted-foreground whitespace-nowrap"
+                  className="text-[10px] text-muted-foreground/60 whitespace-nowrap"
                 />
                 <a
                   href={getActivityExplorerUrl(activity.tx_hash)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                  className="text-muted-foreground/50 hover:text-foreground transition-colors"
                 >
-                  <ExternalLink className="size-4" />
+                  <ExternalLink className="size-3" />
                 </a>
               </div>
             </div>

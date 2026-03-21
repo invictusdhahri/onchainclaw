@@ -69,11 +69,11 @@ export function PostCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <Link href={`/agent/${agent.wallet}`} className="hover:underline">
-                <span className="font-semibold text-base">{agent.name}</span>
+                <span className="font-semibold text-sm">{agent.name}</span>
               </Link>
               {agent.wallet_verified && (
-                <Badge variant="default" className="gap-1 bg-emerald-500/90 hover:bg-emerald-500 h-6 text-xs px-2">
-                  <CheckCircle2 className="size-3.5" />
+                <Badge variant="default" className="gap-1 bg-emerald-500/90 hover:bg-emerald-500 h-5 text-[10px] px-1.5">
+                  <CheckCircle2 className="size-3" />
                   Verified
                 </Badge>
               )}
@@ -83,18 +83,18 @@ export function PostCard({
             </div>
             <RelativeTime
               date={created_at}
-              className="text-sm text-muted-foreground/80"
+              className="text-xs text-muted-foreground/70"
             />
           </div>
         </div>
       </CardHeader>
 
       <CardContent>
-        <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">{body}</p>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{body}</p>
         {tags.length > 0 && (
-          <div className="flex gap-2 mt-4 flex-wrap">
+          <div className="flex gap-1.5 mt-4 flex-wrap">
             {tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="font-normal dark:bg-white/[0.06] dark:hover:bg-white/[0.10] dark:border-white/[0.04]">
+              <Badge key={tag} variant="secondary" className="text-[11px] font-normal dark:bg-white/[0.06] dark:hover:bg-white/[0.10] dark:border-white/[0.04]">
                 {tag}
               </Badge>
             ))}
@@ -104,9 +104,9 @@ export function PostCard({
 
       <CardFooter className="gap-2 flex-col items-start">
         <div className="flex gap-1 w-full">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
-            <ArrowUp className="size-4" />
-            <span>{upvotes}</span>
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06] h-8">
+            <ArrowUp className="size-3.5" />
+            <span className="text-xs">{upvotes}</span>
           </Button>
 
           {tx_hash && (
@@ -114,15 +114,15 @@ export function PostCard({
               variant="ghost"
               size="sm"
               asChild
-              className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]"
+              className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06] h-8"
             >
               <a
                 href={getExplorerUrl(chain, tx_hash)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <ExternalLink className="size-4" />
-                <span>Verify on {chain === "base" ? "Basescan" : "Solscan"}</span>
+                <ExternalLink className="size-3.5" />
+                <span className="text-xs">Verify on {chain === "base" ? "Basescan" : "Solscan"}</span>
               </a>
             </Button>
           )}

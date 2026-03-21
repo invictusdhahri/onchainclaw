@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { searchAll, type SearchResponse } from "@/lib/api";
@@ -20,6 +21,7 @@ export function Navbar() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -101,7 +103,7 @@ export function Navbar() {
       <div className="container mx-auto px-4 py-3 max-w-7xl">
         <div className="flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 group">
-            <span className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 dark:from-white dark:to-white/60 bg-clip-text text-transparent tracking-tight">
+            <span className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 dark:from-white dark:to-white/60 bg-clip-text text-transparent tracking-tight">
               OnChainClaw
             </span>
           </Link>
@@ -113,7 +115,7 @@ export function Navbar() {
                   <button
                     key={f}
                     onClick={() => setSearchFilter(f)}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 capitalize ${
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 capitalize ${
                       searchFilter === f
                         ? "bg-background shadow-sm text-foreground dark:bg-white/10 dark:shadow-none"
                         : "text-muted-foreground hover:text-foreground"
@@ -124,7 +126,7 @@ export function Navbar() {
                 ))}
               </div>
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[1.125rem] w-[1.125rem] text-muted-foreground/70" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
                 <input
                   ref={inputRef}
                   type="text"
@@ -132,7 +134,7 @@ export function Navbar() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchResults && setShowResults(true)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-border/50 rounded-lg bg-background/80 dark:bg-white/[0.04] dark:border-white/[0.06] text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/30 transition-all"
+                  className="w-full pl-10 pr-4 py-2 border border-border/50 rounded-lg bg-background/80 dark:bg-white/[0.04] dark:border-white/[0.06] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/30 transition-all"
                 />
               </div>
             </div>
@@ -153,7 +155,7 @@ export function Navbar() {
                   <>
                     {searchResults.agents.length > 0 && (
                       <div className="p-2">
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <div className="px-2 py-1.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
                           Agents
                         </div>
                         {searchResults.agents.map((agent) => (
@@ -169,14 +171,14 @@ export function Navbar() {
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium truncate text-base">{agent.name}</span>
+                                <span className="font-medium truncate text-sm">{agent.name}</span>
                                 {agent.verified && (
-                                  <Badge variant="secondary" className="text-xs h-5">
+                                  <Badge variant="secondary" className="text-[10px] h-4">
                                     Verified
                                   </Badge>
                                 )}
                               </div>
-                              <div className="text-sm text-muted-foreground/70 font-mono">
+                              <div className="text-xs text-muted-foreground/70 font-mono">
                                 {agent.wallet.slice(0, 4)}…{agent.wallet.slice(-4)}
                               </div>
                             </div>
@@ -187,7 +189,7 @@ export function Navbar() {
 
                     {searchResults.posts.length > 0 && (
                       <div className="p-2 border-t border-border/30 dark:border-white/[0.04]">
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
+                        <div className="px-2 py-1.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
                           Posts
                         </div>
                         {searchResults.posts.map((post) => (
@@ -198,19 +200,19 @@ export function Navbar() {
                             className="block p-2.5 hover:bg-accent/60 dark:hover:bg-white/[0.05] rounded-lg transition-colors"
                           >
                             <div className="flex items-start gap-2 mb-1">
-                              <Avatar className="h-7 w-7">
+                              <Avatar className="h-5 w-5">
                                 <AvatarImage src={post.agent.avatar_url} alt={post.agent.name} />
                                 <AvatarFallback>{post.agent.name[0]}</AvatarFallback>
                               </Avatar>
-                              <span className="text-sm font-medium">{post.agent.name}</span>
+                              <span className="text-xs font-medium">{post.agent.name}</span>
                             </div>
-                            <p className="text-base text-foreground/90 mb-1.5 leading-relaxed">
+                            <p className="text-sm text-foreground/80 mb-1.5 leading-relaxed">
                               {truncateText(post.body, 100)}
                             </p>
                             {post.tags.length > 0 && (
                               <div className="flex gap-1 flex-wrap">
                                 {post.tags.map((tag) => (
-                                  <Badge key={tag} variant="outline" className="text-xs h-5 dark:border-white/10">
+                                  <Badge key={tag} variant="outline" className="text-[10px] h-4 dark:border-white/10">
                                     {tag}
                                   </Badge>
                                 ))}
@@ -226,7 +228,7 @@ export function Navbar() {
             )}
 
             {isSearching && showResults && (
-              <div className="absolute top-full mt-2 w-full glass rounded-xl shadow-2xl border border-border/50 dark:border-white/[0.08] p-6 text-center text-muted-foreground text-base z-50">
+              <div className="absolute top-full mt-2 w-full glass rounded-xl shadow-2xl border border-border/50 dark:border-white/[0.08] p-6 text-center text-muted-foreground text-sm z-50">
                 Searching...
               </div>
             )}
@@ -245,16 +247,16 @@ export function Navbar() {
                 )}
               </button>
             )}
-            <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
               <Link href="/">Home</Link>
             </Button>
-            <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
               <Link href="/communities">Communities</Link>
             </Button>
-            <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
               <Link href="/leaderboard">Leaderboard</Link>
             </Button>
-            <Button asChild className="ml-1 dark:bg-primary/90 dark:hover:bg-primary">
+            <Button size="sm" asChild className="ml-1 dark:bg-primary/90 dark:hover:bg-primary">
               <Link href="/register">Register Agent</Link>
             </Button>
           </div>
