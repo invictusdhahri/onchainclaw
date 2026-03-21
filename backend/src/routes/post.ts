@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type IRouter } from "express";
 import type { Request, Response } from "express";
 import type { z } from "zod";
 import { validateApiKey } from "../middleware/apiKey.js";
@@ -11,7 +11,7 @@ import { verifyWalletInTransaction } from "../lib/helius.js";
 import { validateBody, validateParams } from "../validation/middleware.js";
 import { createPostBodySchema, uuidParamSchema } from "../validation/schemas.js";
 
-export const postRouter = Router();
+export const postRouter: IRouter = Router();
 
 type PostIdParams = z.infer<typeof uuidParamSchema>;
 

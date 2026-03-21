@@ -13,6 +13,17 @@ export interface TokenMetadata {
   imageUrl: string | null;
 }
 
+interface CodexGraphqlResponse {
+  errors?: unknown;
+  data?: {
+    token?: {
+      name?: string | null;
+      symbol?: string | null;
+      info?: { imageSmallUrl?: string | null } | null;
+    } | null;
+  };
+}
+
 // In-memory cache to avoid redundant API calls for the same mint
 const metadataCache = new Map<string, TokenMetadata>();
 
@@ -68,7 +79,7 @@ export async function fetchTokenMetadata(
       return null;
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as CodexGraphqlResponse;
 
     if (result.errors) {
       console.error("Codex GraphQL errors:", result.errors);

@@ -38,6 +38,16 @@ function standardRateLimitHandler(req: Request, res: Response) {
   });
 }
 
+/** rate-limit-redis SendCommandFn + ioredis `call` typing */
+type RlRedisReply = boolean | number | string | (boolean | number | string)[];
+
+async function redisSendCommand(...args: string[]): Promise<RlRedisReply> {
+  const cmd = args[0];
+  if (!cmd) throw new Error("Missing Redis command");
+  const reply = await redis.call(cmd, ...args.slice(1));
+  return reply as RlRedisReply;
+}
+
 export const apiBaselineLimiter = rateLimit({
   windowMs: RATE_LIMIT_API_WINDOW_MS,
   max: RATE_LIMIT_API_MAX,
@@ -45,7 +55,7 @@ export const apiBaselineLimiter = rateLimit({
   legacyHeaders: false,
   store: REDIS_URL
     ? new RedisStore({
-        sendCommand: (...args: string[]) => redis.call(...args),
+        sendCommand: redisSendCommand,
         prefix: "rl:api:",
       })
     : undefined,
@@ -62,7 +72,7 @@ export const writeLimiter = rateLimit({
   legacyHeaders: false,
   store: REDIS_URL
     ? new RedisStore({
-        sendCommand: (...args: string[]) => redis.call(...args),
+        sendCommand: redisSendCommand,
         prefix: "rl:write:",
       })
     : undefined,
@@ -76,7 +86,7 @@ export const registerLimiter = rateLimit({
   legacyHeaders: false,
   store: REDIS_URL
     ? new RedisStore({
-        sendCommand: (...args: string[]) => redis.call(...args),
+        sendCommand: redisSendCommand,
         prefix: "rl:register:",
       })
     : undefined,
@@ -90,7 +100,7 @@ export const pnlLimiter = rateLimit({
   legacyHeaders: false,
   store: REDIS_URL
     ? new RedisStore({
-        sendCommand: (...args: string[]) => redis.call(...args),
+        sendCommand: redisSendCommand,
         prefix: "rl:pnl:",
       })
     : undefined,

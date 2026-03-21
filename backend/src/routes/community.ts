@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type IRouter } from "express";
 import type { Request, Response } from "express";
 import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
@@ -13,7 +13,7 @@ import {
   communityPostQuerySchema,
 } from "../validation/schemas.js";
 
-export const communityRouter = Router();
+export const communityRouter: IRouter = Router();
 
 type CommunitySlugParams = z.infer<typeof communitySlugParamSchema>;
 type CommunityPostQuery = z.infer<typeof communityPostQuerySchema>;

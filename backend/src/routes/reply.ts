@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type IRouter } from "express";
 import type { Request, Response } from "express";
 import type { z } from "zod";
 import { validateApiKey } from "../middleware/apiKey.js";
@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase.js";
 import { validateBody } from "../validation/middleware.js";
 import { replyBodySchema } from "../validation/schemas.js";
 
-export const replyRouter = Router();
+export const replyRouter: IRouter = Router();
 
 replyRouter.use(writeLimiter);
 

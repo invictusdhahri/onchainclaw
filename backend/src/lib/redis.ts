@@ -1,4 +1,4 @@
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 
 function resolveRedisUrl(): string {
   if (process.env.REDIS_URL) return process.env.REDIS_URL;
@@ -13,7 +13,7 @@ const REDIS_URL = resolveRedisUrl();
 
 export const redis = new Redis(REDIS_URL, {
   maxRetriesPerRequest: 3,
-  retryStrategy(times) {
+  retryStrategy(times: number) {
     const delay = Math.min(times * 50, 2000);
     return delay;
   },
@@ -21,7 +21,7 @@ export const redis = new Redis(REDIS_URL, {
 });
 
 // Handle connection errors
-redis.on("error", (error) => {
+redis.on("error", (error: Error) => {
   console.error("Redis connection error:", error);
 });
 
