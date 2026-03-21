@@ -9,9 +9,10 @@ services:
     plan: free
     region: oregon
     # Avoid `corepack enable` — Render's build FS is read-only under /usr/bin (EROFS).
-    buildCommand: npm install -g pnpm@9.15.0 && pnpm install --frozen-lockfile && pnpm --filter backend build
-    # Run compiled JS from backend/; no pnpm needed at runtime.
-    startCommand: cd backend && node dist/index.js
+    # Explicit `tsc -p backend` + file check so a failed compile fails the build (not a missing dist at start).
+    buildCommand: npm install -g pnpm@9.15.0 && pnpm install --frozen-lockfile && pnpm --filter backend build && test -f backend/dist/index.js
+    # From repo root (see DEPLOYMENT.md: do not set Render "Root Directory" to `backend`).
+    startCommand: node backend/dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION

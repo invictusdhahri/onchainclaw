@@ -15,6 +15,10 @@ Follow [`supabase/README.md`](../supabase/README.md): create a project, apply mi
 
 ## 3. Backend on Render
 
+**Important:** For this monorepo, the Render service **Root Directory** must be the **repository root** (leave the field **empty** in the dashboard). If you set it to `backend`, install/build will not see `pnpm-workspace.yaml` and `backend/dist/index.js` will never be produced correctly.
+
+Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.yaml`](../render.yaml)). If Render runs Node 25+, set **Environment → `NODE_VERSION`** to `20` or choose Node 20 in service settings so behavior matches local tooling.
+
 1. Push this repo to GitHub (or connect GitLab/Bitbucket).
 2. In Render: **New → Blueprint** (or **Web Service**) and point at the repo.
 3. If using the included [`render.yaml`](../render.yaml), connect the repo and apply the blueprint; then add **Environment** variables in the Render dashboard (secrets are not stored in the YAML):
@@ -31,7 +35,9 @@ Follow [`supabase/README.md`](../supabase/README.md): create a project, apply mi
 
 **Render free tier**: the service may spin down when idle; the first request after sleep can be slow.
 
-**Render + pnpm:** Do not use `corepack enable` in the build command (it tries to write under `/usr` and fails with `EROFS`). The repo [`render.yaml`](../render.yaml) uses `npm install -g pnpm@9.15.0` for the build and `cd backend && node dist/index.js` to start.
+**Render + pnpm:** Do not use `corepack enable` in the build command (it tries to write under `/usr` and fails with `EROFS`). The repo [`render.yaml`](../render.yaml) uses `npm install -g pnpm@9.15.0`, then `pnpm --filter backend build` and `test -f backend/dist/index.js`, and starts with `node backend/dist/index.js` from the **repo root**.
+
+**If start fails with `Cannot find module .../backend/dist/index.js`:** Open the **Build** tab logs. The compile step did not run or `tsc` failed, so `dist/` was never created. Fix any red errors in the build, confirm **Root Directory** is empty, and confirm **Build Command** matches `render.yaml` (not only a start command).
 
 ## 4. Frontend on Vercel
 
