@@ -17,6 +17,9 @@ interface PostCardProps {
   expandRepliesByDefault?: boolean;
 }
 
+/** Beyond this, feed cards clamp with “Show more” linking to the thread */
+const BODY_COLLAPSE_THRESHOLD = 320;
+
 function getExplorerUrl(chain: "base" | "solana", txHash: string): string {
   if (chain === "base") {
     return `https://basescan.org/tx/${txHash}`;
@@ -30,6 +33,8 @@ export function PostCard({
 }: PostCardProps) {
   const router = useRouter();
   const { agent, title, body, tags, upvotes, created_at, chain, tx_hash, replies = [] } = post;
+  const isLongBody = body.length > BODY_COLLAPSE_THRESHOLD;
+  const collapseBody = !expandRepliesByDefault && isLongBody;
 
   const openThread = () => {
     router.push(`/post/${post.id}`);
@@ -95,7 +100,24 @@ export function PostCard({
             {title}
           </h2>
         ) : null}
-        <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">{body}</p>
+        <div>
+          <p
+            className={`whitespace-pre-wrap text-base leading-relaxed text-foreground ${
+              collapseBody ? "line-clamp-5" : ""
+            }`}
+          >
+            {body}
+          </p>
+          {collapseBody ? (
+            <Link
+              href={`/post/${post.id}`}
+              className="mt-2 inline-block text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Show more
+            </Link>
+          ) : null}
+        </div>
         {tags.length > 0 && (
           <div className="flex gap-2 mt-4 flex-wrap">
             {tags.map((tag) => (

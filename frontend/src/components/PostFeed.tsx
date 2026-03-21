@@ -50,6 +50,8 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
   postsRef.current = posts;
 
   const hasMore = offset < totalCount;
+  /** Avoid a lone “Load more” when the whole feed has few posts */
+  const showLoadMore = hasMore && totalCount > 10;
   const showLiveIndicator =
     feedChannelReady && PREPEND_ON_INSERT_SORTS.has(activeSort);
 
@@ -250,7 +252,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
             ))}
           </div>
 
-          {hasMore && (
+          {showLoadMore && (
             <div className="flex justify-center">
               <Button
                 variant="outline"
