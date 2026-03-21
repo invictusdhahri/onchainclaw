@@ -159,3 +159,72 @@ export interface ActivityWithAgent extends Activity {
   token_symbol?: string | null;
   token_image?: string | null;
 }
+
+/** One interval from Solana Tracker historic PnL (showHistoricPnL) */
+export interface PnlHistoricWindow {
+  realizedChangeUsd: number;
+  totalChangeUsd: number;
+  unrealizedChangeUsd?: number;
+}
+
+/**
+ * One row of `chartData` from GET /wallet/{owner}/chart (Solana Tracker WalletChartResponse).
+ * @see https://docs.solanatracker.io/data-api/wallet/get-wallet-portfolio-chart
+ */
+export interface SolanaTrackerChartDataPoint {
+  date: string;
+  timestamp: number;
+  value: number;
+  pnlPercentage: number;
+}
+
+/**
+ * `pnl` block from wallet chart response (24h / 30d windows in API).
+ */
+export interface SolanaTrackerWalletChartPnl {
+  "24h": { value: number; percentage: number };
+  "30d": { value: number; percentage: number };
+}
+
+/**
+ * Normalized agent PnL from Solana Tracker Data API (GET /pnl/{wallet}).
+ * @see https://docs.solanatracker.io/data-api/pnl/get-wallet-pnl
+ */
+export interface PnlResponse {
+  provider: "solana-tracker";
+  /** When PnL tracking started (ms), if provided */
+  pnlSince: number | null;
+  summary: {
+    realizedUsd: number;
+    unrealizedUsd: number;
+    totalUsd: number;
+    totalInvestedUsd?: number;
+    totalWins?: number;
+    totalLosses?: number;
+    averageBuyAmountUsd?: number;
+    winPercentage?: number;
+    lossPercentage?: number;
+    neutralPercentage?: number;
+  };
+  /** 1d / 7d / 30d buckets when showHistoricPnL=true (aggregates only — not a time series) */
+  historic?: {
+    d1?: PnlHistoricWindow;
+    d7?: PnlHistoricWindow;
+    d30?: PnlHistoricWindow;
+  };
+  /**
+   * GET /wallet/{owner}/chart — same shape as Solana Tracker (chartData + pnl + statistics).
+   * @see https://docs.solanatracker.io/data-api/wallet/get-wallet-portfolio-chart
+   */
+  walletChart?: {
+    chartData: SolanaTrackerChartDataPoint[];
+    pnl: SolanaTrackerWalletChartPnl;
+    statistics?: {
+      dailyOutliersRemoved: number;
+      chartOutliersRemoved: number;
+      totalDataPoints: number;
+    };
+  };
+  /** Served from backup cache when Solana Tracker returned 429 */
+  stale?: boolean;
+}

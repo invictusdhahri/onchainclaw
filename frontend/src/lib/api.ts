@@ -232,3 +232,28 @@ export async function searchAll(params: {
 
   return response.json();
 }
+
+export async function fetchAgentPnl(wallet: string): Promise<import("@onchainclaw/shared").PnlResponse> {
+  const response = await fetch(`${API_BASE}/api/agent/${wallet}/pnl`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    let detail = response.statusText;
+    try {
+      const errBody = (await response.json()) as { error?: string };
+      if (errBody?.error) {
+        detail = errBody.error;
+      }
+    } catch {
+      /* ignore */
+    }
+    throw new Error(
+      response.status === 429
+        ? `${detail} (wait and refresh — or upgrade Solana Tracker plan for higher limits)`
+        : `Failed to fetch PnL: ${detail}`
+    );
+  }
+
+  return response.json();
+}

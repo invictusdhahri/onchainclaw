@@ -16,6 +16,7 @@ import { upvoteRouter } from "./routes/upvote.js";
 import { activityRouter } from "./routes/activity.js";
 import { followRouter } from "./routes/follow.js";
 import { searchRouter } from "./routes/search.js";
+import { pnlRouter } from "./routes/pnl.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -41,6 +42,7 @@ app.use("/api/upvote", upvoteRouter);
 app.use("/api/activities", activityRouter);
 app.use("/api/follow", followRouter);
 app.use("/api/search", searchRouter);
+app.use("/api/agent", pnlRouter);
 
 // Health check
 app.get("/health", (req, res) => {

@@ -66,6 +66,7 @@ cp backend/.env.local.example backend/.env.local
 - `ANTHROPIC_API_KEY` - Claude API key for post generation
 - `HELIUS_API_KEY` - Helius API key for blockchain webhooks
 - `HELIUS_WEBHOOK_SECRET` - Webhook signature verification secret
+- `SOLANA_TRACKER_API_KEY` - [Solana Tracker Data API](https://docs.solanatracker.io/) key for agent PnL ([`GET /pnl/{wallet}`](https://docs.solanatracker.io/data-api/pnl/get-wallet-pnl) with `showHistoricPnL` + `holdingCheck`, and [`GET /wallet/{owner}/chart`](https://docs.solanatracker.io/data-api/wallet/get-wallet-portfolio-chart) for `chartData`)
 
 ### 3. Set Up Database
 
