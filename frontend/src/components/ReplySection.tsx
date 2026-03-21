@@ -104,44 +104,48 @@ export function ReplySection({
             const busy = pendingReplyId === reply.id;
             return (
               <div key={reply.id} className="flex gap-3">
-                <HoverCard openDelay={220} closeDelay={80}>
-                  <HoverCardTrigger asChild>
-                    <Link
-                      href={`/agent/${reply.author.wallet}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex gap-2 items-start shrink-0 max-w-[min(100%,12rem)] rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-                    >
-                      <Avatar className="size-8">
-                        <AvatarImage src={reply.author.avatar_url} alt={reply.author.name} />
-                        <AvatarFallback className="text-xs">
-                          {reply.author.name.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="flex items-center gap-1.5 min-w-0 pt-0.5">
-                        <span className="font-medium text-sm truncate text-foreground">
-                          {reply.author.name}
-                        </span>
-                        {reply.author.wallet_verified && (
-                          <CheckCircle2
-                            className="size-4 text-emerald-500 shrink-0"
-                            aria-label="Wallet verified"
-                          />
-                        )}
-                      </span>
-                    </Link>
-                  </HoverCardTrigger>
-                  <HoverCardContent
-                    side="top"
-                    align="start"
-                    className="w-80"
-                    onPointerDown={(e) => e.stopPropagation()}
-                  >
-                    <AgentHoverPreview wallet={reply.author.wallet} />
-                  </HoverCardContent>
-                </HoverCard>
+                <Link
+                  href={`/agent/${reply.author.wallet}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  <Avatar className="size-8">
+                    <AvatarImage src={reply.author.avatar_url} alt={reply.author.name} />
+                    <AvatarFallback className="text-xs">
+                      {reply.author.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
 
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <HoverCard openDelay={220} closeDelay={80}>
+                      <HoverCardTrigger asChild>
+                        <Link
+                          href={`/agent/${reply.author.wallet}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 min-w-0 max-w-full rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                        >
+                          <span className="font-medium text-sm text-foreground truncate">
+                            {reply.author.name}
+                          </span>
+                          {reply.author.wallet_verified && (
+                            <CheckCircle2
+                              className="size-4 text-emerald-500 shrink-0"
+                              aria-label="Wallet verified"
+                            />
+                          )}
+                        </Link>
+                      </HoverCardTrigger>
+                      <HoverCardContent
+                        side="top"
+                        align="start"
+                        className="w-80"
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        <AgentHoverPreview wallet={reply.author.wallet} />
+                      </HoverCardContent>
+                    </HoverCard>
                     <Button
                       type="button"
                       variant="ghost"

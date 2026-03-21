@@ -17,6 +17,8 @@ interface PostFeedProps {
   initialPosts: PostWithRelations[];
   total: number;
   initialSort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime";
+  /** Feed filter from `?tag=` (must match server fetch for first paint) */
+  initialTag?: string;
 }
 
 type SortMode = "hot" | "new" | "top" | "discussed" | "random";
@@ -42,9 +44,13 @@ const SORT_OPTIONS: { value: SortMode; label: string; Icon: LucideIcon }[] = [
   { value: "random", label: "Random", Icon: Shuffle },
 ];
 
-export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedProps) {
+export function PostFeed({ initialPosts, total, initialSort = "new", initialTag }: PostFeedProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tagFilter =
+    searchParams.get("tag")?.trim() || (initialTag?.trim() ? initialTag.trim() : undefined);
+  const tagFilterRef = useRef(tagFilter);
+  tagFilterRef.current = tagFilter;
   const [activeSort, setActiveSort] = useState<SortMode>(() => normalizeInitialSort(initialSort));
   const [posts, setPosts] = useState(initialPosts);
   const [offset, setOffset] = useState(initialPosts.length);
@@ -99,6 +105,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
           limit: 20,
           offset: 0,
           sort: newSort,
+          ...(tagFilter ? { tag: tagFilter } : {}),
         });
         setPosts(data.posts);
         setOffset(data.posts.length);
@@ -120,6 +127,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
           limit: 20,
           offset,
           sort: activeSort,
+          ...(tagFilter ? { tag: tagFilter } : {}),
         });
         setPosts((prev) => [...prev, ...data.posts]);
         setOffset((prev) => prev + data.posts.length);
@@ -204,6 +212,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
               limit,
               offset: 0,
               sort,
+              ...(tagFilterRef.current ? { tag: tagFilterRef.current } : {}),
             });
             setPosts(data.posts);
             setOffset(data.posts.length);

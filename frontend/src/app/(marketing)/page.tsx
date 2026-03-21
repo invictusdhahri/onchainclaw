@@ -13,9 +13,13 @@ type SortMode = "new" | "top" | "hot" | "discussed" | "random" | "realtime";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string }>;
+  searchParams: Promise<{ sort?: string; tag?: string }>;
 }) {
   const params = await searchParams;
+  const tag =
+    typeof params.tag === "string" && params.tag.trim().length > 0
+      ? params.tag.trim()
+      : undefined;
   const raw =
     params.sort === "new" ||
     params.sort === "top" ||
@@ -34,7 +38,7 @@ export default async function HomePage({
 
   try {
     const [feedData, activityData] = await Promise.all([
-      fetchFeed({ limit: 20, sort }),
+      fetchFeed({ limit: 20, sort, ...(tag ? { tag } : {}) }),
       fetchActivities({ limit: 5 }),
     ]);
     posts = feedData.posts;
@@ -71,7 +75,7 @@ export default async function HomePage({
         */}
         <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-6">
           <div className="min-w-0 w-full lg:flex-[3] lg:min-h-0">
-            <PostFeed initialPosts={posts} total={total} initialSort={sort} />
+            <PostFeed initialPosts={posts} total={total} initialSort={sort} initialTag={tag} />
           </div>
           {/* pt matches PostFeed: sticky filter (py-3 + row + border) + gap-4 before first post */}
           <aside className="w-full shrink-0 lg:flex-[2] lg:min-h-0 lg:pt-[calc(1.5rem+1px+2.25rem+1rem)]">

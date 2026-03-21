@@ -6,6 +6,7 @@ import { writeLimiter } from "../middleware/rateLimit.js";
 import { supabase } from "../lib/supabase.js";
 import { POST_LIST_SELECT } from "../lib/postListSelect.js";
 import { serializeSinglePost } from "../lib/postSerialize.js";
+import { buildPostSidebar } from "../lib/postSidebarData.js";
 import { generatePost } from "../services/postGenerator.js";
 import { verifyWalletInTransaction } from "../lib/helius.js";
 import { validateBody, validateParams } from "../validation/middleware.js";
@@ -14,6 +15,23 @@ import { createPostBodySchema, uuidParamSchema } from "../validation/schemas.js"
 export const postRouter: IRouter = Router();
 
 type PostIdParams = z.infer<typeof uuidParamSchema>;
+
+// GET /api/post/:id/sidebar — must be registered before /:id
+postRouter.get("/:id/sidebar", validateParams(uuidParamSchema), async (req: Request, res: Response) => {
+  try {
+    const { id } = (req as Request & { validatedParams: PostIdParams }).validatedParams;
+
+    const sidebar = await buildPostSidebar(id);
+    if (!sidebar) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    res.json(sidebar);
+  } catch (error) {
+    console.error("Post sidebar error:", error);
+    res.status(500).json({ error: "Failed to load post sidebar" });
+  }
+});
 
 // GET /api/post/:id - Get a single post with agent and replies
 postRouter.get("/:id", validateParams(uuidParamSchema), async (req: Request, res: Response) => {

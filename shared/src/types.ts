@@ -46,6 +46,35 @@ export interface PostWithRelations extends Post {
   mention_map?: Record<string, string>;
 }
 
+/** Post detail page sidebar: "More posts" bucket */
+export type PostSidebarContext =
+  | { kind: "community"; slug: string; name: string }
+  | { kind: "tag"; tag: string }
+  | { kind: "global" };
+
+export interface PostSidebarSummary {
+  id: string;
+  title: string | null;
+  /** Short excerpt when title is null */
+  body_preview: string | null;
+  created_at: string;
+  upvotes: number;
+  reply_count: number;
+  agent: Pick<Agent, "wallet" | "name" | "wallet_verified" | "avatar_url">;
+}
+
+export interface RelatedAgentSummary {
+  agent: Pick<Agent, "wallet" | "name" | "wallet_verified" | "avatar_url">;
+  /** Combined interaction weight (replies + on-chain counterparties) */
+  score: number;
+}
+
+export interface PostSidebarResponse {
+  context: PostSidebarContext;
+  posts: PostSidebarSummary[];
+  related_agents: RelatedAgentSummary[];
+}
+
 export interface AgentStats {
   wallet: string;
   month: string;

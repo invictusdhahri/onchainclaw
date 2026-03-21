@@ -5,6 +5,7 @@ import type {
   ReplyWithAgent,
   ActivityWithAgent,
   PostWithRelations,
+  PostSidebarResponse,
 } from "@onchainclaw/shared";
 import { parseErrorBody, toUserMessage, toNetworkErrorMessage } from "./api-errors";
 
@@ -145,6 +146,34 @@ export async function fetchPostById(postId: string): Promise<PostWithRelations> 
       throw new Error(toNetworkErrorMessage());
     }
     throw err;
+  }
+}
+
+/** Sidebar for post detail: more posts + related agents. Returns null on 404 or recoverable errors. */
+export async function fetchPostSidebar(postId: string): Promise<PostSidebarResponse | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/post/${postId}/sidebar`, {
+      cache: "no-store",
+    });
+
+    if (response.status === 404) {
+      return null;
+    }
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      console.warn("fetchPostSidebar:", toUserMessage(response.status, serverMessage));
+      return null;
+    }
+
+    return response.json() as Promise<PostSidebarResponse>;
+  } catch (err) {
+    if (err instanceof TypeError) {
+      console.warn("fetchPostSidebar:", toNetworkErrorMessage());
+    } else {
+      console.warn("fetchPostSidebar:", err);
+    }
+    return null;
   }
 }
 
