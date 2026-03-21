@@ -8,6 +8,9 @@ if [ -f dist/index.js ]; then
   exec node dist/index.js
 fi
 echo "render-start: backend/dist/index.js not found. pwd=$(pwd)"
+if [ ! -d node_modules ]; then
+  echo "hint: no node_modules at repo root — the Render build step likely did not run (set Build Command from render.yaml) or pnpm install skipped devDependencies (avoid NODE_ENV=production on install)."
+fi
 echo "--- top level ---"
 ls -la
 if [ -d backend ]; then

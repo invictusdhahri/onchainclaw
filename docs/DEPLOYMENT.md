@@ -21,12 +21,15 @@ Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.y
 
 1. Push this repo to GitHub (or connect GitLab/Bitbucket).
 2. In Render: **New → Blueprint** (or **Web Service**) and point at the repo.
-3. If using the included [`render.yaml`](../render.yaml), connect the repo and apply the blueprint; then add **Environment** variables in the Render dashboard (secrets are not stored in the YAML):
+3. If using the included [`render.yaml`](../render.yaml), use **New → Blueprint** and select this repo so Render **applies** `buildCommand` / `startCommand`. If you used **New → Web Service** instead, Render **does not read** `render.yaml` unless you import it — you must **paste the Build and Start commands manually** from that file.
+
+   Add **Environment** variables in the dashboard (secrets are not stored in the YAML):
    - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
    - `REDIS_URL` (Upstash `rediss://…`)
    - `FRONTEND_URL` — exact origin of your Vercel app, e.g. `https://your-app.vercel.app` (CORS)
-   - `NODE_ENV=production`
    - Optional but common: `TRUST_PROXY_HOPS=1`
+
+   **Do not set `NODE_ENV=production` in the Render Environment for this service** unless you understand the tradeoff: with `pnpm`, that can make **`pnpm install` omit devDependencies** during build so **`typescript` is missing** and **`backend/dist` is never created**. The blueprint start command sets `NODE_ENV=production` only for the running Node process.
    - Feature keys as needed: `ANTHROPIC_API_KEY`, `HELIUS_API_KEY`, `HELIUS_WEBHOOK_ID`, `HELIUS_WEBHOOK_SECRET`, `CODEX_API_KEY`, `ZERION_API_KEY`, `RESEND_API_KEY`, `SYNC_AGENT_STATS_SECRET`, etc. (see [`backend/.env.local.example`](../backend/.env.local.example))
 
 4. After deploy, note the service URL, e.g. `https://onchainclaw-api.onrender.com`.
@@ -37,7 +40,7 @@ Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.y
 
 **Render + pnpm:** Do not use `corepack enable` in the build command (it tries to write under `/usr` and fails with `EROFS`). The repo [`render.yaml`](../render.yaml) uses `npm install -g pnpm@9.15.0`, then `pnpm --filter backend build` and `test -f backend/dist/index.js`, and starts with `node backend/dist/index.js` from the **repo root**.
 
-**If start fails with `Cannot find module .../backend/dist/index.js`:** Open the **Build** tab logs. The compile step did not run or `tsc` failed, so `dist/` was never created. Fix any red errors in the build, confirm **Root Directory** is empty, and confirm **Build Command** matches `render.yaml` (not only a start command).
+**If `render-start` lists `backend/` with only `src/` and no `dist/` (and no `node_modules` at repo root):** the **build step did not run successfully** or **was never configured**. Typical causes: (1) **Web Service** created without copying **Build Command** from [`render.yaml`](../render.yaml) (only the start command runs after a raw git checkout). (2) **`NODE_ENV=production`** during `pnpm install` skipped devDependencies. Fix: set the full **build** line from `render.yaml` (including `env NODE_ENV=development pnpm install` and `test -f backend/dist/index.js`), remove `NODE_ENV` from service env if present, redeploy, and confirm **Build** logs show `pnpm install` and `tsc` completing.
 
 **Do not use `pnpm dev` or `pnpm dev:backend` on Render.** Those run **`tsx watch`** (development: file watching, extra overhead, not meant for production). Production should run the compiled app: `pnpm --filter backend build` then `node …/dist/index.js`. The repo uses [`scripts/render-start.sh`](../scripts/render-start.sh) so the start command works from the **repo root** (`backend/dist/index.js`) or, if you mistakenly set **Root Directory** to `backend`, from `dist/index.js` — but the monorepo **build** still expects a **repo-root** install, so keep **Root Directory empty** and use the build command from [`render.yaml`](../render.yaml).
 

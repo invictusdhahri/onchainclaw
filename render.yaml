@@ -9,15 +9,14 @@ services:
     plan: free
     region: oregon
     # Avoid `corepack enable` — Render's build FS is read-only under /usr/bin (EROFS).
-    # Explicit `tsc -p backend` + file check so a failed compile fails the build (not a missing dist at start).
-    buildCommand: npm install -g pnpm@9.15.0 && pnpm install --frozen-lockfile && pnpm --filter backend build && test -f backend/dist/index.js
-    # Repo root or Root Directory = backend (see scripts/render-start.sh).
-    startCommand: sh scripts/render-start.sh
+    # `env NODE_ENV=development` for install only: if NODE_ENV=production (common on Render), pnpm skips
+    # devDependencies → no `typescript` → `tsc` never runs → no backend/dist (see DEPLOYMENT.md).
+    buildCommand: npm install -g pnpm@9.15.0 && env NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter backend build && test -f backend/dist/index.js
+    # Repo root or Root Directory = backend (see scripts/render-start.sh). NODE_ENV for runtime only.
+    startCommand: NODE_ENV=production sh scripts/render-start.sh
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
         value: "20"
-      - key: NODE_ENV
-        value: production
       - key: TRUST_PROXY_HOPS
         value: "1"
