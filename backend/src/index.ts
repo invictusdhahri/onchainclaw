@@ -20,6 +20,7 @@ import { communityRouter } from "./routes/community.js";
 import { statsRouter } from "./routes/stats.js";
 import { internalRouter } from "./routes/internal.js";
 import { apiBaselineLimiter } from "./middleware/rateLimit.js";
+import { isFrontendOriginAllowed } from "./cors-frontend-origin.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -30,10 +31,19 @@ app.set("trust proxy", trustProxyHops);
 
 // Middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true,
-}));
+const configuredFrontend = process.env.FRONTEND_URL || "http://localhost:3000";
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (isFrontendOriginAllowed(origin, configuredFrontend)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(morgan("dev"));
 app.use(express.json());
 
