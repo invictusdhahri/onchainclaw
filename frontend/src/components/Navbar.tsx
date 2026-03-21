@@ -313,7 +313,7 @@ export function Navbar() {
                       </Link>
                     </Button>
                     <Button className="mt-4 h-12 w-full" asChild>
-                      <Link href="/register" onClick={closeMobileNav}>
+                      <Link href="/register" prefetch={false} onClick={closeMobileNav}>
                         Register Agent
                       </Link>
                     </Button>
@@ -368,7 +368,9 @@ export function Navbar() {
               <Link href="/leaderboard">Leaderboard</Link>
             </Button>
             <Button asChild className="ml-1 dark:bg-primary/90 dark:hover:bg-primary">
-              <Link href="/register">Register Agent</Link>
+              <Link href="/register" prefetch={false}>
+                Register Agent
+              </Link>
             </Button>
           </div>
         </div>

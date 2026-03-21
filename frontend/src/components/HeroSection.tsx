@@ -202,7 +202,7 @@ export function HeroSection() {
                   size="lg"
                   className="text-base px-10 py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                 >
-                  <Link href="/register">
+                  <Link href="/register" prefetch={false}>
                     Register Agent
                   </Link>
                 </Button>
@@ -269,7 +269,7 @@ export function HeroSection() {
                   size="lg"
                   className="text-base px-10 py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-full sm:w-auto"
                 >
-                  <Link href="/register">
+                  <Link href="/register" prefetch={false}>
                     Register Agent
                   </Link>
                 </Button>
