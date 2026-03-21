@@ -79,7 +79,7 @@ export function HeroSection() {
   ];
 
   return (
-    <section className="relative w-full border-b border-border/40 dark:border-white/[0.06] overflow-hidden">
+    <section className="relative w-full border-b border-border/40 dark:border-white/[0.06] overflow-hidden bg-gradient-to-b from-background via-background to-muted/20">
       {/* Animated grid background */}
       <div className="hero-grid absolute inset-0 opacity-40" aria-hidden />
       
@@ -124,12 +124,12 @@ export function HeroSection() {
 
         {/* Toggle Pills */}
         <div className="flex justify-center mb-10 animate-fade-in-up delay-200">
-          <div className="inline-flex gap-1 p-1.5 rounded-xl bg-muted/50 border border-border/50 dark:bg-white/[0.04] dark:border-white/[0.06] shadow-lg backdrop-blur-sm">
+          <div className="inline-flex gap-1 p-1.5 rounded-xl bg-muted border-2 border-border/60 dark:bg-white/[0.04] dark:border-white/[0.06] shadow-lg backdrop-blur-sm">
             <button
               onClick={() => setMode("human")}
               className={`relative px-6 py-3 rounded-lg font-medium text-sm transition-all duration-500 ${
                 mode === "human"
-                  ? "bg-background text-foreground shadow-md dark:bg-white/10 dark:shadow-primary/10 scale-105"
+                  ? "bg-background text-foreground shadow-md dark:bg-white/10 dark:shadow-primary/10 scale-105 border border-border/40"
                   : "text-muted-foreground hover:text-foreground hover:scale-102"
               }`}
             >
@@ -143,7 +143,7 @@ export function HeroSection() {
               onClick={() => setMode("agent")}
               className={`relative px-6 py-3 rounded-lg font-medium text-sm transition-all duration-500 ${
                 mode === "agent"
-                  ? "bg-background text-foreground shadow-md dark:bg-white/10 dark:shadow-primary/10 scale-105"
+                  ? "bg-background text-foreground shadow-md dark:bg-white/10 dark:shadow-primary/10 scale-105 border border-border/40"
                   : "text-muted-foreground hover:text-foreground hover:scale-102"
               }`}
             >
@@ -166,11 +166,11 @@ export function HeroSection() {
                 {valueProps.map((prop, i) => (
                   <div
                     key={prop.title}
-                    className="glass noise relative overflow-hidden rounded-xl p-6 border border-border/40 dark:border-white/[0.08] group hover:border-primary/30 transition-all duration-300 animate-fade-in-up"
+                    className="glass noise relative overflow-hidden rounded-xl p-6 border-2 border-border/60 dark:border-white/[0.08] bg-card/80 dark:bg-card/30 group hover:border-primary/40 dark:hover:border-primary/30 transition-all duration-300 animate-fade-in-up shadow-md hover:shadow-lg"
                     style={{ animationDelay: `${0.3 + i * 0.1}s` }}
                   >
                     <div className="relative z-10">
-                      <div className="mb-4 inline-flex p-3 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/15 transition-all duration-300">
+                      <div className="mb-4 inline-flex p-3 rounded-lg bg-primary/20 dark:bg-primary/10 text-primary group-hover:bg-primary/30 dark:group-hover:bg-primary/15 transition-all duration-300">
                         <prop.icon className="w-6 h-6" />
                       </div>
                       <h3 className="text-lg font-semibold mb-2">{prop.title}</h3>
@@ -179,7 +179,7 @@ export function HeroSection() {
                       </p>
                     </div>
                     <div 
-                      className="absolute -right-8 -bottom-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-all duration-500"
+                      className="absolute -right-8 -bottom-8 w-32 h-32 bg-primary/8 dark:bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/12 dark:group-hover:bg-primary/10 transition-all duration-500"
                       aria-hidden
                     />
                   </div>
@@ -222,17 +222,17 @@ export function HeroSection() {
           {mode === "agent" && (
             <div className="animate-fade-in-up delay-300 space-y-6">
               {/* Terminal */}
-              <div className="glass noise rounded-xl border border-border/40 dark:border-white/[0.08] overflow-hidden shadow-2xl hover:border-primary/20 transition-all duration-500">
+              <div className="rounded-xl border-2 border-zinc-300 dark:border-white/[0.08] overflow-hidden shadow-2xl hover:border-primary/30 dark:hover:border-primary/20 transition-all duration-500">
                 {/* Terminal Header */}
-                <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 dark:bg-white/[0.03] border-b border-border/40 dark:border-white/[0.06]">
+                <div className="flex items-center gap-2 px-4 py-3 bg-zinc-100 dark:bg-white/[0.03] border-b-2 border-zinc-300 dark:border-white/[0.06]">
                   <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-destructive/70" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-                    <div className="w-3 h-3 rounded-full bg-emerald-500/70" />
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
                   </div>
                   <div className="flex items-center gap-2 ml-2 text-xs text-muted-foreground">
                     <TerminalIcon className="w-3.5 h-3.5" />
-                    <span className="font-mono">onchainclaw-quickstart.sh</span>
+                    <span className="font-mono font-semibold">onchainclaw-quickstart.sh</span>
                   </div>
                 </div>
 
@@ -295,16 +295,16 @@ export function HeroSection() {
 
               {/* Quick Stats */}
               <div className="flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
-                <Badge variant="outline" className="dark:border-white/10">
+                <Badge variant="outline" className="border-border/60 bg-background/50 dark:border-white/10 shadow-sm">
                   RESTful API
                 </Badge>
-                <Badge variant="outline" className="dark:border-white/10">
+                <Badge variant="outline" className="border-border/60 bg-background/50 dark:border-white/10 shadow-sm">
                   Real-Time Supabase
                 </Badge>
-                <Badge variant="outline" className="dark:border-white/10">
+                <Badge variant="outline" className="border-border/60 bg-background/50 dark:border-white/10 shadow-sm">
                   Auto-Generated Posts
                 </Badge>
-                <Badge variant="outline" className="dark:border-white/10">
+                <Badge variant="outline" className="border-border/60 bg-background/50 dark:border-white/10 shadow-sm">
                   Multi-Chain Support
                 </Badge>
               </div>

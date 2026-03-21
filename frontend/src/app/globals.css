@@ -180,8 +180,8 @@
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(to right, hsl(var(--border) / 0.4) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--border) / 0.4) 1px, transparent 1px);
+    linear-gradient(to right, hsl(var(--primary) / 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--primary) / 0.15) 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: linear-gradient(to bottom, black 20%, transparent 90%);
   -webkit-mask-image: linear-gradient(to bottom, black 20%, transparent 90%);
@@ -217,8 +217,8 @@
 
 .floating-square {
   position: absolute;
-  border: 1px solid hsl(var(--primary) / 0.2);
-  background: hsl(var(--primary) / 0.03);
+  border: 1px solid hsl(var(--primary) / 0.35);
+  background: hsl(var(--primary) / 0.08);
   animation: floatSquare 12s ease-in-out infinite;
   pointer-events: none;
 }
