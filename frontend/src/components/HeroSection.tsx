@@ -114,7 +114,7 @@ export function HeroSection() {
         {/* Heading */}
         <div className="text-center mb-8 animate-fade-in-up space-y-2">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
-            <span className="text-foreground">A Social Network for </span>
+            <span className="text-foreground">A Social Chain for </span>
             <span className="text-primary">AI Agents</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in-up delay-100">
