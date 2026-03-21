@@ -3,12 +3,14 @@ import {
   buildZerionChartUrl,
   fetchZerionWith429Retry,
   getZerionApiKey,
+  isZerionQueryableWallet,
   mapZerionChartResponse,
   weekPortfolioDeltaFromChart,
 } from "../lib/zerion.js";
 
 const PAGE_SIZE = 500;
-const ZERION_CONCURRENCY = 4;
+/** Space Zerion chart calls — parallel sync trips free-tier rate limits quickly. */
+const ZERION_SYNC_GAP_MS = 450;
 
 function currentUtcMonthStartDateString(): string {
   const now = new Date();
@@ -17,19 +19,14 @@ function currentUtcMonthStartDateString(): string {
   return new Date(Date.UTC(y, m, 1)).toISOString().split("T")[0]!;
 }
 
-async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = [];
-  for (let i = 0; i < items.length; i += concurrency) {
-    const chunk = items.slice(i, i + concurrency);
-    const part = await Promise.all(chunk.map(fn));
-    results.push(...part);
-  }
-  return results;
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export type SyncAgentStatsPnlResult = {
   month: string;
   agentsTotal: number;
+  skippedInvalidWallet: number;
   updated: number;
   skippedNoKey: number;
   failed: number;
@@ -67,14 +64,30 @@ export async function syncAgentStatsPnl(): Promise<SyncAgentStatsPnlResult> {
     return {
       month,
       agentsTotal: wallets.length,
+      skippedInvalidWallet: 0,
       updated: 0,
       skippedNoKey: wallets.length,
       failed: 0,
     };
   }
 
+  const queryable = wallets.filter(isZerionQueryableWallet);
+  const skippedInvalidWallet = wallets.length - queryable.length;
+  if (skippedInvalidWallet > 0) {
+    console.warn(
+      `[syncAgentStatsPnl] skipping ${skippedInvalidWallet} agent(s) with non-chain wallet ids (Zerion requires Solana or EVM addresses)`
+    );
+  }
+
   type Outcome = "updated" | "failed";
-  const outcomes = await mapPool(wallets, ZERION_CONCURRENCY, async (wallet): Promise<Outcome> => {
+  const outcomes: Outcome[] = [];
+
+  for (let i = 0; i < queryable.length; i++) {
+    const wallet = queryable[i]!;
+    if (i > 0) {
+      await sleep(ZERION_SYNC_GAP_MS);
+    }
+
     const url = buildZerionChartUrl(wallet, "week");
     try {
       const res = await fetchZerionWith429Retry(url, apiKey);
@@ -82,7 +95,8 @@ export async function syncAgentStatsPnl(): Promise<SyncAgentStatsPnlResult> {
         console.warn(
           `[syncAgentStatsPnl] Zerion ${res.status} for ${wallet.slice(0, 8)}… — ${(await res.text()).slice(0, 120)}`
         );
-        return "failed";
+        outcomes.push("failed");
+        continue;
       }
       const raw: unknown = await res.json();
       const chart = mapZerionChartResponse(raw, "week");
@@ -99,14 +113,15 @@ export async function syncAgentStatsPnl(): Promise<SyncAgentStatsPnlResult> {
 
       if (upsertError) {
         console.error(`[syncAgentStatsPnl] upsert failed ${wallet.slice(0, 8)}…:`, upsertError.message);
-        return "failed";
+        outcomes.push("failed");
+        continue;
       }
-      return "updated";
+      outcomes.push("updated");
     } catch (e) {
       console.error(`[syncAgentStatsPnl] ${wallet.slice(0, 8)}…:`, e);
-      return "failed";
+      outcomes.push("failed");
     }
-  });
+  }
 
   const updated = outcomes.filter((o) => o === "updated").length;
   const failed = outcomes.filter((o) => o === "failed").length;
@@ -114,6 +129,7 @@ export async function syncAgentStatsPnl(): Promise<SyncAgentStatsPnlResult> {
   return {
     month,
     agentsTotal: wallets.length,
+    skippedInvalidWallet,
     updated,
     skippedNoKey: 0,
     failed,

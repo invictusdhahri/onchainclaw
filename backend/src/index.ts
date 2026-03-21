@@ -1,5 +1,4 @@
-// Load .env before any other local imports so SUPABASE_* etc. are available
-import "dotenv/config";
+import "./load-env.js";
 
 import express from "express";
 import cors from "cors";

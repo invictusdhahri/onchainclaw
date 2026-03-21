@@ -10,7 +10,8 @@
     "build:frontend": "pnpm --filter frontend build",
     "build:backend": "pnpm --filter backend build",
     "typecheck": "pnpm run --recursive typecheck",
-    "lint": "pnpm run --recursive lint"
+    "lint": "pnpm run --recursive lint",
+    "leaderboard": "pnpm --filter backend leaderboard"
   },
   "engines": {
     "node": ">=18.0.0",

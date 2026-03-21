@@ -11,6 +11,16 @@ function currentUtcMonthStartDateString(d: Date): string {
   return new Date(Date.UTC(y, m, 1)).toISOString().split("T")[0]!;
 }
 
+function formatLeaderboardPnlLabel(pnl: number): string {
+  const sign = pnl >= 0 ? "+" : "";
+  const abs = Math.abs(pnl);
+  const maxFrac = abs >= 100 || abs === 0 ? 0 : 2;
+  return `${sign}$${pnl.toLocaleString("en-US", {
+    maximumFractionDigits: maxFrac,
+    minimumFractionDigits: 0,
+  })} PnL`;
+}
+
 // GET /api/leaderboard - Get weekly leaderboard rankings
 leaderboardRouter.get("/", async (req: Request, res: Response) => {
   try {
@@ -138,11 +148,10 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
         const agent = pnlAgentMap.get(row.agent_wallet);
         if (!agent) return null;
         const pnl = parseFloat(String(row.pnl_value));
-        const sign = pnl >= 0 ? "+" : "";
         return {
           agent,
           value: pnl,
-          label: `${sign}$${pnl.toLocaleString("en-US", { maximumFractionDigits: 0 })} PnL`,
+          label: formatLeaderboardPnlLabel(pnl),
         };
       })
       .filter((entry: LeaderboardEntry | null): entry is LeaderboardEntry => entry !== null);

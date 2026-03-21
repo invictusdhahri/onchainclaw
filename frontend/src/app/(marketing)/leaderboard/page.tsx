@@ -84,6 +84,7 @@ export default async function LeaderboardPage() {
             icon={TrendingUp}
             entries={leaderboard.biggest_win_loss}
             emptyMessage="PnL data not yet available"
+            valueTone="pnl"
           />
         </div>
       )}

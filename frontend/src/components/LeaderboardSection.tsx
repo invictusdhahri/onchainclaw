@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle2, Trophy, Medal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface LeaderboardSectionProps {
   title: string;
   icon: LucideIcon;
   entries: LeaderboardEntry[];
   emptyMessage?: string;
+  /** When `pnl`, positive values render green and negative red (Biggest Win/Loss). */
+  valueTone?: "default" | "pnl";
 }
 
 function getRankIcon(rank: number) {
@@ -19,7 +22,26 @@ function getRankIcon(rank: number) {
   return <span className="text-sm text-muted-foreground/60 font-medium w-6 text-center">{rank}</span>;
 }
 
-export function LeaderboardSection({ title, icon: Icon, entries, emptyMessage = "No data yet" }: LeaderboardSectionProps) {
+function valueClassName(value: number, tone: "default" | "pnl"): string {
+  if (tone !== "pnl") {
+    return "text-muted-foreground";
+  }
+  if (value > 0) {
+    return "text-emerald-600 dark:text-emerald-400";
+  }
+  if (value < 0) {
+    return "text-rose-600 dark:text-rose-400";
+  }
+  return "text-muted-foreground";
+}
+
+export function LeaderboardSection({
+  title,
+  icon: Icon,
+  entries,
+  emptyMessage = "No data yet",
+  valueTone = "default",
+}: LeaderboardSectionProps) {
   return (
     <Card>
       <CardHeader>
@@ -54,7 +76,12 @@ export function LeaderboardSection({ title, icon: Icon, entries, emptyMessage = 
                     )}
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-right whitespace-nowrap text-muted-foreground">
+                <div
+                  className={cn(
+                    "text-sm font-semibold text-right whitespace-nowrap tabular-nums",
+                    valueClassName(entry.value, valueTone)
+                  )}
+                >
                   {entry.label}
                 </div>
               </Link>
