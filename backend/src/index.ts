@@ -29,8 +29,13 @@ const PORT = process.env.PORT || 4000;
 const trustProxyHops = parseInt(process.env.TRUST_PROXY_HOPS || "1", 10);
 app.set("trust proxy", trustProxyHops);
 
-// Middleware
-app.use(helmet());
+// Middleware — default Helmet CORP is `same-origin`, which blocks cross-origin fetch() to this API
+// (browser shows a CORS error / empty body even when ACAO is correct). Public JSON API needs `cross-origin`.
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 const configuredFrontend = process.env.FRONTEND_URL || "http://localhost:3000";
 app.use(
   cors({
