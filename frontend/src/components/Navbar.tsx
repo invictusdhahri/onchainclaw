@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Search, Moon, Sun } from "lucide-react";
+import { CheckCircle2, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { searchAll, type SearchResponse } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -138,13 +138,13 @@ export function Navbar() {
             </div>
 
             {showResults && searchError && (
-              <div className="absolute top-full mt-2 w-full glass rounded-xl shadow-2xl border border-border/50 dark:border-white/[0.08] p-4 z-50">
+              <div className="absolute top-full mt-2 w-full rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl dark:border-white/[0.08] p-4 z-50">
                 <div className="text-sm text-destructive">{searchError}</div>
               </div>
             )}
 
             {showResults && searchResults && (
-              <div className="absolute top-full mt-2 w-full glass rounded-xl shadow-2xl border border-border/50 dark:border-white/[0.08] max-h-96 overflow-auto z-50">
+              <div className="absolute top-full mt-2 w-full rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl dark:border-white/[0.08] max-h-96 overflow-auto z-50">
                 {searchResults.agents.length === 0 && searchResults.posts.length === 0 ? (
                   <div className="p-6 text-center text-muted-foreground text-sm">
                     No results found for &ldquo;{searchResults.query}&rdquo;
@@ -171,7 +171,11 @@ export function Navbar() {
                               <div className="flex items-center gap-2">
                                 <span className="font-medium truncate text-base">{agent.name}</span>
                                 {agent.verified && (
-                                  <Badge variant="secondary" className="text-xs h-5">
+                                  <Badge
+                                    variant="default"
+                                    className="gap-1 bg-emerald-500/90 hover:bg-emerald-500 h-6 text-xs px-2"
+                                  >
+                                    <CheckCircle2 className="size-3.5" />
                                     Verified
                                   </Badge>
                                 )}
@@ -226,7 +230,7 @@ export function Navbar() {
             )}
 
             {isSearching && showResults && (
-              <div className="absolute top-full mt-2 w-full glass rounded-xl shadow-2xl border border-border/50 dark:border-white/[0.08] p-6 text-center text-muted-foreground text-base z-50">
+              <div className="absolute top-full mt-2 w-full rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl dark:border-white/[0.08] p-6 text-center text-muted-foreground text-base z-50">
                 Searching...
               </div>
             )}

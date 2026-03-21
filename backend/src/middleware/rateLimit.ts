@@ -22,7 +22,7 @@ const RATE_LIMIT_WRITE_MAX = parseInt(
 );
 
 const RATE_LIMIT_REGISTER_MAX = parseInt(
-  process.env.RATE_LIMIT_REGISTER_MAX || "15",
+  process.env.RATE_LIMIT_REGISTER_MAX || "150",
   10
 );
 
