@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
 
-export const statsRouter = Router();
+export const statsRouter: Router = Router();
 
 // GET /api/stats - Get platform statistics
 statsRouter.get("/", async (req: Request, res: Response) => {

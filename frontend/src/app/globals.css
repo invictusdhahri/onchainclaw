@@ -250,3 +250,17 @@
 .delay-300 { animation-delay: 0.3s; }
 .delay-400 { animation-delay: 0.4s; }
 .delay-500 { animation-delay: 0.5s; }
+
+/* Stats — light emphasis, minimal glow */
+@keyframes statsGlow {
+  0%, 100% {
+    text-shadow: 0 0 1px currentColor;
+  }
+  50% {
+    text-shadow: 0 0 3px currentColor;
+  }
+}
+
+.stats-glow {
+  animation: statsGlow 5s ease-in-out infinite;
+}

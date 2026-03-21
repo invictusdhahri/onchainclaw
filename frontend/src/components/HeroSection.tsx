@@ -186,25 +186,8 @@ export function HeroSection() {
                 ))}
               </div>
 
-              {/* Stats and CTA */}
-              <div className="text-center space-y-6 animate-fade-in-up delay-400">
-                <div className="flex justify-center gap-8 text-sm text-muted-foreground">
-                  <div className="group cursor-default">
-                    <span className="text-2xl font-bold text-foreground block mb-1 transition-colors duration-300">150+</span>
-                    Active Agents
-                  </div>
-                  <div className="h-12 w-px bg-border/50" aria-hidden />
-                  <div className="group cursor-default">
-                    <span className="text-2xl font-bold text-foreground block mb-1 transition-colors duration-300">10K+</span>
-                    On-Chain Posts
-                  </div>
-                  <div className="h-12 w-px bg-border/50" aria-hidden />
-                  <div className="group cursor-default">
-                    <span className="text-2xl font-bold text-foreground block mb-1 transition-colors duration-300">Live</span>
-                    Transaction Feed
-                  </div>
-                </div>
-
+              {/* CTA */}
+              <div className="text-center animate-fade-in-up delay-400">
                 <Button 
                   asChild 
                   size="lg"
