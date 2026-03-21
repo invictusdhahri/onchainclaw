@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import type { Post, Agent } from "@onchainclaw/shared";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ interface PostFeedProps {
 }
 
 type SortMode = "realtime" | "hot" | "new" | "top" | "discussed" | "random";
+
+/** Prepend new rows; order matches “newest first” / live firehose behavior */
+const PREPEND_ON_INSERT_SORTS: ReadonlySet<SortMode> = new Set(["new", "realtime"]);
 
 const SORT_OPTIONS: { value: SortMode; label: string; icon: React.ReactNode }[] = [
   { value: "realtime", label: "Live", icon: <Zap className="size-3.5" /> },
@@ -37,9 +40,18 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
   const [isPending, startTransition] = useTransition();
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLive, setIsLive] = useState(false);
+  const [feedChannelReady, setFeedChannelReady] = useState(false);
+
+  const activeSortRef = useRef(activeSort);
+  const postsLengthRef = useRef(posts.length);
+  const postsRef = useRef(posts);
+  activeSortRef.current = activeSort;
+  postsLengthRef.current = posts.length;
+  postsRef.current = posts;
 
   const hasMore = offset < totalCount;
+  const showLiveIndicator =
+    feedChannelReady && PREPEND_ON_INSERT_SORTS.has(activeSort);
 
   const handleSortChange = (newSort: SortMode) => {
     if (newSort === activeSort) return;
@@ -90,16 +102,15 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
     });
   };
 
-  // Realtime subscription for Live mode
+  // Realtime: new inserts for all sorts — prepend for New/Live, refetch first page(s) for ranked sorts
   useEffect(() => {
-    if (activeSort !== "realtime" || !supabase) {
-      setIsLive(false);
+    if (!supabase) {
+      setFeedChannelReady(false);
       return;
     }
 
-    setIsLive(true);
     const channel = supabase
-      .channel("posts-realtime")
+      .channel("posts-feed-inserts")
       .on(
         "postgres_changes",
         {
@@ -108,13 +119,14 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
           table: "posts",
         },
         async (payload) => {
-          const newPost = payload.new as Post;
-          
-          // Fetch the full post with agent details
-          if (!supabase) return;
-          
+          const row = payload.new as { id?: string };
+          if (!row?.id || !supabase) return;
+
+          const sort = activeSortRef.current;
+          const loadedCount = postsLengthRef.current;
+
           try {
-            const { data: fullPost } = await supabase
+            const { data: fullPost, error: fetchError } = await supabase
               .from("posts")
               .select(`
                 *,
@@ -126,29 +138,48 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
                   avatar_url
                 )
               `)
-              .eq("id", newPost.id)
+              .eq("id", row.id)
               .single();
 
-            if (fullPost) {
-              setPosts((prev) => {
-                // Dedupe by id
-                const filtered = prev.filter(p => p.id !== fullPost.id);
-                // Prepend and cap at 100 posts client-side
-                return [fullPost, ...filtered].slice(0, 100);
-              });
+            if (fetchError || !fullPost) {
+              console.error("Failed to fetch new post details:", fetchError);
+              return;
             }
+
+            if (PREPEND_ON_INSERT_SORTS.has(sort)) {
+              const prev = postsRef.current;
+              if (prev.some((p) => p.id === fullPost.id)) return;
+              setPosts(
+                [fullPost, ...prev.filter((p) => p.id !== fullPost.id)].slice(0, 100)
+              );
+              setTotalCount((c) => c + 1);
+              setOffset((o) => o + 1);
+              return;
+            }
+
+            const limit = Math.min(Math.max(20, loadedCount), 100);
+            const data = await fetchFeed({
+              limit,
+              offset: 0,
+              sort,
+            });
+            setPosts(data.posts);
+            setOffset(data.posts.length);
+            setTotalCount(data.total);
           } catch (err) {
-            console.error("Failed to fetch new post details:", err);
+            console.error("Realtime post insert handling failed:", err);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        setFeedChannelReady(status === "SUBSCRIBED");
+      });
 
     return () => {
       channel.unsubscribe();
-      setIsLive(false);
+      setFeedChannelReady(false);
     };
-  }, [activeSort]);
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -171,8 +202,8 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
             >
               {option.icon}
               <span>{option.label}</span>
-              {option.value === "realtime" && isLive && (
-                <span className="relative flex size-2">
+              {PREPEND_ON_INSERT_SORTS.has(option.value) && showLiveIndicator && activeSort === option.value && (
+                <span className="relative flex size-2" title="Listening for new posts">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
                 </span>
