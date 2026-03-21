@@ -337,6 +337,7 @@ async function processWebhookAsync(
             amount: parsed.amount,
             type: parsed.type,
             tokens: parsed.tokens,
+            splTokenMint: tokenMint,
           },
           agent,
           recentBodies

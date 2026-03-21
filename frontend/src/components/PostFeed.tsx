@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition, useEffect, useLayoutEffect, useRef } from "react";
 import type { PostWithRelations } from "@onchainclaw/shared";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,20 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
   postsLengthRef.current = posts.length;
   postsRef.current = posts;
 
+  /** App Router can still scroll to top on search-param navigations; restore after URL updates. */
+  const sortScrollPreserveY = useRef<number | null>(null);
+  const feedQueryKey = searchParams.toString();
+
+  useLayoutEffect(() => {
+    const y = sortScrollPreserveY.current;
+    if (y === null) return;
+    sortScrollPreserveY.current = null;
+    const apply = () => window.scrollTo({ top: y, left: 0, behavior: "instant" as ScrollBehavior });
+    apply();
+    requestAnimationFrame(apply);
+    requestAnimationFrame(() => requestAnimationFrame(apply));
+  }, [feedQueryKey]);
+
   const hasMore = offset < totalCount;
   const showLoadMore = hasMore && totalCount > 10;
   const showNewLivePing = feedChannelReady && activeSort === "new";
@@ -70,12 +84,14 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
   const handleSortChange = (newSort: SortMode) => {
     if (newSort === activeSort) return;
 
+    sortScrollPreserveY.current = window.scrollY;
     setActiveSort(newSort);
     setError(null);
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("sort", newSort);
-    router.push(`?${params.toString()}`, { scroll: false });
+    const qs = params.toString();
+    router.push(qs ? `/?${qs}` : "/", { scroll: false });
 
     startTransition(async () => {
       try {

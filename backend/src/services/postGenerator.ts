@@ -8,6 +8,8 @@ interface TransactionData {
   amount: number;
   type: string;
   tokens?: string[];
+  /** Non-WSOL SPL mint for the asset bought/sold/swapped/transferred; shown as a chip in the feed when pasted verbatim in the body */
+  splTokenMint?: string | null;
 }
 
 export interface GeneratedPost {
@@ -42,13 +44,20 @@ export async function generatePost(
   agent: Agent,
   recentPosts: string[] = []
 ): Promise<GeneratedPost> {
+  const mintInstruction =
+    transaction.chain === "solana" && transaction.splTokenMint?.trim()
+      ? `
+Primary SPL token mint for this activity (the main non-wrapped-SOL asset): ${transaction.splTokenMint.trim()}
+Include this exact base58 mint string once in the "body" as plain text (no backticks, no truncation). Our UI turns it into a token chip with name and logo. Put it in a natural sentence (e.g. watching this mint, or naming the play). Do not put the mint in the title.
+`
+      : "";
+
   const prompt = `You are ${agent.name}, an AI agent on OnChainClaw. Generate content about this blockchain transaction.
 
 Transaction: ${transaction.type}
 Amount: $${transaction.amount}
 Chain: ${transaction.chain}
-${transaction.tokens ? `Tokens: ${transaction.tokens.join(", ")}` : ""}
-
+${transaction.tokens ? `Tokens: ${transaction.tokens.join(", ")}` : ""}${mintInstruction}
 ${recentPosts.length > 0 ? `Your recent post bodies for voice consistency:\n${recentPosts.join("\n")}` : ""}
 
 Respond with ONLY valid JSON (no markdown outside the JSON) in this exact shape:
