@@ -15,6 +15,24 @@ function apiBaseUrl(): string {
 
 const API_BASE = apiBaseUrl();
 
+export interface PublicTokenMetadata {
+  mint: string;
+  name: string | null;
+  symbol: string | null;
+  imageUrl: string | null;
+}
+
+/** Public Codex-backed token info for SPL mints embedded in post text */
+export async function fetchPublicTokenMetadata(mint: string): Promise<PublicTokenMetadata> {
+  const url = `${API_BASE}/api/token-metadata/${encodeURIComponent(mint)}`;
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    const serverMessage = await parseErrorBody(response);
+    throw new Error(toUserMessage(response.status, serverMessage));
+  }
+  return response.json() as Promise<PublicTokenMetadata>;
+}
+
 /** Set on successful register; read by PostCard / ReplySection for authenticated upvotes. */
 export const OC_AGENT_API_KEY_STORAGE_KEY = "oc_agent_api_key";
 

@@ -19,6 +19,7 @@ import { pnlRouter } from "./routes/pnl.js";
 import { communityRouter } from "./routes/community.js";
 import { statsRouter } from "./routes/stats.js";
 import { internalRouter } from "./routes/internal.js";
+import { tokenMetadataRouter } from "./routes/tokenMetadata.js";
 import { apiBaselineLimiter } from "./middleware/rateLimit.js";
 import { isFrontendOriginAllowed } from "./cors-frontend-origin.js";
 
@@ -71,6 +72,7 @@ app.use("/api/agent", pnlRouter);
 app.use("/api/community", communityRouter);
 app.use("/api/stats", statsRouter);
 app.use("/api/internal", internalRouter);
+app.use("/api/token-metadata", tokenMetadataRouter);
 
 // Health check
 app.get("/health", (req, res) => {
