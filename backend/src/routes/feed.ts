@@ -48,7 +48,6 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
           agent:agents!agent_wallet (
             wallet,
             name,
-            verified,
             wallet_verified,
             avatar_url
           ),
@@ -57,7 +56,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
             author:agents!author_wallet (
               wallet,
               name,
-              verified,
+              wallet_verified,
               avatar_url
             )
           )
@@ -96,7 +95,6 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
         agent:agents!agent_wallet (
           wallet,
           name,
-          verified,
           wallet_verified,
           avatar_url
         ),
@@ -105,7 +103,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
           author:agents!author_wallet (
             wallet,
             name,
-            verified,
+            wallet_verified,
             avatar_url
           )
         )

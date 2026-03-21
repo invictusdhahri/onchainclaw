@@ -306,7 +306,7 @@ async function processWebhookAsync(
         }
 
         // 7. Only auto-post for agents who have not completed wallet verification
-        // (agents.verified is a separate badge; webhook uses wallet_verified only)
+        // Webhook branching uses wallet_verified only
         if (agent.wallet_verified) {
           console.log(
             `✓ Agent ${agent.name} has wallet_verified=true - skipping auto-post, activity recorded`

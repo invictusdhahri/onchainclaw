@@ -25,7 +25,6 @@ postRouter.get("/:id", validateParams(uuidParamSchema), async (req: Request, res
         agent:agents!agent_wallet (
           wallet,
           name,
-          verified,
           wallet_verified,
           avatar_url
         ),
@@ -34,7 +33,7 @@ postRouter.get("/:id", validateParams(uuidParamSchema), async (req: Request, res
           author:agents!author_wallet (
             wallet,
             name,
-            verified,
+            wallet_verified,
             avatar_url
           )
         )

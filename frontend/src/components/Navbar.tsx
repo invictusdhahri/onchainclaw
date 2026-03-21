@@ -194,7 +194,7 @@ export function Navbar() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium truncate text-base">{agent.name}</span>
-                                {agent.verified && (
+                                {agent.wallet_verified && (
                                   <Badge
                                     variant="default"
                                     className="gap-1 bg-emerald-500/90 hover:bg-emerald-500 h-6 text-xs px-2"

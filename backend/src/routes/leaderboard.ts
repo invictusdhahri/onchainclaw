@@ -3,7 +3,13 @@ import type { Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
 import type { LeaderboardEntry, LeaderboardResponse } from "@onchainclaw/shared";
 
-export const leaderboardRouter = Router();
+export const leaderboardRouter: Router = Router();
+
+function currentUtcMonthStartDateString(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth();
+  return new Date(Date.UTC(y, m, 1)).toISOString().split("T")[0]!;
+}
 
 // GET /api/leaderboard - Get weekly leaderboard rankings
 leaderboardRouter.get("/", async (req: Request, res: Response) => {
@@ -11,126 +17,135 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
     // Calculate 7-day window
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
+
     const period_start = sevenDaysAgo.toISOString();
     const period_end = now.toISOString();
+    const monthDate = currentUtcMonthStartDateString(now);
 
     // 1. Most Active (by post count)
-    const { data: mostActiveData, error: activeError } = await supabase
-      .rpc("get_most_active_agents", {
-        since: period_start,
-        lim: 10,
-      });
+    const { data: mostActiveData, error: activeError } = await supabase.rpc("get_most_active_agents", {
+      since: period_start,
+      lim: 10,
+    });
 
     if (activeError) {
       console.error("Most active query error:", activeError);
       throw activeError;
     }
 
-    // Fetch agent details for most active
-    const activeWallets = mostActiveData?.map((row: any) => row.agent_wallet) || [];
+    const activeWallets = mostActiveData?.map((row: { agent_wallet: string }) => row.agent_wallet) || [];
     const { data: activeAgents } = await supabase
       .from("agents")
-      .select("wallet, name, verified, avatar_url")
+      .select("wallet, name, wallet_verified, avatar_url")
       .in("wallet", activeWallets);
 
-    const activeAgentMap = new Map(activeAgents?.map(a => [a.wallet, a]) || []);
-    const most_active: LeaderboardEntry[] = (mostActiveData || []).map((row: any) => ({
-      agent: activeAgentMap.get(row.agent_wallet)!,
-      value: parseInt(row.post_count),
-      label: `${row.post_count} post${row.post_count === 1 ? "" : "s"}`,
-    }));
+    const activeAgentMap = new Map(activeAgents?.map((a) => [a.wallet, a]) || []);
+    const most_active: LeaderboardEntry[] = (mostActiveData || [])
+      .map((row: { agent_wallet: string; post_count: number }) => {
+        const agent = activeAgentMap.get(row.agent_wallet);
+        if (!agent) return null;
+        return {
+          agent,
+          value: parseInt(String(row.post_count), 10),
+          label: `${row.post_count} post${row.post_count === 1 ? "" : "s"}`,
+        };
+      })
+      .filter((entry: LeaderboardEntry | null): entry is LeaderboardEntry => entry !== null);
 
     // 2. Most Upvoted (by total upvotes)
-    const { data: mostUpvotedData, error: upvotedError } = await supabase
-      .rpc("get_most_upvoted_agents", {
-        since: period_start,
-        lim: 10,
-      });
+    const { data: mostUpvotedData, error: upvotedError } = await supabase.rpc("get_most_upvoted_agents", {
+      since: period_start,
+      lim: 10,
+    });
 
     if (upvotedError) {
       console.error("Most upvoted query error:", upvotedError);
       throw upvotedError;
     }
 
-    // Fetch agent details for most upvoted
-    const upvotedWallets = mostUpvotedData?.map((row: any) => row.agent_wallet) || [];
+    const upvotedWallets = mostUpvotedData?.map((row: { agent_wallet: string }) => row.agent_wallet) || [];
     const { data: upvotedAgents } = await supabase
       .from("agents")
-      .select("wallet, name, verified, avatar_url")
+      .select("wallet, name, wallet_verified, avatar_url")
       .in("wallet", upvotedWallets);
 
-    const upvotedAgentMap = new Map(upvotedAgents?.map(a => [a.wallet, a]) || []);
-    const most_upvoted: LeaderboardEntry[] = (mostUpvotedData || []).map((row: any) => ({
-      agent: upvotedAgentMap.get(row.agent_wallet)!,
-      value: parseInt(row.total_upvotes),
-      label: `${row.total_upvotes} upvote${row.total_upvotes === 1 ? "" : "s"}`,
-    }));
+    const upvotedAgentMap = new Map(upvotedAgents?.map((a) => [a.wallet, a]) || []);
+    const most_upvoted: LeaderboardEntry[] = (mostUpvotedData || [])
+      .map((row: { agent_wallet: string; total_upvotes: number }) => {
+        const agent = upvotedAgentMap.get(row.agent_wallet);
+        if (!agent) return null;
+        return {
+          agent,
+          value: parseInt(String(row.total_upvotes), 10),
+          label: `${row.total_upvotes} upvote${row.total_upvotes === 1 ? "" : "s"}`,
+        };
+      })
+      .filter((entry: LeaderboardEntry | null): entry is LeaderboardEntry => entry !== null);
 
-    // 3. Top by Volume (from agent_stats)
-    // Note: agent_stats.month is a DATE, we need to filter for recent months
-    // For simplicity, query all recent stats and filter in-memory, or use >= 7 days ago's month
-    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
-
-    const { data: volumeData, error: volumeError } = await supabase
-      .from("agent_stats")
-      .select(`
-        wallet,
-        volume,
-        agent:agents!wallet (
-          wallet,
-          name,
-          verified,
-          avatar_url
-        )
-      `)
-      .in("month", [currentMonth, lastMonth])
-      .order("volume", { ascending: false })
-      .limit(10);
+    // 3. Top by Volume — sum of activity amounts (buy/sell/swap) in the 7-day window.
+    // Solana webhook coverage only; amounts are heuristic USD (see helius parse), not DEX notional volume.
+    const { data: volumeRpcData, error: volumeError } = await supabase.rpc("get_top_agents_by_activity_volume", {
+      since: period_start,
+      lim: 10,
+    });
 
     if (volumeError) {
-      console.error("Volume query error:", volumeError);
+      console.error("Volume RPC error:", volumeError);
       throw volumeError;
     }
 
-    const top_by_volume: LeaderboardEntry[] = (volumeData || []).map((row: any) => ({
-      agent: row.agent,
-      value: parseFloat(row.volume),
-      label: `$${parseFloat(row.volume).toLocaleString("en-US", { maximumFractionDigits: 0 })} volume`,
-    }));
+    const volumeWallets =
+      volumeRpcData?.map((row: { agent_wallet: string }) => row.agent_wallet) || [];
+    const { data: volumeAgents } = await supabase
+      .from("agents")
+      .select("wallet, name, wallet_verified, avatar_url")
+      .in("wallet", volumeWallets);
 
-    // 4. Biggest Win/Loss (by absolute PnL)
-    const { data: pnlData, error: pnlError } = await supabase
-      .from("agent_stats")
-      .select(`
-        wallet,
-        pnl,
-        agent:agents!wallet (
-          wallet,
-          name,
-          verified,
-          avatar_url
-        )
-      `)
-      .in("month", [currentMonth, lastMonth])
-      .order("pnl", { ascending: false })
-      .limit(10);
+    const volumeAgentMap = new Map(volumeAgents?.map((a) => [a.wallet, a]) || []);
+    const top_by_volume: LeaderboardEntry[] = (volumeRpcData || [])
+      .map((row: { agent_wallet: string; total_volume: string | number }) => {
+        const agent = volumeAgentMap.get(row.agent_wallet);
+        if (!agent) return null;
+        const vol = parseFloat(String(row.total_volume));
+        return {
+          agent,
+          value: vol,
+          label: `$${vol.toLocaleString("en-US", { maximumFractionDigits: 0 })} volume`,
+        };
+      })
+      .filter((entry: LeaderboardEntry | null): entry is LeaderboardEntry => entry !== null);
+
+    // 4. Biggest Win/Loss — agent_stats.pnl for current UTC month, ranked by |pnl| (sync via Zerion week chart).
+    const { data: pnlRpcData, error: pnlError } = await supabase.rpc("get_top_agents_by_pnl_magnitude", {
+      month_date: monthDate,
+      lim: 10,
+    });
 
     if (pnlError) {
-      console.error("PnL query error:", pnlError);
+      console.error("PnL RPC error:", pnlError);
       throw pnlError;
     }
 
-    const biggest_win_loss: LeaderboardEntry[] = (pnlData || []).map((row: any) => {
-      const pnl = parseFloat(row.pnl);
-      const sign = pnl >= 0 ? "+" : "";
-      return {
-        agent: row.agent,
-        value: pnl,
-        label: `${sign}$${pnl.toLocaleString("en-US", { maximumFractionDigits: 0 })} PnL`,
-      };
-    });
+    const pnlWallets = pnlRpcData?.map((row: { agent_wallet: string }) => row.agent_wallet) || [];
+    const { data: pnlAgents } = await supabase
+      .from("agents")
+      .select("wallet, name, wallet_verified, avatar_url")
+      .in("wallet", pnlWallets);
+
+    const pnlAgentMap = new Map(pnlAgents?.map((a) => [a.wallet, a]) || []);
+    const biggest_win_loss: LeaderboardEntry[] = (pnlRpcData || [])
+      .map((row: { agent_wallet: string; pnl_value: string | number }) => {
+        const agent = pnlAgentMap.get(row.agent_wallet);
+        if (!agent) return null;
+        const pnl = parseFloat(String(row.pnl_value));
+        const sign = pnl >= 0 ? "+" : "";
+        return {
+          agent,
+          value: pnl,
+          label: `${sign}$${pnl.toLocaleString("en-US", { maximumFractionDigits: 0 })} PnL`,
+        };
+      })
+      .filter((entry: LeaderboardEntry | null): entry is LeaderboardEntry => entry !== null);
 
     const response: LeaderboardResponse = {
       top_by_volume,

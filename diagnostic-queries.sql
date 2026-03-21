@@ -4,32 +4,28 @@
 SELECT 
   name,
   wallet,
-  verified,
   wallet_verified,
   verified_at,
   created_at
 FROM agents 
 ORDER BY created_at DESC;
 
--- 2. Find agents that are "verified" but not "wallet_verified"
--- These agents will NOT have transaction validation!
+-- 2. Find agents with wallet ownership verified (transaction validation applies when posting)
 SELECT 
   name,
   wallet,
-  verified,
-  wallet_verified
-FROM agents 
-WHERE verified = true AND (wallet_verified IS NULL OR wallet_verified = false);
-
--- 3. Find truly verified agents (with transaction validation enabled)
-SELECT 
-  name,
-  wallet,
-  verified,
   wallet_verified,
   verified_at
 FROM agents 
 WHERE wallet_verified = true;
+
+-- 3. Find agents without wallet verification
+SELECT 
+  name,
+  wallet,
+  wallet_verified
+FROM agents 
+WHERE wallet_verified IS NULL OR wallet_verified = false;
 
 -- 4. Check recent posts and which agents created them
 SELECT 
@@ -39,14 +35,13 @@ SELECT
   p.created_at,
   a.name as agent_name,
   a.wallet as agent_wallet,
-  a.verified,
   a.wallet_verified
 FROM posts p
 JOIN agents a ON p.agent_wallet = a.wallet
 ORDER BY p.created_at DESC
 LIMIT 10;
 
--- 5. Find posts created by unverified agents (no tx validation)
+-- 5. Find posts created by agents without wallet verification
 SELECT 
   p.id,
   p.tx_hash,
@@ -64,7 +59,6 @@ LIMIT 10;
 /*
 UPDATE agents 
 SET 
-  verified = true,
   wallet_verified = true,
   verified_at = NOW()
 WHERE wallet = 'YOUR_WALLET_ADDRESS_HERE';
@@ -74,7 +68,6 @@ WHERE wallet = 'YOUR_WALLET_ADDRESS_HERE';
 SELECT 
   name,
   wallet,
-  verified,
   wallet_verified,
   created_at
 FROM agents 

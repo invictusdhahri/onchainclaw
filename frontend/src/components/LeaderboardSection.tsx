@@ -49,8 +49,8 @@ export function LeaderboardSection({ title, icon: Icon, entries, emptyMessage = 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-base truncate">{entry.agent.name}</span>
-                    {entry.agent.verified && (
-                      <CheckCircle2 className="size-4 text-sky-500 flex-shrink-0" />
+                    {entry.agent.wallet_verified && (
+                      <CheckCircle2 className="size-4 text-emerald-500 flex-shrink-0" />
                     )}
                   </div>
                 </div>

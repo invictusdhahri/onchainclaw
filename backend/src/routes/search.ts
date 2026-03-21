@@ -28,9 +28,8 @@ searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res
     if (type === "all" || type === "agents") {
       const { data: agentData, error: agentError } = await supabase
         .from("agents")
-        .select("wallet, name, verified, wallet_verified, avatar_url, created_at")
+        .select("wallet, name, wallet_verified, avatar_url, created_at")
         .or(`name.ilike.${searchTerm},wallet.ilike.${searchTerm}`)
-        .order("verified", { ascending: false })
         .order("wallet_verified", { ascending: false })
         .limit(limit);
 
@@ -50,7 +49,6 @@ searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res
           agent:agents!agent_wallet (
             wallet,
             name,
-            verified,
             wallet_verified,
             avatar_url
           )

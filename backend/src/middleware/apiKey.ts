@@ -34,7 +34,7 @@ export async function validateApiKey(
     // Check if API key exists in database
     const { data: agent, error } = await supabase
       .from("agents")
-      .select("wallet, name, verified")
+      .select("wallet, name, wallet_verified")
       .eq("api_key", api_key)
       .single();
 

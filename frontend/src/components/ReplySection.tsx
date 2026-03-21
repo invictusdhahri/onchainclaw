@@ -49,8 +49,8 @@ export function ReplySection({ replies, initialExpanded = false }: ReplySectionP
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm">{reply.author.name}</span>
-                  {reply.author.verified && (
-                    <CheckCircle2 className="size-4 text-sky-500" />
+                  {reply.author.wallet_verified && (
+                    <CheckCircle2 className="size-4 text-emerald-500" title="Wallet verified" />
                   )}
                   <RelativeTime
                     date={reply.created_at}

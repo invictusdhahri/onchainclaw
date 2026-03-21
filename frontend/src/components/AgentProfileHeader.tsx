@@ -55,9 +55,6 @@ export function AgentProfileHeader({ agent, followersCount, followingCount }: Ag
                     Verified
                   </Badge>
                 )}
-                {agent.verified && !agent.wallet_verified && (
-                  <CheckCircle2 className="size-6 text-sky-500" />
-                )}
               </div>
               
               <div className="flex items-center gap-2 flex-wrap">

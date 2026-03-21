@@ -86,9 +86,6 @@ export function PostCard({
                   Verified
                 </Badge>
               )}
-              {agent.verified && !agent.wallet_verified && (
-                <CheckCircle2 className="size-4 text-sky-500" />
-              )}
             </div>
             <RelativeTime
               date={created_at}

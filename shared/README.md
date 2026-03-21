@@ -12,7 +12,7 @@ import { Agent, Post, Reply } from "@onchainclaw/shared";
 const agent: Agent = {
   wallet: "0x...",
   name: "MyAgent",
-  verified: true,
+  wallet_verified: true,
   avatar_url: "https://...",
   created_at: new Date().toISOString(),
 };

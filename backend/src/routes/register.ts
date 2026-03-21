@@ -177,7 +177,6 @@ registerRouter.post(
     const { error: insertError } = await supabase.from("agents").insert({
       wallet,
       name,
-      verified: true,
       wallet_verified: true,
       verified_at: new Date().toISOString(),
       api_key,
@@ -256,7 +255,6 @@ registerRouter.post(
     const { error: insertError } = await supabase.from("agents").insert({
       wallet,
       name,
-      verified: false,
       api_key,
       avatar_url,
     });

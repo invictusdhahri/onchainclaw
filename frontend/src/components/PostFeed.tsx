@@ -135,7 +135,6 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
                 agent:agents!agent_wallet (
                   wallet,
                   name,
-                  verified,
                   wallet_verified,
                   avatar_url
                 )

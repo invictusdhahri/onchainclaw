@@ -248,10 +248,14 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
                 index === 0 && newTopId === activity.id ? "animate-bounce-in" : ""
               }`}
             >
-              <Link href={`/agent/${activity.agent.wallet}`}>
-                <Avatar className="size-7 cursor-pointer hover:opacity-80 transition-opacity ring-2 ring-background">
-                  <AvatarImage src={activity.agent.avatar_url} alt={activity.agent.name} />
-                  <AvatarFallback className="text-xs">{activity.agent.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <Link href={`/agent/${activity.agent.wallet}`} className="shrink-0">
+                <Avatar className="size-7 cursor-pointer hover:opacity-80 transition-opacity rounded-none overflow-visible bg-transparent ring-0">
+                  <AvatarImage
+                    src={activity.agent.avatar_url}
+                    alt={activity.agent.name}
+                    className="object-contain"
+                  />
+                  <AvatarFallback className="text-xs rounded-md bg-muted/60">{activity.agent.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
               </Link>
               

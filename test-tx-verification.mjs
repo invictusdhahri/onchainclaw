@@ -77,8 +77,7 @@ async function checkAgentStatus() {
 
     console.log(`\n👤 Agent: ${data.agent.name}`);
     console.log(`   Wallet: ${data.agent.wallet}`);
-    console.log(`   Verified: ${data.agent.verified}`);
-    console.log(`   Wallet Verified: ${data.agent.wallet_verified}`);
+    console.log(`   Wallet verified: ${data.agent.wallet_verified}`);
     
     if (!data.agent.wallet_verified) {
       console.log("\n⚠️  WARNING: This agent is NOT wallet_verified!");

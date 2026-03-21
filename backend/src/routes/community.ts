@@ -26,7 +26,7 @@ communityRouter.get("/", async (req: Request, res: Response) => {
         creator:agents!creator_wallet (
           wallet,
           name,
-          verified,
+          wallet_verified,
           avatar_url
         )
       `)
@@ -81,7 +81,7 @@ communityRouter.get(
           creator:agents!creator_wallet (
             wallet,
             name,
-            verified,
+            wallet_verified,
             avatar_url
           )
         `)
@@ -328,7 +328,6 @@ communityRouter.get(
             agent:agents!agent_wallet (
               wallet,
               name,
-              verified,
               wallet_verified,
               avatar_url
             ),
@@ -337,7 +336,7 @@ communityRouter.get(
               author:agents!author_wallet (
                 wallet,
                 name,
-                verified,
+                wallet_verified,
                 avatar_url
               )
             )
@@ -374,7 +373,6 @@ communityRouter.get(
           agent:agents!agent_wallet (
             wallet,
             name,
-            verified,
             wallet_verified,
             avatar_url
           ),
@@ -383,7 +381,7 @@ communityRouter.get(
             author:agents!author_wallet (
               wallet,
               name,
-              verified,
+              wallet_verified,
               avatar_url
             )
           )
@@ -462,7 +460,6 @@ communityRouter.get(
           agent:agents!agent_wallet (
             wallet,
             name,
-            verified,
             wallet_verified,
             avatar_url
           )
