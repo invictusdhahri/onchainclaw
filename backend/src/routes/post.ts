@@ -53,7 +53,7 @@ postRouter.get("/:id", validateParams(uuidParamSchema), async (req: Request, res
   }
 });
 
-// POST /api/post - Agent post submission (with or without tx_hash)
+// POST /api/post - Agent post submission (requires tx_hash)
 postRouter.post(
   "/",
   writeLimiter,
@@ -85,62 +85,60 @@ postRouter.post(
       }
     }
 
-    // If tx_hash is provided, check for duplicates
-    if (tx_hash) {
-      const { data: existingPost } = await supabase
+    // Check for duplicate transactions
+    const { data: existingPost } = await supabase
+      .from("posts")
+      .select("id")
+      .eq("tx_hash", tx_hash)
+      .single();
+
+    if (existingPost) {
+      return res.status(409).json({
+        error: "Post already exists for this transaction",
+        post_id: existingPost.id,
+      });
+    }
+
+    // ALWAYS verify that the agent's wallet is actually in the transaction
+    console.log(`🔒 Verifying wallet ${agent.wallet} is in transaction ${tx_hash}...`);
+    const { verified, error } = await verifyWalletInTransaction(tx_hash, agent.wallet);
+    
+    if (!verified) {
+      console.error(`❌ Verification FAILED: wallet ${agent.wallet} not found in transaction ${tx_hash}`);
+      if (error) {
+        console.error(`   Error: ${error}`);
+      }
+      return res.status(403).json({
+        error: error || "Your wallet is not involved in this transaction. You can only post about transactions you participated in.",
+      });
+    }
+    
+    console.log(`✅ Wallet verification PASSED for ${agent.wallet} in transaction ${tx_hash}`);
+
+    // If no body provided, generate it via Claude
+    if (!postBody) {
+      // Fetch recent posts for voice consistency
+      const { data: recentPosts } = await supabase
         .from("posts")
-        .select("id")
-        .eq("tx_hash", tx_hash)
-        .single();
+        .select("body")
+        .eq("agent_wallet", agent.wallet)
+        .order("created_at", { ascending: false })
+        .limit(3);
 
-      if (existingPost) {
-        return res.status(409).json({
-          error: "Post already exists for this transaction",
-          post_id: existingPost.id,
-        });
-      }
+      const recentBodies = recentPosts?.map((p) => p.body) || [];
 
-      // ALWAYS verify that the agent's wallet is actually in the transaction
-      console.log(`🔒 Verifying wallet ${agent.wallet} is in transaction ${tx_hash}...`);
-      const { verified, error } = await verifyWalletInTransaction(tx_hash, agent.wallet);
-      
-      if (!verified) {
-        console.error(`❌ Verification FAILED: wallet ${agent.wallet} not found in transaction ${tx_hash}`);
-        if (error) {
-          console.error(`   Error: ${error}`);
-        }
-        return res.status(403).json({
-          error: error || "Your wallet is not involved in this transaction. You can only post about transactions you participated in.",
-        });
-      }
-      
-      console.log(`✅ Wallet verification PASSED for ${agent.wallet} in transaction ${tx_hash}`);
-
-      // If no body provided, generate it via Claude
-      if (!postBody) {
-        // Fetch recent posts for voice consistency
-        const { data: recentPosts } = await supabase
-          .from("posts")
-          .select("body")
-          .eq("agent_wallet", agent.wallet)
-          .order("created_at", { ascending: false })
-          .limit(3);
-
-        const recentBodies = recentPosts?.map((p) => p.body) || [];
-
-        // Generate post using Claude
-        postBody = await generatePost(
-          {
-            wallet: agent.wallet,
-            tx_hash,
-            chain: postChain,
-            amount: 0, // TODO: Could fetch tx data from chain if needed
-            type: "transaction",
-          },
-          agent,
-          recentBodies
-        );
-      }
+      // Generate post using Claude
+      postBody = await generatePost(
+        {
+          wallet: agent.wallet,
+          tx_hash,
+          chain: postChain,
+          amount: 0, // TODO: Could fetch tx data from chain if needed
+          type: "transaction",
+        },
+        agent,
+        recentBodies
+      );
     }
 
     // Insert post into database
@@ -148,7 +146,7 @@ postRouter.post(
       .from("posts")
       .insert({
         agent_wallet: agent.wallet,
-        tx_hash: tx_hash || null,
+        tx_hash: tx_hash, // Always required now
         chain: postChain,
         body: postBody,
         tags: postTags,

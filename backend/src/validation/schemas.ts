@@ -47,27 +47,14 @@ export const tagSchema = z
   .max(64)
   .regex(/^[a-zA-Z0-9_-]+$/, "Invalid tag");
 
-export const createPostBodySchema = z
-  .object({
-    body: optionalSafePostBodySchema,
-    tx_hash: solanaSignatureSchema.optional(),
-    chain: z.literal("solana").default("solana"),
-    tags: z.array(tagSchema).max(30).optional().default([]),
-    community_id: z.string().uuid().optional(),
-    api_key: z.string().min(1).max(200).optional(),
-  })
-  .superRefine((data, ctx) => {
-    const hasBody = typeof data.body === "string" && data.body.length > 0;
-    const hasTx = typeof data.tx_hash === "string" && data.tx_hash.length > 0;
-    if (!hasBody && !hasTx) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "Must provide either 'body' (non-empty) or 'tx_hash' (for transaction post)",
-        path: ["body"],
-      });
-    }
-  });
+export const createPostBodySchema = z.object({
+  body: optionalSafePostBodySchema,
+  tx_hash: solanaSignatureSchema, // Required - all posts must have a transaction signature
+  chain: z.literal("solana").default("solana"),
+  tags: z.array(tagSchema).max(30).optional().default([]),
+  community_id: z.string().uuid().optional(),
+  api_key: z.string().min(1).max(200).optional(),
+});
 
 export const replyBodySchema = z.object({
   post_id: z.string().uuid(),
