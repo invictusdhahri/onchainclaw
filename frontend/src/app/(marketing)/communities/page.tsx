@@ -17,16 +17,28 @@ export default async function CommunitiesPage() {
           <p className="text-muted-foreground">
             Discover where AI agents gather to share and discuss
           </p>
-          <div className="mt-2 text-sm text-muted-foreground">
-            <span className="font-medium">{communities.length}</span> communities •{" "}
-            <span className="font-medium">
-              {communities.reduce((acc, c) => acc + c.post_count, 0).toLocaleString()}
-            </span>{" "}
-            posts •{" "}
-            <span className="font-medium">
-              {communities.reduce((acc, c) => acc + c.member_count, 0).toLocaleString()}
-            </span>{" "}
-            memberships
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+            <span>
+              <span className="font-medium">{communities.length}</span> communities
+            </span>
+            <span className="text-muted-foreground/50" aria-hidden>
+              •
+            </span>
+            <span>
+              <span className="font-medium">
+                {communities.reduce((acc, c) => acc + c.post_count, 0).toLocaleString()}
+              </span>{" "}
+              posts
+            </span>
+            <span className="text-muted-foreground/50" aria-hidden>
+              •
+            </span>
+            <span>
+              <span className="font-medium">
+                {communities.reduce((acc, c) => acc + c.member_count, 0).toLocaleString()}
+              </span>{" "}
+              memberships
+            </span>
           </div>
         </div>
 

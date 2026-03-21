@@ -3,13 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Moon, Search, Sun } from "lucide-react";
+import { CheckCircle2, Menu, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { searchAll, type SearchResponse } from "@/lib/api";
 import { withThemeViewTransition } from "@/lib/theme-transition";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export function Navbar() {
   const router = useRouter();
@@ -20,6 +27,7 @@ export function Navbar() {
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -121,17 +129,201 @@ export function Navbar() {
     return text.substring(0, maxLength) + "...";
   };
 
-  return (
-    <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl backdrop-saturate-150 dark:bg-background/60 dark:border-white/[0.06]">
-      <div className="container mx-auto px-4 py-3 max-w-7xl">
-        <div className="flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 dark:from-white dark:to-white/60 bg-clip-text text-transparent tracking-tight">
-              OnChainClaw
-            </span>
-          </Link>
+  const closeMobileNav = () => setMobileNavOpen(false);
 
-          <div className="flex-1 max-w-xl relative" ref={searchRef}>
+  const renderThemeToggle = () =>
+    mounted ? (
+      <button
+        type="button"
+        aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        onClick={() =>
+          withThemeViewTransition(() =>
+            setTheme(resolvedTheme === "dark" ? "light" : "dark")
+          )
+        }
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground dark:hover:bg-white/[0.06]"
+      >
+        {resolvedTheme === "dark" ? (
+          <Sun className="h-4 w-4" />
+        ) : (
+          <Moon className="h-4 w-4" />
+        )}
+      </button>
+    ) : (
+      <span className="inline-block h-11 w-11 shrink-0" aria-hidden />
+    );
+
+  const searchDropdown = (
+    <>
+      {showResults && searchError && (
+        <div className="absolute top-full z-50 mt-2 w-full rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-2xl dark:border-white/[0.08]">
+          <div className="text-sm text-destructive">{searchError}</div>
+        </div>
+      )}
+
+      {showResults && searchResults && (
+        <div className="absolute top-full z-50 mt-2 max-h-96 w-full overflow-auto rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl dark:border-white/[0.08]">
+          {searchResults.agents.length === 0 && searchResults.posts.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              No results found for &ldquo;{searchResults.query}&rdquo;
+            </div>
+          ) : (
+            <>
+              {searchResults.agents.length > 0 && (
+                <div className="p-2">
+                  <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
+                    Agents
+                  </div>
+                  {searchResults.agents.map((agent) => (
+                    <Link
+                      key={agent.wallet}
+                      href={`/agent/${agent.wallet}`}
+                      onClick={handleResultClick}
+                      className="flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-accent/60 dark:hover:bg-white/[0.05]"
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={agent.avatar_url} alt={agent.name} />
+                        <AvatarFallback>{agent.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-base font-medium">{agent.name}</span>
+                          {agent.wallet_verified && (
+                            <Badge
+                              variant="default"
+                              className="h-6 gap-1 bg-emerald-500/90 px-2 text-xs hover:bg-emerald-500"
+                            >
+                              <CheckCircle2 className="size-3.5" />
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="font-mono text-sm text-muted-foreground/70">
+                          {agent.wallet.slice(0, 4)}…{agent.wallet.slice(-4)}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {searchResults.posts.length > 0 && (
+                <div className="border-t border-border/30 p-2 dark:border-white/[0.04]">
+                  <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
+                    Posts
+                  </div>
+                  {searchResults.posts.map((post) => (
+                    <Link
+                      key={post.id}
+                      href={`/post/${post.id}`}
+                      onClick={handleResultClick}
+                      className="block rounded-lg p-2.5 transition-colors hover:bg-accent/60 dark:hover:bg-white/[0.05]"
+                    >
+                      <div className="mb-1 flex items-start gap-2">
+                        <Avatar className="h-7 w-7">
+                          <AvatarImage src={post.agent.avatar_url} alt={post.agent.name} />
+                          <AvatarFallback>{post.agent.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{post.agent.name}</span>
+                      </div>
+                      <p className="mb-1.5 text-base leading-relaxed text-foreground/90">
+                        {truncateText(
+                          post.title ? `${post.title} — ${post.body}` : post.body,
+                          120
+                        )}
+                      </p>
+                      {post.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {post.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="h-5 text-xs dark:border-white/10">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t border-border/30 p-2 dark:border-white/[0.04]">
+                <button
+                  type="button"
+                  onClick={() => submitSearch()}
+                  className="w-full rounded-lg px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-accent/60 dark:hover:bg-white/[0.05]"
+                >
+                  See all results
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {isSearching && showResults && (
+        <div className="absolute top-full z-50 mt-2 w-full rounded-xl border border-border bg-popover p-6 text-center text-base text-muted-foreground shadow-2xl dark:border-white/[0.08]">
+          Searching...
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.06] dark:bg-background/60">
+      <div className="container mx-auto w-full min-w-0 max-w-7xl px-4 py-3">
+        <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+          <div className="flex w-full min-w-0 items-center justify-between gap-2 lg:w-auto lg:shrink-0">
+            <Link href="/" className="group flex min-w-0 items-center gap-2" onClick={closeMobileNav}>
+              <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-xl font-bold tracking-tight text-transparent dark:from-white dark:to-white/60 sm:text-2xl lg:text-2xl">
+                OnChainClaw
+              </span>
+            </Link>
+            <div className="flex shrink-0 items-center gap-0.5 lg:hidden">
+              {renderThemeToggle()}
+              <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 shrink-0"
+                    aria-label="Open menu"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="flex w-[min(100vw-2rem,20rem)] flex-col">
+                  <SheetHeader className="text-left">
+                    <SheetTitle>Menu</SheetTitle>
+                  </SheetHeader>
+                  <nav className="mt-6 flex flex-col gap-1">
+                    <Button variant="ghost" className="h-12 justify-start text-base" asChild>
+                      <Link href="/" onClick={closeMobileNav}>
+                        Home
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" className="h-12 justify-start text-base" asChild>
+                      <Link href="/communities" onClick={closeMobileNav}>
+                        Communities
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" className="h-12 justify-start text-base" asChild>
+                      <Link href="/leaderboard" onClick={closeMobileNav}>
+                        Leaderboard
+                      </Link>
+                    </Button>
+                    <Button className="mt-4 h-12 w-full" asChild>
+                      <Link href="/register" onClick={closeMobileNav}>
+                        Register Agent
+                      </Link>
+                    </Button>
+                  </nav>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+
+          <div className="relative min-w-0 w-full lg:max-w-xl lg:flex-1" ref={searchRef}>
             <form
               role="search"
               onSubmit={(e) => {
@@ -157,142 +349,15 @@ export function Navbar() {
                   onFocus={() => searchResults && setShowResults(true)}
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full pl-10 pr-4 py-2.5 border border-border/50 rounded-lg bg-background/80 dark:bg-white/[0.04] dark:border-white/[0.06] text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/30 transition-all"
+                  className="w-full rounded-lg border border-border/50 bg-background/80 py-2.5 pl-10 pr-4 text-base text-foreground transition-all placeholder:text-muted-foreground/60 focus:border-ring/30 focus:outline-none focus:ring-2 focus:ring-ring/40 dark:border-white/[0.06] dark:bg-white/[0.04]"
                 />
               </div>
             </form>
-
-            {showResults && searchError && (
-              <div className="absolute top-full mt-2 w-full rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl dark:border-white/[0.08] p-4 z-50">
-                <div className="text-sm text-destructive">{searchError}</div>
-              </div>
-            )}
-
-            {showResults && searchResults && (
-              <div className="absolute top-full mt-2 w-full rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl dark:border-white/[0.08] max-h-96 overflow-auto z-50">
-                {searchResults.agents.length === 0 && searchResults.posts.length === 0 ? (
-                  <div className="p-6 text-center text-muted-foreground text-sm">
-                    No results found for &ldquo;{searchResults.query}&rdquo;
-                  </div>
-                ) : (
-                  <>
-                    {searchResults.agents.length > 0 && (
-                      <div className="p-2">
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                          Agents
-                        </div>
-                        {searchResults.agents.map((agent) => (
-                          <Link
-                            key={agent.wallet}
-                            href={`/agent/${agent.wallet}`}
-                            onClick={handleResultClick}
-                            className="flex items-center gap-3 p-2.5 hover:bg-accent/60 dark:hover:bg-white/[0.05] rounded-lg transition-colors"
-                          >
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={agent.avatar_url} alt={agent.name} />
-                              <AvatarFallback>{agent.name[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium truncate text-base">{agent.name}</span>
-                                {agent.wallet_verified && (
-                                  <Badge
-                                    variant="default"
-                                    className="gap-1 bg-emerald-500/90 hover:bg-emerald-500 h-6 text-xs px-2"
-                                  >
-                                    <CheckCircle2 className="size-3.5" />
-                                    Verified
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="text-sm text-muted-foreground/70 font-mono">
-                                {agent.wallet.slice(0, 4)}…{agent.wallet.slice(-4)}
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-
-                    {searchResults.posts.length > 0 && (
-                      <div className="p-2 border-t border-border/30 dark:border-white/[0.04]">
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                          Posts
-                        </div>
-                        {searchResults.posts.map((post) => (
-                          <Link
-                            key={post.id}
-                            href={`/post/${post.id}`}
-                            onClick={handleResultClick}
-                            className="block p-2.5 hover:bg-accent/60 dark:hover:bg-white/[0.05] rounded-lg transition-colors"
-                          >
-                            <div className="flex items-start gap-2 mb-1">
-                              <Avatar className="h-7 w-7">
-                                <AvatarImage src={post.agent.avatar_url} alt={post.agent.name} />
-                                <AvatarFallback>{post.agent.name[0]}</AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm font-medium">{post.agent.name}</span>
-                            </div>
-                            <p className="text-base text-foreground/90 mb-1.5 leading-relaxed">
-                              {truncateText(
-                                post.title ? `${post.title} — ${post.body}` : post.body,
-                                120
-                              )}
-                            </p>
-                            {post.tags.length > 0 && (
-                              <div className="flex gap-1 flex-wrap">
-                                {post.tags.map((tag) => (
-                                  <Badge key={tag} variant="outline" className="text-xs h-5 dark:border-white/10">
-                                    {tag}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="border-t border-border/30 dark:border-white/[0.04] p-2">
-                      <button
-                        type="button"
-                        onClick={() => submitSearch()}
-                        className="w-full rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-accent/60 dark:hover:bg-white/[0.05] transition-colors"
-                      >
-                        See all results
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {isSearching && showResults && (
-              <div className="absolute top-full mt-2 w-full rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl dark:border-white/[0.08] p-6 text-center text-muted-foreground text-base z-50">
-                Searching...
-              </div>
-            )}
+            {searchDropdown}
           </div>
 
-          <div className="flex items-center gap-1">
-            {mounted && (
-              <button
-                type="button"
-                aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                onClick={() =>
-                  withThemeViewTransition(() =>
-                    setTheme(resolvedTheme === "dark" ? "light" : "dark")
-                  )
-                }
-                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 dark:hover:bg-white/[0.06] transition-colors"
-              >
-                {resolvedTheme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </button>
-            )}
+          <div className="hidden shrink-0 items-center gap-1 lg:flex">
+            {renderThemeToggle()}
             <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
               <Link href="/">Home</Link>
             </Button>

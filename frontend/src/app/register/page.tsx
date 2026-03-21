@@ -132,7 +132,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Step Indicators */}
-      <div className="flex justify-center gap-4 mb-8">
+      <div className="mb-8 flex flex-wrap justify-center gap-2">
         <Badge variant={step === "form" ? "default" : "outline"}>
           1. Agent Details
         </Badge>

@@ -52,8 +52,12 @@
     @apply border-border;
   }
 
+  html {
+    @apply w-full overflow-x-clip;
+  }
+
   body {
-    @apply bg-background text-foreground text-base leading-normal antialiased;
+    @apply min-w-0 w-full overflow-x-clip bg-background text-foreground text-base leading-normal antialiased;
   }
 }
 
@@ -153,6 +157,80 @@
   animation: hotFlameFlicker 1.15s ease-in-out infinite;
 }
 
+/* Hot sort pill: fire gradient + subtle shimmer */
+.hot-sort-pill-active {
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  color: #fffbeb !important;
+  text-shadow: 0 0 14px hsl(24 95% 55% / 0.55);
+  border: 1px solid hsl(33 100% 72% / 0.45) !important;
+  background: linear-gradient(
+    125deg,
+    #c2410c 0%,
+    #ea580c 18%,
+    #ef4444 38%,
+    #f97316 55%,
+    #fb923c 72%,
+    #ea580c 100%
+  ) !important;
+  background-size: 220% 220%;
+  animation: hotPillGradient 2.4s ease-in-out infinite;
+  box-shadow:
+    0 0 22px hsl(24 95% 53% / 0.45),
+    0 0 44px hsl(0 84% 50% / 0.2),
+    0 2px 10px hsl(0 0% 0% / 0.25);
+}
+
+.hot-sort-pill-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    hsl(0 0% 100% / 0.22) 50%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  animation: hotPillShimmer 2.8s ease-in-out infinite;
+}
+
+.hot-sort-pill-active > * {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes hotPillGradient {
+  0%, 100% {
+    background-position: 0% 40%;
+  }
+  50% {
+    background-position: 100% 60%;
+  }
+}
+
+@keyframes hotPillShimmer {
+  0%, 100% {
+    background-position: -80% 0;
+    opacity: 0.35;
+  }
+  50% {
+    background-position: 180% 0;
+    opacity: 0.85;
+  }
+}
+
+.dark .hot-sort-pill-active {
+  box-shadow:
+    0 0 26px hsl(24 95% 53% / 0.5),
+    0 0 52px hsl(0 84% 50% / 0.22),
+    0 2px 12px hsl(0 0% 0% / 0.45);
+}
+
 @keyframes hotArrivalGlow {
   0% {
     box-shadow: 0 0 0 0 hsl(24 95% 53% / 0.45);
@@ -164,6 +242,24 @@
 
 .animate-hot-arrival {
   animation: hotArrivalGlow 2s ease-out forwards;
+}
+
+/* Realtime insert on “New” sort — fresh post glow (card only) */
+@keyframes newPostArrivalGlow {
+  0% {
+    box-shadow:
+      0 0 0 0 hsl(158 64% 45% / 0.42),
+      0 0 24px 0 hsl(172 66% 48% / 0.18);
+  }
+  100% {
+    box-shadow:
+      0 0 0 16px hsl(158 64% 45% / 0),
+      0 0 48px 12px hsl(172 66% 48% / 0);
+  }
+}
+
+.animate-new-post-arrival {
+  animation: newPostArrivalGlow 2.4s ease-out forwards;
 }
 
 .hot-ticker-dot {
@@ -178,8 +274,19 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hot-flame-icon,
-  .animate-hot-arrival {
+  .animate-hot-arrival,
+  .animate-new-post-arrival {
     animation: none !important;
+  }
+
+  .hot-sort-pill-active {
+    animation: none !important;
+    background-position: 50% 50% !important;
+  }
+
+  .hot-sort-pill-active::after {
+    animation: none !important;
+    opacity: 0.25;
   }
 
   .hot-ticker-dot::after {
@@ -254,6 +361,14 @@
   background-image: 
     linear-gradient(to right, hsl(var(--primary) / 0.12) 1px, transparent 1px),
     linear-gradient(to bottom, hsl(var(--primary) / 0.12) 1px, transparent 1px);
+}
+
+/* Hero: fade grid out earlier on phones so it stays behind the headline */
+@media (max-width: 767px) {
+  .hero-grid--mobile-fade::before {
+    mask-image: linear-gradient(to bottom, black 6%, transparent 58%);
+    -webkit-mask-image: linear-gradient(to bottom, black 6%, transparent 58%);
+  }
 }
 
 /* Floating grid squares */

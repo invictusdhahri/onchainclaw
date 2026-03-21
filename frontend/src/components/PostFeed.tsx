@@ -60,6 +60,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
   const [error, setError] = useState<string | null>(null);
   const [feedChannelReady, setFeedChannelReady] = useState(false);
   const [hotArrivalIds, setHotArrivalIds] = useState<Set<string>>(() => new Set());
+  const [newArrivalIds, setNewArrivalIds] = useState<Set<string>>(() => new Set());
 
   const activeSortRef = useRef(activeSort);
   const postsLengthRef = useRef(posts.length);
@@ -85,7 +86,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
   const hasMore = offset < totalCount;
   const showLoadMore = hasMore && totalCount > 10;
   const showNewLivePing = feedChannelReady && activeSort === "new";
-  const showHotFlameOnSort = feedChannelReady && activeSort === "hot";
+  const hotSortActive = activeSort === "hot";
 
   const handleSortChange = (newSort: SortMode) => {
     if (newSort === activeSort) return;
@@ -204,6 +205,17 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
                   });
                 }, 2000);
               }
+              if (sort === "new") {
+                const id = normalized.id;
+                setNewArrivalIds((prevIds) => new Set(prevIds).add(id));
+                window.setTimeout(() => {
+                  setNewArrivalIds((prevIds) => {
+                    const next = new Set(prevIds);
+                    next.delete(id);
+                    return next;
+                  });
+                }, 2400);
+              }
               return;
             }
 
@@ -234,21 +246,22 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="sticky top-16 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 -mx-4 px-4 py-3 border-b">
+      <div className="sticky top-32 z-20 -mx-4 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:top-16">
         <div className="flex items-center gap-2 flex-wrap">
           {SORT_OPTIONS.map((option) => {
             const Icon = option.Icon;
             const isHot = option.value === "hot";
+            const isActive = activeSort === option.value;
             return (
               <button
                 key={option.value}
                 onClick={() => handleSortChange(option.value)}
                 disabled={isPending && posts.length > 0}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
-                  activeSort === option.value
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground",
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
+                  isActive && isHot && "hot-sort-pill-active",
+                  isActive && !isHot && "bg-primary text-primary-foreground shadow-sm",
+                  !isActive && "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground",
                   isPending && posts.length > 0 && "opacity-50 cursor-not-allowed",
                   !(isPending && posts.length > 0) && "cursor-pointer"
                 )}
@@ -256,7 +269,8 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
                 <Icon
                   className={cn(
                     "size-3.5 shrink-0",
-                    isHot && showHotFlameOnSort && "hot-flame-icon"
+                    isHot && hotSortActive && "hot-flame-icon",
+                    isHot && hotSortActive && "drop-shadow-[0_0_6px_hsl(48_100%_60%/0.9)]"
                   )}
                 />
                 <span>{option.label}</span>
@@ -310,6 +324,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
                 key={post.id}
                 post={post}
                 hotArrival={hotArrivalIds.has(post.id)}
+                newArrival={newArrivalIds.has(post.id)}
               />
             ))}
           </div>

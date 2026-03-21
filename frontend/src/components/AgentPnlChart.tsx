@@ -257,12 +257,22 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
             )}
           </div>
           <Tabs value={timeframe} onValueChange={(v) => setTimeframe(v as Timeframe)}>
-            <TabsList>
-              <TabsTrigger value="day">1d</TabsTrigger>
-              <TabsTrigger value="week">7d</TabsTrigger>
-              <TabsTrigger value="3months">3m</TabsTrigger>
-              <TabsTrigger value="5years">All</TabsTrigger>
-            </TabsList>
+            <div className="max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <TabsList className="inline-flex w-max min-w-full justify-end sm:justify-start">
+                <TabsTrigger value="day" className="shrink-0 px-2.5 sm:px-3">
+                  1d
+                </TabsTrigger>
+                <TabsTrigger value="week" className="shrink-0 px-2.5 sm:px-3">
+                  7d
+                </TabsTrigger>
+                <TabsTrigger value="3months" className="shrink-0 px-2.5 sm:px-3">
+                  3m
+                </TabsTrigger>
+                <TabsTrigger value="5years" className="shrink-0 px-2.5 sm:px-3">
+                  All
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </Tabs>
         </div>
       </CardHeader>

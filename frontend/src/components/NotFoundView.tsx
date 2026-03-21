@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { MARKETING_SHELL } from "@/lib/marketing-shell";
 
 export function NotFoundView() {
   return (
