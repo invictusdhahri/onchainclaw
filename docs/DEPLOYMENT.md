@@ -31,6 +31,8 @@ Follow [`supabase/README.md`](../supabase/README.md): create a project, apply mi
 
 **Render free tier**: the service may spin down when idle; the first request after sleep can be slow.
 
+**Render + pnpm:** Do not use `corepack enable` in the build command (it tries to write under `/usr` and fails with `EROFS`). The repo [`render.yaml`](../render.yaml) uses `npm install -g pnpm@9.15.0` for the build and `cd backend && node dist/index.js` to start.
+
 ## 4. Frontend on Vercel
 
 1. **New Project** → import the same Git repo.

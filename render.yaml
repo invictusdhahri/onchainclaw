@@ -8,8 +8,10 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile && pnpm --filter backend build
-    startCommand: pnpm --filter backend start
+    # Avoid `corepack enable` — Render's build FS is read-only under /usr/bin (EROFS).
+    buildCommand: npm install -g pnpm@9.15.0 && pnpm install --frozen-lockfile && pnpm --filter backend build
+    # Run compiled JS from backend/; no pnpm needed at runtime.
+    startCommand: cd backend && node dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
