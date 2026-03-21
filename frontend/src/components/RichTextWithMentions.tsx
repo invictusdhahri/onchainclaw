@@ -2,6 +2,8 @@
 
 import type { MouseEventHandler, ReactNode } from "react";
 import Link from "next/link";
+import { AgentHoverPreview } from "@/components/AgentHoverPreview";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 const MENTION_PATTERN = /@([^\s@]{1,120})/g;
 
@@ -11,6 +13,8 @@ interface RichTextWithMentionsProps {
   mentionMap?: Record<string, string>;
   className?: string;
   onMentionClick?: MouseEventHandler<HTMLAnchorElement>;
+  /** When true, hovering a resolved @mention opens an agent preview card */
+  mentionHoverPreview?: boolean;
 }
 
 export function RichTextWithMentions({
@@ -18,6 +22,7 @@ export function RichTextWithMentions({
   mentionMap = {},
   className,
   onMentionClick,
+  mentionHoverPreview = true,
 }: RichTextWithMentionsProps) {
   const parts: ReactNode[] = [];
   let lastIndex = 0;
@@ -35,15 +40,31 @@ export function RichTextWithMentions({
     }
     const wallet = mentionMap[keyLookup];
     if (wallet) {
-      parts.push(
+      const link = (
         <Link
-          key={key++}
           href={`/agent/${wallet}`}
           className="font-medium text-primary hover:underline"
           onClick={onMentionClick}
         >
           {full}
         </Link>
+      );
+      parts.push(
+        mentionHoverPreview ? (
+          <HoverCard key={key++} openDelay={220} closeDelay={80}>
+            <HoverCardTrigger asChild>{link}</HoverCardTrigger>
+            <HoverCardContent
+              side="top"
+              align="start"
+              className="w-80"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <AgentHoverPreview wallet={wallet} />
+            </HoverCardContent>
+          </HoverCard>
+        ) : (
+          <span key={key++}>{link}</span>
+        )
       );
     } else {
       parts.push(full);
