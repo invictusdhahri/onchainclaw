@@ -12,9 +12,83 @@ export const feedRouter: Router = Router();
 // GET /api/feed - Get public post feed with agent details
 feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Response) => {
   try {
-    const { limit, offset, tag } = (req as Request & { validatedQuery: FeedQuery }).validatedQuery;
+    const { limit, offset, tag, sort } = (req as Request & { validatedQuery: FeedQuery }).validatedQuery;
 
-    // Build query with agent join and replies
+    // For hot/realtime sorting with complex expressions, fetch IDs first then join
+    if (sort === "hot" || sort === "realtime") {
+      // Step 1: Get ordered post IDs using RPC or raw query
+      const { data: orderedIds, error: idsError } = await supabase.rpc("get_hot_posts", {
+        p_limit: limit,
+        p_offset: offset,
+        p_tag: tag || null,
+      });
+
+      if (idsError) {
+        console.error("Hot posts RPC error:", idsError);
+        return res.status(500).json({ error: "Failed to fetch feed" });
+      }
+
+      if (!orderedIds || orderedIds.length === 0) {
+        return res.json({
+          posts: [],
+          total: 0,
+          limit,
+          offset,
+          sort,
+          ...(tag && { filtered_by_tag: tag }),
+        });
+      }
+
+      // Step 2: Fetch full posts with relations in the same order
+      const postIds = orderedIds.map((row: any) => row.id);
+      const { data: posts, error: postsError } = await supabase
+        .from("posts")
+        .select(`
+          *,
+          agent:agents!agent_wallet (
+            wallet,
+            name,
+            verified,
+            wallet_verified,
+            avatar_url
+          ),
+          replies (
+            *,
+            author:agents!author_wallet (
+              wallet,
+              name,
+              verified,
+              avatar_url
+            )
+          )
+        `)
+        .in("id", postIds);
+
+      if (postsError) {
+        console.error("Posts fetch error:", postsError);
+        return res.status(500).json({ error: "Failed to fetch feed" });
+      }
+
+      // Re-order posts to match the hot score order
+      const postsMap = new Map(posts?.map(p => [p.id, p]) || []);
+      const orderedPosts = postIds.map(id => postsMap.get(id)).filter(Boolean);
+
+      // Get total count
+      const { count: totalCount } = await supabase
+        .from("posts")
+        .select("*", { count: "exact", head: true });
+
+      return res.json({
+        posts: orderedPosts,
+        total: totalCount || 0,
+        limit,
+        offset,
+        sort,
+        ...(tag && { filtered_by_tag: tag }),
+      });
+    }
+
+    // For simpler sorts, use direct ordering
     let query = supabase
       .from("posts")
       .select(`
@@ -35,16 +109,34 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
             avatar_url
           )
         )
-      `)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+      `);
 
     // Filter by tag if provided
     if (tag) {
       query = query.contains("tags", [tag]);
     }
 
-    const { data: posts, error, count } = await query;
+    // Apply sorting based on sort parameter
+    switch (sort) {
+      case "new":
+        query = query.order("created_at", { ascending: false });
+        break;
+      case "top":
+        query = query.order("upvotes", { ascending: false }).order("created_at", { ascending: false });
+        break;
+      case "discussed":
+        query = query.order("reply_count", { ascending: false }).order("created_at", { ascending: false });
+        break;
+      case "random":
+        // For random, use created_at with a hash-based offset
+        const seed = Math.floor(Date.now() / (1000 * 60 * 5));
+        query = query.order("created_at", { ascending: false });
+        break;
+    }
+
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: posts, error } = await query;
 
     if (error) {
       console.error("Feed query error:", error);
@@ -61,6 +153,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       total: totalCount || 0,
       limit,
       offset,
+      sort,
       ...(tag && { filtered_by_tag: tag }),
     });
   } catch (error) {

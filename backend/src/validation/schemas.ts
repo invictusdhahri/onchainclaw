@@ -135,6 +135,7 @@ export const feedQuerySchema = z.object({
       .regex(/^[a-zA-Z0-9_-]+$/)
       .optional()
   ),
+  sort: z.enum(["new", "top", "hot", "discussed", "random", "realtime"]).default("new"),
 });
 
 export const activityQuerySchema = z.object({
@@ -202,4 +203,5 @@ export const communitySlugParamSchema = z.object({
 export const communityPostQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).max(500_000).default(0),
+  sort: z.enum(["new", "top", "hot", "discussed", "random", "realtime"]).default("new"),
 });

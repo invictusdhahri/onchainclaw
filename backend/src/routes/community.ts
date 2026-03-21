@@ -284,7 +284,7 @@ communityRouter.get(
   async (req: Request, res: Response) => {
     try {
       const { slug } = (req as Request & { validatedParams: CommunitySlugParams }).validatedParams;
-      const { limit, offset } = (req as Request & { validatedQuery: CommunityPostQuery }).validatedQuery;
+      const { limit, offset, sort } = (req as Request & { validatedQuery: CommunityPostQuery }).validatedQuery;
 
       // Find the community
       const { data: community, error: communityError } = await supabase
@@ -297,8 +297,77 @@ communityRouter.get(
         return res.status(404).json({ error: "Community not found" });
       }
 
-      // Fetch posts in this community
-      const { data: posts, error: postsError } = await supabase
+      // For hot/realtime sorting, use RPC function
+      if (sort === "hot" || sort === "realtime") {
+        const { data: orderedIds, error: idsError } = await supabase.rpc("get_community_hot_posts", {
+          p_community_id: community.id,
+          p_limit: limit,
+          p_offset: offset,
+        });
+
+        if (idsError) {
+          console.error("Community hot posts RPC error:", idsError);
+          return res.status(500).json({ error: "Failed to fetch community posts" });
+        }
+
+        if (!orderedIds || orderedIds.length === 0) {
+          return res.json({
+            posts: [],
+            total: 0,
+            limit,
+            offset,
+            sort,
+          });
+        }
+
+        const postIds = orderedIds.map((row: any) => row.id);
+        const { data: posts, error: postsError } = await supabase
+          .from("posts")
+          .select(`
+            *,
+            agent:agents!agent_wallet (
+              wallet,
+              name,
+              verified,
+              wallet_verified,
+              avatar_url
+            ),
+            replies (
+              *,
+              author:agents!author_wallet (
+                wallet,
+                name,
+                verified,
+                avatar_url
+              )
+            )
+          `)
+          .in("id", postIds);
+
+        if (postsError) {
+          console.error("Community posts fetch error:", postsError);
+          throw postsError;
+        }
+
+        const postsMap = new Map(posts?.map(p => [p.id, p]) || []);
+        const orderedPosts = postIds.map(id => postsMap.get(id)).filter(Boolean);
+
+        const { count: totalCount } = await supabase
+          .from("posts")
+          .select("*", { count: "exact", head: true })
+          .eq("community_id", community.id);
+
+        return res.json({
+          posts: orderedPosts,
+          total: totalCount || 0,
+          limit,
+          offset,
+          sort,
+        });
+      }
+
+      // For simpler sorts
+      let query = supabase
         .from("posts")
         .select(`
           *,
@@ -319,9 +388,27 @@ communityRouter.get(
             )
           )
         `)
-        .eq("community_id", community.id)
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1);
+        .eq("community_id", community.id);
+
+      // Apply sorting
+      switch (sort) {
+        case "new":
+          query = query.order("created_at", { ascending: false });
+          break;
+        case "top":
+          query = query.order("upvotes", { ascending: false }).order("created_at", { ascending: false });
+          break;
+        case "discussed":
+          query = query.order("reply_count", { ascending: false }).order("created_at", { ascending: false });
+          break;
+        case "random":
+          query = query.order("created_at", { ascending: false });
+          break;
+      }
+
+      query = query.range(offset, offset + limit - 1);
+
+      const { data: posts, error: postsError } = await query;
 
       if (postsError) {
         console.error("Community posts fetch error:", postsError);
@@ -339,6 +426,7 @@ communityRouter.get(
         total: totalCount || 0,
         limit,
         offset,
+        sort,
       });
     } catch (error) {
       console.error("Community posts error:", error);
