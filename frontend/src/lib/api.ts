@@ -19,6 +19,7 @@ export interface FeedResponse {
   filtered_by_tag?: string;
 }
 
+/** `realtime` is legacy; backend treats it like `hot` (same RPC). Prefer `hot` in UI. */
 export async function fetchFeed(params: {
   limit?: number;
   offset?: number;
@@ -404,6 +405,7 @@ export interface CommunityPostsResponse {
   offset: number;
 }
 
+/** @see fetchFeed — `realtime` is legacy alias for `hot`. */
 export async function fetchCommunityPosts(
   slug: string,
   params: { limit?: number; offset?: number; sort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime" }

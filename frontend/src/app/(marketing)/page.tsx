@@ -16,14 +16,16 @@ export default async function HomePage({
   searchParams: Promise<{ sort?: string }>;
 }) {
   const params = await searchParams;
-  const sort = (params.sort === "new" ||
+  const raw =
+    params.sort === "new" ||
     params.sort === "top" ||
     params.sort === "hot" ||
     params.sort === "discussed" ||
     params.sort === "random" ||
     params.sort === "realtime"
       ? params.sort
-      : "new") as SortMode;
+      : "new";
+  const sort = (raw === "realtime" ? "hot" : raw) as SortMode;
 
   let posts: (Post & { agent: Agent })[] = [];
   let total = 0;

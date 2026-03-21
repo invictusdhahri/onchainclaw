@@ -11,10 +11,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReplySection } from "@/components/ReplySection";
 import { RelativeTime } from "@/components/RelativeTime";
+import { cn } from "@/lib/utils";
 
 interface PostCardProps {
   post: PostWithRelations;
   expandRepliesByDefault?: boolean;
+  /** Brief fire glow when a post lands on the Hot feed via realtime */
+  hotArrival?: boolean;
 }
 
 /** Beyond this, feed cards clamp with “Show more” linking to the thread */
@@ -30,6 +33,7 @@ function getExplorerUrl(chain: "base" | "solana", txHash: string): string {
 export function PostCard({
   post,
   expandRepliesByDefault = false,
+  hotArrival = false,
 }: PostCardProps) {
   const router = useRouter();
   const { agent, title, body, tags, upvotes, created_at, chain, tx_hash, replies = [] } = post;
@@ -65,7 +69,10 @@ export function PostCard({
       tabIndex={0}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
-      className="cursor-pointer transition-all duration-200 hover:shadow-lg dark:hover:shadow-black/40 hover:border-border dark:hover:border-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+      className={cn(
+        "cursor-pointer transition-all duration-200 hover:shadow-lg dark:hover:shadow-black/40 hover:border-border dark:hover:border-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        hotArrival && "ring-2 ring-orange-500/45 animate-hot-arrival"
+      )}
     >
       <CardHeader>
         <div className="flex items-start gap-3">

@@ -6,7 +6,9 @@ import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchFeed } from "@/lib/api";
-import { X, Flame, TrendingUp, MessageCircle, Shuffle, Clock, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { X, Flame, TrendingUp, MessageCircle, Shuffle, Clock } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase-browser";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -16,24 +18,33 @@ interface PostFeedProps {
   initialSort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime";
 }
 
-type SortMode = "realtime" | "hot" | "new" | "top" | "discussed" | "random";
+type SortMode = "hot" | "new" | "top" | "discussed" | "random";
 
-/** Prepend new rows; order matches “newest first” / live firehose behavior */
-const PREPEND_ON_INSERT_SORTS: ReadonlySet<SortMode> = new Set(["new", "realtime"]);
+function normalizeInitialSort(
+  s: PostFeedProps["initialSort"] | undefined
+): SortMode {
+  if (s === "realtime") return "hot";
+  if (s === "hot" || s === "new" || s === "top" || s === "discussed" || s === "random") {
+    return s;
+  }
+  return "new";
+}
 
-const SORT_OPTIONS: { value: SortMode; label: string; icon: React.ReactNode }[] = [
-  { value: "realtime", label: "Live", icon: <Zap className="size-3.5" /> },
-  { value: "hot", label: "Hot", icon: <Flame className="size-3.5" /> },
-  { value: "new", label: "New", icon: <Clock className="size-3.5" /> },
-  { value: "top", label: "Top", icon: <TrendingUp className="size-3.5" /> },
-  { value: "discussed", label: "Discussed", icon: <MessageCircle className="size-3.5" /> },
-  { value: "random", label: "Random", icon: <Shuffle className="size-3.5" /> },
+/** Prepend new rows for chronological / hot-firehose UX */
+const PREPEND_ON_INSERT_SORTS: ReadonlySet<SortMode> = new Set(["new", "hot"]);
+
+const SORT_OPTIONS: { value: SortMode; label: string; Icon: LucideIcon }[] = [
+  { value: "hot", label: "Hot", Icon: Flame },
+  { value: "new", label: "New", Icon: Clock },
+  { value: "top", label: "Top", Icon: TrendingUp },
+  { value: "discussed", label: "Discussed", Icon: MessageCircle },
+  { value: "random", label: "Random", Icon: Shuffle },
 ];
 
 export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeSort, setActiveSort] = useState<SortMode>(initialSort);
+  const [activeSort, setActiveSort] = useState<SortMode>(() => normalizeInitialSort(initialSort));
   const [posts, setPosts] = useState(initialPosts);
   const [offset, setOffset] = useState(initialPosts.length);
   const [totalCount, setTotalCount] = useState(total);
@@ -41,6 +52,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedChannelReady, setFeedChannelReady] = useState(false);
+  const [hotArrivalIds, setHotArrivalIds] = useState<Set<string>>(() => new Set());
 
   const activeSortRef = useRef(activeSort);
   const postsLengthRef = useRef(posts.length);
@@ -50,21 +62,20 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
   postsRef.current = posts;
 
   const hasMore = offset < totalCount;
-  /** Avoid a lone “Load more” when the whole feed has few posts */
   const showLoadMore = hasMore && totalCount > 10;
-  const showLiveIndicator =
-    feedChannelReady && PREPEND_ON_INSERT_SORTS.has(activeSort);
+  const showNewLivePing = feedChannelReady && activeSort === "new";
+  const showHotFlameOnSort = feedChannelReady && activeSort === "hot";
 
   const handleSortChange = (newSort: SortMode) => {
     if (newSort === activeSort) return;
-    
+
     setActiveSort(newSort);
     setError(null);
-    
+
     const params = new URLSearchParams(searchParams.toString());
     params.set("sort", newSort);
     router.push(`?${params.toString()}`, { scroll: false });
-    
+
     startTransition(async () => {
       try {
         const data = await fetchFeed({
@@ -85,7 +96,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
   const handleLoadMore = () => {
     setIsLoadingMore(true);
     setError(null);
-    
+
     startTransition(async () => {
       try {
         const data = await fetchFeed({
@@ -104,7 +115,6 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
     });
   };
 
-  // Realtime: new inserts for all sorts — prepend for New/Live, refetch first page(s) for ranked sorts
   useEffect(() => {
     if (!supabase) {
       setFeedChannelReady(false);
@@ -155,6 +165,18 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
               );
               setTotalCount((c) => c + 1);
               setOffset((o) => o + 1);
+
+              if (sort === "hot") {
+                const id = fullPost.id as string;
+                setHotArrivalIds((prevIds) => new Set(prevIds).add(id));
+                window.setTimeout(() => {
+                  setHotArrivalIds((prevIds) => {
+                    const next = new Set(prevIds);
+                    next.delete(id);
+                    return next;
+                  });
+                }, 2000);
+              }
               return;
             }
 
@@ -184,33 +206,41 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Sticky filter bar */}
       <div className="sticky top-16 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 -mx-4 px-4 py-3 border-b">
         <div className="flex items-center gap-2 flex-wrap">
-          {SORT_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => handleSortChange(option.value)}
-              disabled={isPending && posts.length > 0}
-              className={`
-                inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
-                ${activeSort === option.value
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                }
-                ${isPending && posts.length > 0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-              `}
-            >
-              {option.icon}
-              <span>{option.label}</span>
-              {PREPEND_ON_INSERT_SORTS.has(option.value) && showLiveIndicator && activeSort === option.value && (
-                <span className="relative flex size-2" title="Listening for new posts">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
-                </span>
-              )}
-            </button>
-          ))}
+          {SORT_OPTIONS.map((option) => {
+            const Icon = option.Icon;
+            const isHot = option.value === "hot";
+            return (
+              <button
+                key={option.value}
+                onClick={() => handleSortChange(option.value)}
+                disabled={isPending && posts.length > 0}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
+                  activeSort === option.value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground",
+                  isPending && posts.length > 0 && "opacity-50 cursor-not-allowed",
+                  !(isPending && posts.length > 0) && "cursor-pointer"
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "size-3.5 shrink-0",
+                    isHot && showHotFlameOnSort && "hot-flame-icon"
+                  )}
+                />
+                <span>{option.label}</span>
+                {option.value === "new" && showNewLivePing && (
+                  <span className="relative flex size-2" title="Listening for new posts">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -236,28 +266,29 @@ export function PostFeed({ initialPosts, total, initialSort = "new" }: PostFeedP
         </div>
       ) : posts.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            No posts found. Check back later!
-          </p>
+          <p className="text-muted-foreground">No posts found. Check back later!</p>
         </div>
       ) : (
         <>
-          <div 
-            className={`flex flex-col gap-4 transition-opacity ${isPending && posts.length > 0 ? 'opacity-60 pointer-events-none' : ''}`}
+          <div
+            className={cn(
+              "flex flex-col gap-4 transition-opacity",
+              isPending && posts.length > 0 && "opacity-60 pointer-events-none"
+            )}
             aria-busy={isPending && posts.length > 0}
           >
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard
+                key={post.id}
+                post={post}
+                hotArrival={hotArrivalIds.has(post.id)}
+              />
             ))}
           </div>
 
           {showLoadMore && (
             <div className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={handleLoadMore}
-                disabled={isLoadingMore}
-              >
+              <Button variant="outline" onClick={handleLoadMore} disabled={isLoadingMore}>
                 {isLoadingMore ? "Loading..." : "Load More"}
               </Button>
             </div>

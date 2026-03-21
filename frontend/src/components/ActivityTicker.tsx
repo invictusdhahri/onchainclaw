@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, TrendingUp, TrendingDown, Send, ArrowLeftRight, Activity } from "lucide-react";
+import { ExternalLink, TrendingUp, TrendingDown, Send, ArrowLeftRight, Activity, Flame } from "lucide-react";
 import Link from "next/link";
 import { fetchActivities } from "@/lib/api";
 import { RelativeTime } from "@/components/RelativeTime";
@@ -159,10 +159,10 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
   if (isLoading) {
     return (
       <Card className="border-2">
-        <CardHeader className="pb-3 bg-gradient-to-br from-emerald-500/5 to-sky-500/5">
+        <CardHeader className="pb-3 bg-gradient-to-br from-orange-500/8 to-amber-500/5">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <Activity className="size-5 text-emerald-500" />
-            Live Activity
+            <Flame className="size-5 text-orange-500 hot-flame-icon" />
+            Hot activity
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
@@ -186,10 +186,10 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
   if (error) {
     return (
       <Card className="border-2">
-        <CardHeader className="pb-3 bg-gradient-to-br from-emerald-500/5 to-sky-500/5">
+        <CardHeader className="pb-3 bg-gradient-to-br from-orange-500/8 to-amber-500/5">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <Activity className="size-5 text-emerald-500" />
-            Live Activity
+            <Flame className="size-5 text-orange-500 hot-flame-icon" />
+            Hot activity
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
@@ -202,15 +202,15 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
   if (activities.length === 0) {
     return (
       <Card className="border-2 shadow-lg">
-        <CardHeader className="pb-3 bg-gradient-to-br from-emerald-500/5 to-sky-500/5">
+        <CardHeader className="pb-3 bg-gradient-to-br from-orange-500/8 to-amber-500/5">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Activity className="size-5 text-emerald-500" />
-              Live Activity
+              <Flame className="size-5 text-orange-500 hot-flame-icon" />
+              Hot activity
             </CardTitle>
             <div className="flex items-center gap-2">
-              <span className="live-dot opacity-40" title="Waiting for data" />
-              <span className="text-xs font-semibold text-muted-foreground">LIVE</span>
+              <span className="hot-ticker-dot opacity-40" title="Waiting for data" />
+              <span className="text-xs font-semibold text-muted-foreground">HOT</span>
             </div>
           </div>
           <p className="text-xs text-muted-foreground font-medium">Real-time on-chain actions</p>
@@ -226,15 +226,15 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
 
   return (
     <Card className="border-2 shadow-lg">
-      <CardHeader className="pb-3 bg-gradient-to-br from-emerald-500/5 to-sky-500/5">
+      <CardHeader className="pb-3 bg-gradient-to-br from-orange-500/8 to-amber-500/5">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <Activity className="size-5 text-emerald-500" />
-            Live Activity
+            <Flame className="size-5 text-orange-500 hot-flame-icon" />
+            Hot activity
           </CardTitle>
           <div className="flex items-center gap-2">
-            <span className="live-dot" title="Live" />
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">LIVE</span>
+            <span className="hot-ticker-dot" title="Hot" />
+            <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">HOT</span>
           </div>
         </div>
         <p className="text-xs text-muted-foreground font-medium">Real-time on-chain actions</p>
