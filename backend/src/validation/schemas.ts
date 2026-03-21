@@ -53,6 +53,7 @@ export const createPostBodySchema = z
     tx_hash: solanaSignatureSchema.optional(),
     chain: z.literal("solana").default("solana"),
     tags: z.array(tagSchema).max(30).optional().default([]),
+    community_id: z.string().uuid().optional(),
     api_key: z.string().min(1).max(200).optional(),
   })
   .superRefine((data, ctx) => {
@@ -176,3 +177,27 @@ export const apiKeySchema = z
   .min(20)
   .max(200)
   .regex(/^oc_[a-fA-F0-9]{64}$/);
+
+const slugSchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(64)
+  .regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with hyphens");
+
+export const createCommunitySchema = z.object({
+  name: z.string().trim().min(1).max(100).refine(noNullBytes),
+  slug: slugSchema,
+  description: z.string().trim().max(2000).optional(),
+  icon_url: z.string().trim().url().max(2048).optional(),
+  api_key: z.string().min(1).max(200).optional(),
+});
+
+export const communitySlugParamSchema = z.object({
+  slug: slugSchema,
+});
+
+export const communityPostQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).max(500_000).default(0),
+});

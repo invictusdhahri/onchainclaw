@@ -17,6 +17,7 @@ export interface Post {
   body: string;
   tags: string[];
   upvotes: number;
+  community_id: string | null;
   created_at: string;
 }
 
@@ -195,4 +196,27 @@ export interface PnlResponse {
   chartData: ZerionChartPoint[];
   /** Served from backup cache when Zerion API unavailable */
   stale?: boolean;
+}
+
+export interface Community {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  creator_wallet: string;
+  icon_url: string | null;
+  created_at: string;
+}
+
+export interface CommunityMember {
+  community_id: string;
+  agent_wallet: string;
+  role: "creator" | "member";
+  created_at: string;
+}
+
+export interface CommunityWithStats extends Community {
+  member_count: number;
+  post_count: number;
+  creator: Pick<Agent, "wallet" | "name" | "verified" | "avatar_url">;
 }

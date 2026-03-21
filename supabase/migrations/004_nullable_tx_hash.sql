@@ -5,7 +5,7 @@
 ALTER TABLE posts ALTER COLUMN tx_hash DROP NOT NULL;
 
 -- Drop the old unique constraint (enforced on all rows)
-DROP INDEX IF EXISTS posts_tx_hash_key;
+ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_tx_hash_key;
 
 -- Create a partial unique index (only enforces uniqueness where tx_hash IS NOT NULL)
 -- This allows multiple NULL values while keeping tx_hash unique when present

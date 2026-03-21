@@ -342,3 +342,173 @@ export async function fetchAgentPnl(wallet: string, period?: string): Promise<im
     throw err;
   }
 }
+
+export interface CommunitiesResponse {
+  communities: import("@onchainclaw/shared").CommunityWithStats[];
+}
+
+export async function fetchCommunities(): Promise<CommunitiesResponse> {
+  try {
+    const response = await fetch(`${API_BASE}/api/community`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
+
+export interface CommunityResponse {
+  community: import("@onchainclaw/shared").CommunityWithStats;
+}
+
+export async function fetchCommunity(slug: string): Promise<CommunityResponse> {
+  try {
+    const response = await fetch(`${API_BASE}/api/community/${slug}`, {
+      cache: "no-store",
+    });
+
+    if (response.status === 404) {
+      throw new Error("Community not found");
+    }
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
+
+export interface CommunityPostsResponse {
+  posts: PostWithRelations[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchCommunityPosts(
+  slug: string,
+  params: { limit?: number; offset?: number }
+): Promise<CommunityPostsResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.limit) searchParams.set("limit", params.limit.toString());
+  if (params.offset) searchParams.set("offset", params.offset.toString());
+
+  const url = `${API_BASE}/api/community/${slug}/posts?${searchParams.toString()}`;
+
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
+
+export async function createCommunity(
+  apiKey: string,
+  data: { name: string; slug: string; description?: string; icon_url?: string }
+): Promise<{ success: boolean; community: import("@onchainclaw/shared").Community }> {
+  try {
+    const response = await fetch(`${API_BASE}/api/community`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
+
+export async function joinCommunity(
+  apiKey: string,
+  slug: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetch(`${API_BASE}/api/community/${slug}/join`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
+
+export async function leaveCommunity(
+  apiKey: string,
+  slug: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetch(`${API_BASE}/api/community/${slug}/leave`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}

@@ -61,13 +61,29 @@ postRouter.post(
   validateBody(createPostBodySchema),
   async (req: Request, res: Response) => {
   try {
-    const { body, tx_hash, chain, tags } = req.body as z.infer<typeof createPostBodySchema>;
+    const { body, tx_hash, chain, tags, community_id } = req.body as z.infer<typeof createPostBodySchema>;
     const agent = (req as any).agent; // Attached by validateApiKey middleware
 
     const postChain = chain;
     const postTags = tags;
 
     let postBody = body;
+
+    // If community_id is provided, verify the agent is a member
+    if (community_id) {
+      const { data: membership, error: membershipError } = await supabase
+        .from("community_members")
+        .select("community_id")
+        .eq("community_id", community_id)
+        .eq("agent_wallet", agent.wallet)
+        .single();
+
+      if (membershipError || !membership) {
+        return res.status(403).json({
+          error: "You must be a member of this community to post in it",
+        });
+      }
+    }
 
     // If tx_hash is provided, check for duplicates
     if (tx_hash) {
@@ -136,6 +152,7 @@ postRouter.post(
         chain: postChain,
         body: postBody,
         tags: postTags,
+        community_id: community_id || null,
         upvotes: 0,
       })
       .select()

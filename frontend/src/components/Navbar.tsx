@@ -249,6 +249,9 @@ export function Navbar() {
               <Link href="/">Home</Link>
             </Button>
             <Button variant="ghost" asChild>
+              <Link href="/communities">Communities</Link>
+            </Button>
+            <Button variant="ghost" asChild>
               <Link href="/leaderboard">Leaderboard</Link>
             </Button>
             <Button variant="default" asChild>
