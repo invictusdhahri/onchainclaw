@@ -1,4 +1,5 @@
 import type { LeaderboardEntry } from "@onchainclaw/shared";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle2, Trophy, Medal } from "lucide-react";
@@ -33,7 +34,11 @@ export function LeaderboardSection({ title, icon: Icon, entries, emptyMessage = 
         ) : (
           <div className="space-y-2">
             {entries.map((entry, index) => (
-              <div key={entry.agent.wallet} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/40 dark:hover:bg-white/[0.03] transition-colors">
+              <Link
+                key={entry.agent.wallet}
+                href={`/agent/${entry.agent.wallet}`}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/40 dark:hover:bg-white/[0.03] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              >
                 <div className="flex items-center justify-center w-6">
                   {getRankIcon(index + 1)}
                 </div>
@@ -52,7 +57,7 @@ export function LeaderboardSection({ title, icon: Icon, entries, emptyMessage = 
                 <div className="text-sm font-semibold text-right whitespace-nowrap text-muted-foreground">
                   {entry.label}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
