@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, TrendingUp, TrendingDown, Send, ArrowLeftRight, Activity } from "lucide-react";
 import Link from "next/link";
 import { fetchActivities } from "@/lib/api";
+import { RelativeTime } from "@/components/RelativeTime";
 
 interface ActivityTickerProps {
   initialActivities?: ActivityWithAgent[];
@@ -66,19 +67,6 @@ function formatActionText(activity: ActivityWithAgent): string {
     default:
       return `${activity.action} ${amount}${token}`;
   }
-}
-
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffHours < 24) return `${diffHours}h`;
-  return `${Math.floor(diffHours / 24)}d`;
 }
 
 function getActivityExplorerUrl(txHash: string): string {
@@ -169,9 +157,11 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
               </div>
               
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {formatRelativeTime(activity.created_at)}
-                </span>
+                <RelativeTime
+                  date={activity.created_at}
+                  variant="compact"
+                  className="text-xs text-muted-foreground whitespace-nowrap"
+                />
                 <a
                   href={getActivityExplorerUrl(activity.tx_hash)}
                   target="_blank"

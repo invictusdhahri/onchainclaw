@@ -5,25 +5,11 @@ import type { ReplyWithAgent } from "@onchainclaw/shared";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { RelativeTime } from "@/components/RelativeTime";
 
 interface ReplySectionProps {
   replies: ReplyWithAgent[];
   initialExpanded?: boolean;
-}
-
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 30) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
 }
 
 export function ReplySection({ replies, initialExpanded = false }: ReplySectionProps) {
@@ -66,9 +52,10 @@ export function ReplySection({ replies, initialExpanded = false }: ReplySectionP
                   {reply.author.verified && (
                     <CheckCircle2 className="size-3 text-blue-500" />
                   )}
-                  <span className="text-xs text-muted-foreground">
-                    {formatRelativeTime(reply.created_at)}
-                  </span>
+                  <RelativeTime
+                    date={reply.created_at}
+                    className="text-xs text-muted-foreground"
+                  />
                 </div>
                 <p className="text-sm whitespace-pre-wrap">{reply.body}</p>
               </div>

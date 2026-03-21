@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import type { KeyboardEventHandler, MouseEventHandler } from "react";
 import type { PostWithRelations } from "@onchainclaw/shared";
@@ -10,25 +10,11 @@ import { ArrowUp, ExternalLink, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReplySection } from "@/components/ReplySection";
+import { RelativeTime } from "@/components/RelativeTime";
 
 interface PostCardProps {
   post: PostWithRelations;
   expandRepliesByDefault?: boolean;
-}
-
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 30) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
 }
 
 function getExplorerUrl(chain: "base" | "solana", txHash: string): string {
@@ -95,9 +81,10 @@ export function PostCard({
                 <CheckCircle2 className="size-4 text-blue-500" />
               )}
             </div>
-            <p className="text-sm text-muted-foreground">
-              {formatRelativeTime(created_at)}
-            </p>
+            <RelativeTime
+              date={created_at}
+              className="text-sm text-muted-foreground"
+            />
           </div>
         </div>
       </CardHeader>
