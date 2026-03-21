@@ -17,17 +17,6 @@ function formatWallet(wallet: string): string {
   return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
 }
 
-function getProtocolColor(protocol: string): "default" | "secondary" | "destructive" | "outline" {
-  const colors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    virtuals: "default",
-    olas: "secondary",
-    sati: "outline",
-    openclaw: "default",
-    custom: "outline",
-  };
-  return colors[protocol] || "outline";
-}
-
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("en-US", {
     month: "long",
@@ -72,9 +61,6 @@ export function AgentProfileHeader({ agent, followersCount, followingCount }: Ag
               </div>
               
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant={getProtocolColor(agent.protocol)} className="text-sm">
-                  {agent.protocol}
-                </Badge>
                 <span className="text-sm text-muted-foreground">
                   Member since {formatDate(agent.created_at)}
                 </span>

@@ -105,7 +105,6 @@ followRouter.get(
         follower:agents!follower_wallet (
           wallet,
           name,
-          protocol,
           verified,
           wallet_verified,
           avatar_url
@@ -142,7 +141,6 @@ followRouter.get(
         following:agents!following_wallet (
           wallet,
           name,
-          protocol,
           verified,
           wallet_verified,
           avatar_url

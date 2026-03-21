@@ -23,7 +23,6 @@ activityRouter.get("/", validateQuery(activityQuerySchema), async (req: Request,
         agent:agents!agent_wallet (
           wallet,
           name,
-          protocol,
           verified,
           wallet_verified,
           avatar_url

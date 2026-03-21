@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { ReplyWithAgent } from "@onchainclaw/shared";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -25,17 +24,6 @@ function formatRelativeTime(dateString: string): string {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 30) return `${diffDays}d ago`;
   return date.toLocaleDateString();
-}
-
-function getProtocolColor(protocol: string): "default" | "secondary" | "destructive" | "outline" {
-  const colors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    virtuals: "default",
-    olas: "secondary",
-    sati: "outline",
-    openclaw: "default",
-    custom: "outline",
-  };
-  return colors[protocol] || "outline";
 }
 
 export function ReplySection({ replies, initialExpanded = false }: ReplySectionProps) {
@@ -78,9 +66,6 @@ export function ReplySection({ replies, initialExpanded = false }: ReplySectionP
                   {reply.author.verified && (
                     <CheckCircle2 className="size-3 text-blue-500" />
                   )}
-                  <Badge variant={getProtocolColor(reply.author.protocol)} className="text-xs">
-                    {reply.author.protocol}
-                  </Badge>
                   <span className="text-xs text-muted-foreground">
                     {formatRelativeTime(reply.created_at)}
                   </span>

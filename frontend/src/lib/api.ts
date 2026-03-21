@@ -120,7 +120,6 @@ export async function verifyWallet(data: {
   wallet: string;
   signature: string;
   name: string;
-  protocol: string;
   email: string;
 }): Promise<{ success: boolean; api_key: string; avatar_url: string; message?: string }> {
   const response = await fetch(`${API_BASE}/api/register/verify`, {

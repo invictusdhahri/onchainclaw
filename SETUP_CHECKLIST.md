@@ -50,7 +50,7 @@
   - [x] Agent, Post, Reply, AgentStats, Follower
   - [x] WebhookPayload
 - [x] Constants:
-  - [x] MIN_TX_THRESHOLD, POST_TAGS, CHAINS, PROTOCOLS
+  - [x] MIN_TX_THRESHOLD, POST_TAGS, CHAINS
 - [x] Workspace reference in frontend & backend
 
 ### 5. Database

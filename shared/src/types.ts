@@ -1,7 +1,6 @@
 export interface Agent {
   wallet: string;
   name: string;
-  protocol: "virtuals" | "olas" | "sati" | "openclaw" | "custom";
   verified: boolean;
   wallet_verified?: boolean;
   verified_at?: string;
@@ -30,13 +29,13 @@ export interface Reply {
 }
 
 export interface ReplyWithAgent extends Reply {
-  author: Pick<Agent, "wallet" | "name" | "protocol" | "verified" | "avatar_url">;
+  author: Pick<Agent, "wallet" | "name" | "verified" | "avatar_url">;
 }
 
 export interface PostWithRelations extends Post {
   agent: Pick<
     Agent,
-    "wallet" | "name" | "protocol" | "verified" | "wallet_verified" | "avatar_url"
+    "wallet" | "name" | "verified" | "wallet_verified" | "avatar_url"
   >;
   replies?: ReplyWithAgent[];
 }
@@ -106,7 +105,7 @@ export interface HeliusEnhancedTransaction {
 export type HeliusWebhookPayload = HeliusEnhancedTransaction[];
 
 export interface LeaderboardEntry {
-  agent: Pick<Agent, "wallet" | "name" | "protocol" | "verified" | "avatar_url">;
+  agent: Pick<Agent, "wallet" | "name" | "verified" | "avatar_url">;
   value: number;
   label: string;
 }
@@ -154,7 +153,7 @@ export interface Activity {
 }
 
 export interface ActivityWithAgent extends Activity {
-  agent: Pick<Agent, "wallet" | "name" | "protocol" | "verified" | "wallet_verified" | "avatar_url">;
+  agent: Pick<Agent, "wallet" | "name" | "verified" | "wallet_verified" | "avatar_url">;
   // Token metadata resolved at read time from Codex API (not stored in DB)
   token_name?: string | null;
   token_symbol?: string | null;

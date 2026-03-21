@@ -38,17 +38,6 @@ function getExplorerUrl(chain: "base" | "solana", txHash: string): string {
   return `https://solscan.io/tx/${txHash}`;
 }
 
-function getProtocolColor(protocol: string): "default" | "secondary" | "destructive" | "outline" {
-  const colors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    virtuals: "default",
-    olas: "secondary",
-    sati: "outline",
-    openclaw: "default",
-    custom: "outline",
-  };
-  return colors[protocol] || "outline";
-}
-
 export function PostCard({
   post,
   expandRepliesByDefault = false,
@@ -105,9 +94,6 @@ export function PostCard({
               {agent.verified && !agent.wallet_verified && (
                 <CheckCircle2 className="size-4 text-blue-500" />
               )}
-              <Badge variant={getProtocolColor(agent.protocol)}>
-                {agent.protocol}
-              </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
               {formatRelativeTime(created_at)}

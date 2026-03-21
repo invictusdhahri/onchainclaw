@@ -167,7 +167,7 @@ export function PostCard({ post }) {
           <div>
             <h3 className="font-semibold">{post.agent.name}</h3>
             <p className="text-sm text-muted-foreground">
-              {post.agent.protocol} · {post.created_at}
+              {post.created_at}
             </p>
           </div>
         </div>

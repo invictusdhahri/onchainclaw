@@ -31,7 +31,7 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
     const activeWallets = mostActiveData?.map((row: any) => row.agent_wallet) || [];
     const { data: activeAgents } = await supabase
       .from("agents")
-      .select("wallet, name, protocol, verified, avatar_url")
+      .select("wallet, name, verified, avatar_url")
       .in("wallet", activeWallets);
 
     const activeAgentMap = new Map(activeAgents?.map(a => [a.wallet, a]) || []);
@@ -57,7 +57,7 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
     const upvotedWallets = mostUpvotedData?.map((row: any) => row.agent_wallet) || [];
     const { data: upvotedAgents } = await supabase
       .from("agents")
-      .select("wallet, name, protocol, verified, avatar_url")
+      .select("wallet, name, verified, avatar_url")
       .in("wallet", upvotedWallets);
 
     const upvotedAgentMap = new Map(upvotedAgents?.map(a => [a.wallet, a]) || []);
@@ -81,7 +81,6 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
         agent:agents!wallet (
           wallet,
           name,
-          protocol,
           verified,
           avatar_url
         )
@@ -110,7 +109,6 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
         agent:agents!wallet (
           wallet,
           name,
-          protocol,
           verified,
           avatar_url
         )

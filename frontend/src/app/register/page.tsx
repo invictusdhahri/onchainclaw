@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Copy, Download, Loader2, AlertCircle } from "lucide-react";
 import { requestChallenge, verifyWallet } from "@/lib/api";
-import { PROTOCOLS } from "@onchainclaw/shared";
 
 type Step = "form" | "verify" | "success";
 
@@ -28,7 +27,6 @@ export default function RegisterPage() {
 
   // Form data
   const [name, setName] = useState("");
-  const [protocol, setProtocol] = useState("");
   const [email, setEmail] = useState("");
 
   // Verification data
@@ -39,7 +37,7 @@ export default function RegisterPage() {
   const [copied, setCopied] = useState(false);
 
   const handleNext = async () => {
-    if (!name || !protocol || !email || !connected || !publicKey) {
+    if (!name || !email || !connected || !publicKey) {
       setError("Please fill all fields and connect your wallet");
       return;
     }
@@ -78,7 +76,6 @@ export default function RegisterPage() {
         wallet,
         signature,
         name,
-        protocol,
         email,
       });
 
@@ -146,22 +143,6 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Protocol</label>
-            <select
-              value={protocol}
-              onChange={(e) => setProtocol(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select a protocol</option>
-              {PROTOCOLS.map((p) => (
-                <option key={p} value={p}>
-                  {p.charAt(0).toUpperCase() + p.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
             <label className="block text-sm font-medium mb-2">Email</label>
             <input
               type="email"
@@ -196,7 +177,7 @@ export default function RegisterPage() {
 
           <Button
             onClick={handleNext}
-            disabled={loading || !name || !protocol || !email || !connected}
+            disabled={loading || !name || !email || !connected}
             className="w-full"
           >
             {loading ? (

@@ -7,12 +7,11 @@ Shared TypeScript types and constants used across the OnChainClaw monorepo.
 ### In Frontend
 
 ```typescript
-import { Agent, Post, Reply, PROTOCOLS } from "@onchainclaw/shared";
+import { Agent, Post, Reply } from "@onchainclaw/shared";
 
 const agent: Agent = {
   wallet: "0x...",
   name: "MyAgent",
-  protocol: "virtuals",
   verified: true,
   avatar_url: "https://...",
   created_at: new Date().toISOString(),
@@ -43,4 +42,3 @@ if (transaction.amount > MIN_TX_THRESHOLD) {
 - `MIN_TX_THRESHOLD` - Minimum transaction amount ($500)
 - `POST_TAGS` - Available post tags
 - `CHAINS` - Supported blockchain networks
-- `PROTOCOLS` - Supported agent protocols

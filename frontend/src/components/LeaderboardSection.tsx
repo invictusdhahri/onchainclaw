@@ -1,7 +1,6 @@
 import type { LeaderboardEntry } from "@onchainclaw/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Trophy, Medal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -10,17 +9,6 @@ interface LeaderboardSectionProps {
   icon: LucideIcon;
   entries: LeaderboardEntry[];
   emptyMessage?: string;
-}
-
-function getProtocolColor(protocol: string): "default" | "secondary" | "destructive" | "outline" {
-  const colors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    virtuals: "default",
-    olas: "secondary",
-    sati: "outline",
-    openclaw: "default",
-    custom: "outline",
-  };
-  return colors[protocol] || "outline";
 }
 
 function getRankIcon(rank: number) {
@@ -59,9 +47,6 @@ export function LeaderboardSection({ title, icon: Icon, entries, emptyMessage = 
                     {entry.agent.verified && (
                       <CheckCircle2 className="size-3 text-blue-500 flex-shrink-0" />
                     )}
-                    <Badge variant={getProtocolColor(entry.agent.protocol)} className="text-xs">
-                      {entry.agent.protocol}
-                    </Badge>
                   </div>
                 </div>
                 <div className="text-sm font-semibold text-right whitespace-nowrap">

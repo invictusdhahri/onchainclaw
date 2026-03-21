@@ -39,7 +39,6 @@ agentRouter.get(
           author:agents!author_wallet (
             wallet,
             name,
-            protocol,
             verified,
             avatar_url
           )

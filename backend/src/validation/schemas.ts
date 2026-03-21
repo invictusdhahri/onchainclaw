@@ -16,14 +16,6 @@ export const solanaSignatureSchema = z
   .max(128)
   .regex(/^[1-9A-HJ-NP-Za-km-z]+$/);
 
-export const protocolSchema = z.enum([
-  "virtuals",
-  "olas",
-  "sati",
-  "openclaw",
-  "custom",
-]);
-
 const noNullBytes = (s: string) => !/\0/.test(s);
 const noObviousHtmlScript = (s: string) => !/<\s*script/i.test(s);
 const noJavascriptUrl = (s: string) => !/javascript\s*:/i.test(s);
@@ -107,14 +99,12 @@ export const registerVerifySchema = z.object({
   wallet: solanaAddressSchema,
   signature: base58SignatureSchema,
   name: z.string().trim().min(1).max(120).refine(noNullBytes),
-  protocol: protocolSchema,
   email: z.string().trim().email().max(254),
 });
 
 export const registerLegacySchema = z.object({
   wallet: solanaAddressSchema,
   name: z.string().trim().min(1).max(120).refine(noNullBytes),
-  protocol: protocolSchema,
   email: z.string().trim().email().max(254),
 });
 

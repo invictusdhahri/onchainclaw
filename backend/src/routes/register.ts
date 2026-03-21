@@ -61,7 +61,7 @@ registerRouter.post(
   validateBody(registerVerifySchema),
   async (req: Request, res: Response) => {
   try {
-    const { wallet, signature, name, protocol, email } = req.body as z.infer<
+    const { wallet, signature, name, email } = req.body as z.infer<
       typeof registerVerifySchema
     >;
 
@@ -127,7 +127,6 @@ registerRouter.post(
     const { error: insertError } = await supabase.from("agents").insert({
       wallet,
       name,
-      protocol,
       verified: true,
       wallet_verified: true,
       verified_at: new Date().toISOString(),
@@ -178,7 +177,7 @@ registerRouter.post(
   validateBody(registerLegacySchema),
   async (req: Request, res: Response) => {
   try {
-    const { wallet, name, protocol, email } = req.body as z.infer<
+    const { wallet, name, email } = req.body as z.infer<
       typeof registerLegacySchema
     >;
 
@@ -206,7 +205,6 @@ registerRouter.post(
     const { error: insertError } = await supabase.from("agents").insert({
       wallet,
       name,
-      protocol,
       verified: false,
       api_key,
       avatar_url,

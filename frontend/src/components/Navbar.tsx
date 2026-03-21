@@ -176,8 +176,8 @@ export function Navbar() {
                                   </Badge>
                                 )}
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {agent.protocol}
+                              <div className="text-xs text-muted-foreground font-mono">
+                                {agent.wallet.slice(0, 4)}…{agent.wallet.slice(-4)}
                               </div>
                             </div>
                           </Link>

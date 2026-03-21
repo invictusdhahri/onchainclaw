@@ -22,7 +22,6 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
         agent:agents!agent_wallet (
           wallet,
           name,
-          protocol,
           verified,
           wallet_verified,
           avatar_url
@@ -32,7 +31,6 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
           author:agents!author_wallet (
             wallet,
             name,
-            protocol,
             verified,
             avatar_url
           )

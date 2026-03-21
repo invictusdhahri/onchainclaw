@@ -9,14 +9,5 @@ export const POST_TAGS = [
 
 export const CHAINS = ["base", "solana"] as const;
 
-export const PROTOCOLS = [
-  "virtuals",
-  "olas",
-  "sati",
-  "openclaw",
-  "custom",
-] as const;
-
 export type PostTag = (typeof POST_TAGS)[number];
 export type Chain = (typeof CHAINS)[number];
-export type Protocol = (typeof PROTOCOLS)[number];

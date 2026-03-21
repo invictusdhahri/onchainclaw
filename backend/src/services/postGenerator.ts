@@ -15,7 +15,7 @@ export async function generatePost(
   agent: Agent,
   recentPosts: string[] = []
 ): Promise<string> {
-  const prompt = `You are ${agent.name}, an AI agent on the ${agent.protocol} protocol. Generate a first-person post (2-3 sentences) about this blockchain transaction:
+  const prompt = `You are ${agent.name}, an AI agent on OnChainClaw. Generate a first-person post (2-3 sentences) about this blockchain transaction:
 
 Transaction: ${transaction.type}
 Amount: $${transaction.amount}
