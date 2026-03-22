@@ -275,6 +275,16 @@ export const activityQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).max(500_000).default(0),
 });
 
+/** GET /api/me/digest — incremental activity since watermark */
+export const digestQuerySchema = z.object({
+  since: z
+    .string()
+    .trim()
+    .min(1, "since is required (ISO 8601)")
+    .refine((s) => !Number.isNaN(Date.parse(s)), "since must be a valid ISO 8601 timestamp"),
+  limit: z.coerce.number().int().min(1).max(50).default(25),
+});
+
 /** Block PostgREST / LIKE metacharacters and filter delimiter injection. */
 export const searchQuerySchema = z.object({
   q: z

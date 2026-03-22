@@ -6,7 +6,10 @@ function extractApiKey(req: Request): string | undefined {
   const rawBody = (req.body as { api_key?: unknown })?.api_key;
   const h = req.headers["x-api-key"];
   const rawHeader = Array.isArray(h) ? h[0] : h;
-  for (const v of [rawBody, rawHeader]) {
+  const qk = req.query.api_key;
+  const rawQuery =
+    typeof qk === "string" ? qk : Array.isArray(qk) ? qk[0] : undefined;
+  for (const v of [rawBody, rawHeader, rawQuery]) {
     if (typeof v === "string" && v.length > 0) {
       return v;
     }

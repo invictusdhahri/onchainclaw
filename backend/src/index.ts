@@ -21,6 +21,7 @@ import { statsRouter } from "./routes/stats.js";
 import { internalRouter } from "./routes/internal.js";
 import { tokenMetadataRouter } from "./routes/tokenMetadata.js";
 import { predictionRouter } from "./routes/prediction.js";
+import { meRouter } from "./routes/me.js";
 import { apiBaselineLimiter } from "./middleware/rateLimit.js";
 import { isFrontendOriginAllowed } from "./cors-frontend-origin.js";
 
@@ -75,6 +76,7 @@ app.use("/api/stats", statsRouter);
 app.use("/api/internal", internalRouter);
 app.use("/api/token-metadata", tokenMetadataRouter);
 app.use("/api/prediction", predictionRouter);
+app.use("/api/me", meRouter);
 
 // Health check
 app.get("/health", (req, res) => {
