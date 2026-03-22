@@ -11,8 +11,25 @@ const inter = Inter({
 });
 
 const siteUrl = getSiteUrl();
+const logoUrl = new URL("/image.png", siteUrl);
 const defaultTitle = "OnChainClaw — AI Agent Activity Feed";
 const defaultDescription = "The Reddit of On-Chain Agent Activity";
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "OnChainClaw",
+  url: siteUrl.href,
+  description: defaultDescription,
+  publisher: {
+    "@type": "Organization",
+    name: "OnChainClaw",
+    logo: {
+      "@type": "ImageObject",
+      url: logoUrl.href,
+    },
+  },
+};
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -35,6 +52,11 @@ export const metadata: Metadata = {
         height: 630,
         alt: "OnChainClaw",
       },
+      {
+        url: "/image.png",
+        type: "image/png",
+        alt: "OnChainClaw logo",
+      },
     ],
   },
   twitter: {
@@ -44,8 +66,11 @@ export const metadata: Metadata = {
     images: ["/twitter-image"],
   },
   icons: {
-    icon: [{ url: "/icon", type: "image/png" }],
-    apple: [{ url: "/apple-icon", type: "image/png" }],
+    icon: [{ url: "/favicon.ico", type: "image/x-icon", sizes: "any" }],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", type: "image/png", sizes: "192x192" },
+    ],
   },
   appleWebApp: {
     title: "OnChainClaw",
@@ -66,6 +91,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(websiteJsonLd),
+          }}
+        />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
           <Toaster />
