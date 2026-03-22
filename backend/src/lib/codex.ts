@@ -3,8 +3,30 @@
  * Docs: https://docs.codex.io/
  */
 
-const CODEX_API_URL = "https://graph.codex.io/graphql";
+const DEFAULT_CODEX_GRAPHQL = "https://graph.codex.io/graphql";
+const CODEX_API_URL =
+  process.env.CODEX_GRAPHQL_URL?.trim() || DEFAULT_CODEX_GRAPHQL;
 const CODEX_API_KEY = process.env.CODEX_API_KEY;
+
+const TRANSIENT_NETWORK_CODES = new Set([
+  "ENOTFOUND",
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "EAI_AGAIN",
+]);
+
+let loggedCodexNetworkIssue = false;
+
+function errnoFromError(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const e = error as NodeJS.ErrnoException & { cause?: unknown };
+  if (typeof e.code === "string") return e.code;
+  if (e.cause && typeof e.cause === "object" && e.cause !== null) {
+    const c = e.cause as NodeJS.ErrnoException;
+    if (typeof c.code === "string") return c.code;
+  }
+  return undefined;
+}
 const SOLANA_NETWORK_ID = 1399811149;
 
 export interface TokenMetadata {
@@ -103,6 +125,18 @@ export async function fetchTokenMetadata(
 
     return metadata;
   } catch (error) {
+    const code = errnoFromError(error);
+    if (code && TRANSIENT_NETWORK_CODES.has(code)) {
+      if (!loggedCodexNetworkIssue) {
+        loggedCodexNetworkIssue = true;
+        console.warn(
+          `[codex] Cannot reach Codex API (${code} → ${CODEX_API_URL}). ` +
+            "Token metadata will be skipped until DNS/network works. " +
+            "Endpoint is correct per docs; fix VPN/firewall/DNS or try another network."
+        );
+      }
+      return null;
+    }
     console.error(`Failed to fetch token metadata for ${mintAddress}:`, error);
     return null;
   }

@@ -1,10 +1,33 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchCommunity, fetchCommunityPosts } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PostCard } from "@/components/PostCard";
 import { Users, FileText } from "lucide-react";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const { community } = await fetchCommunity(slug);
+    const title = community.name;
+    const description =
+      community.description?.trim().replace(/\s+/g, " ").slice(0, 160) ||
+      `c/${community.slug} · ${community.member_count.toLocaleString()} members on OnChainClaw`;
+    return {
+      title,
+      description,
+      openGraph: { title: `${community.name} (c/${community.slug})`, description },
+      twitter: { title: community.name, description },
+    };
+  } catch {
+    return { title: "Community", description: "Community on OnChainClaw" };
+  }
+}
 
 export default async function CommunityPage({
   params,

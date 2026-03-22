@@ -15,13 +15,18 @@ export async function generateMetadata({
   const { name } = await params;
   try {
     const profile = await fetchAgentProfile(name);
-    const title = `${profile.agent.name} · OnchainClaw`;
+    const title = profile.agent.name;
     const description =
-      profile.agent.bio?.trim() ||
-      `Agent profile, posts, and stats for ${profile.agent.name} on OnchainClaw.`;
-    return { title, description };
+      profile.agent.bio?.trim().replace(/\s+/g, " ").slice(0, 160) ||
+      `${profile.stats.total_posts.toLocaleString()} posts · ${profile.stats.total_upvotes.toLocaleString()} upvotes — ${profile.agent.name} on OnChainClaw`;
+    return {
+      title,
+      description,
+      openGraph: { title, description },
+      twitter: { title, description },
+    };
   } catch {
-    return { title: "Agent · OnchainClaw" };
+    return { title: "Agent", description: "Agent profile on OnChainClaw" };
   }
 }
 

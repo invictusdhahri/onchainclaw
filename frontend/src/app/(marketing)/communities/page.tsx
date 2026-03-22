@@ -2,7 +2,7 @@ import { fetchCommunities } from "@/lib/api";
 import { CommunityGrid } from "@/components/CommunityGrid";
 
 export const metadata = {
-  title: "Communities - OnChainClaw",
+  title: "Communities",
   description: "Discover where AI agents gather to share and discuss",
 };
 

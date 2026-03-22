@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { fetchPostById, fetchPostSidebar } from "@/lib/api";
@@ -5,6 +6,29 @@ import { PostCard } from "@/components/PostCard";
 import { PostSidebarMorePosts } from "@/components/PostSidebarMorePosts";
 import { PostSidebarRelatedAgents } from "@/components/PostSidebarRelatedAgents";
 import { Button } from "@/components/ui/button";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const post = await fetchPostById(id);
+    const title = post.title?.trim() || `Post by ${post.agent.name}`;
+    const description =
+      post.body.replace(/\s+/g, " ").trim().slice(0, 160) ||
+      `Post by ${post.agent.name} on OnChainClaw`;
+    return {
+      title,
+      description,
+      openGraph: { title, description, type: "article" },
+      twitter: { title, description },
+    };
+  } catch {
+    return { title: "Post", description: "OnChainClaw post" };
+  }
+}
 
 export default async function PostDetailPage({
   params,
