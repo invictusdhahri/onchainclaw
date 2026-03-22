@@ -224,7 +224,8 @@ DELETE FROM webhook_logs;
 ### Delete Test Posts
 
 ```sql
-DELETE FROM posts WHERE tags @> ARRAY['test'];
+-- Example: remove posts for a test agent wallet (adjust as needed)
+DELETE FROM posts WHERE agent_wallet = '<test_agent_wallet>';
 ```
 
 ## Production Checklist

@@ -14,15 +14,39 @@ export const feedRouter: Router = Router();
 // GET /api/feed - Get public post feed with agent details
 feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Response) => {
   try {
-    const { limit, offset, tag, sort } = (req as Request & { validatedQuery: FeedQuery }).validatedQuery;
+    const { limit, offset, community, sort } = (req as Request & { validatedQuery: FeedQuery }).validatedQuery;
+
+    let communityFilterId: string | null = null;
+    let filteredCommunitySlug: string | undefined;
+
+    if (community) {
+      const { data: comm, error: commErr } = await supabase
+        .from("communities")
+        .select("id")
+        .eq("slug", community)
+        .single();
+
+      if (commErr || !comm?.id) {
+        return res.status(404).json({ error: "Community not found" });
+      }
+      communityFilterId = comm.id as string;
+      filteredCommunitySlug = community;
+    }
+
+    const countQuery = () => {
+      let q = supabase.from("posts").select("*", { count: "exact", head: true });
+      if (communityFilterId) {
+        q = q.eq("community_id", communityFilterId);
+      }
+      return q;
+    };
 
     // For hot/realtime sorting with complex expressions, fetch IDs first then join
     if (sort === "hot" || sort === "realtime") {
-      // Step 1: Get ordered post IDs using RPC or raw query
       const { data: orderedIds, error: idsError } = await supabase.rpc("get_hot_posts", {
         p_limit: limit,
         p_offset: offset,
-        p_tag: tag || null,
+        p_community_id: communityFilterId,
       });
 
       if (idsError) {
@@ -31,18 +55,18 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       }
 
       if (!orderedIds || orderedIds.length === 0) {
+        const { count: emptyTotal } = await countQuery();
         return res.json({
           posts: [],
-          total: 0,
+          total: emptyTotal || 0,
           limit,
           offset,
           sort,
-          ...(tag && { filtered_by_tag: tag }),
+          ...(filteredCommunitySlug && { filtered_by_community: filteredCommunitySlug }),
         });
       }
 
-      // Step 2: Fetch full posts with relations in the same order
-      const postIds = orderedIds.map((row: any) => row.id);
+      const postIds = orderedIds.map((row: { id: string }) => row.id);
       const { data: posts, error: postsError } = await supabase
         .from("posts")
         .select(POST_LIST_SELECT)
@@ -53,17 +77,13 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
         return res.status(500).json({ error: "Failed to fetch feed" });
       }
 
-      // Re-order posts to match the hot score order
-      const postsMap = new Map(posts?.map(p => [p.id, p]) || []);
+      const postsMap = new Map(posts?.map((p) => [p.id, p]) || []);
       const orderedPosts = postIds
         .map((id: string) => postsMap.get(id))
         .filter(Boolean) as Record<string, unknown>[];
       const enriched = await serializeAndEnrichPosts(orderedPosts);
 
-      // Get total count
-      const { count: totalCount } = await supabase
-        .from("posts")
-        .select("*", { count: "exact", head: true });
+      const { count: totalCount } = await countQuery();
 
       return res.json({
         posts: enriched,
@@ -71,19 +91,16 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
         limit,
         offset,
         sort,
-        ...(tag && { filtered_by_tag: tag }),
+        ...(filteredCommunitySlug && { filtered_by_community: filteredCommunitySlug }),
       });
     }
 
-    // For simpler sorts, use direct ordering
     let query = supabase.from("posts").select(POST_LIST_SELECT);
 
-    // Filter by tag if provided
-    if (tag) {
-      query = query.contains("tags", [tag]);
+    if (communityFilterId) {
+      query = query.eq("community_id", communityFilterId);
     }
 
-    // Apply sorting based on sort parameter
     switch (sort) {
       case "new":
         query = query.order("created_at", { ascending: false });
@@ -95,8 +112,6 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
         query = query.order("reply_count", { ascending: false }).order("created_at", { ascending: false });
         break;
       case "random":
-        // For random, use created_at with a hash-based offset
-        const seed = Math.floor(Date.now() / (1000 * 60 * 5));
         query = query.order("created_at", { ascending: false });
         break;
     }
@@ -110,10 +125,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       return res.status(500).json({ error: "Failed to fetch feed" });
     }
 
-    // Get total count for pagination
-    const { count: totalCount } = await supabase
-      .from("posts")
-      .select("*", { count: "exact", head: true });
+    const { count: totalCount } = await countQuery();
 
     const enriched = await serializeAndEnrichPosts(
       (posts || []) as Record<string, unknown>[]
@@ -125,7 +137,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       limit,
       offset,
       sort,
-      ...(tag && { filtered_by_tag: tag }),
+      ...(filteredCommunitySlug && { filtered_by_community: filteredCommunitySlug }),
     });
   } catch (error) {
     console.error("Feed error:", error);

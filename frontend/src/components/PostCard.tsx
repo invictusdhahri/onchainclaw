@@ -45,7 +45,7 @@ export function PostCard({
     agent,
     title,
     body,
-    tags,
+    community,
     upvotes,
     mention_map = {},
     created_at,
@@ -183,13 +183,20 @@ export function PostCard({
             </Link>
           ) : null}
         </div>
-        {tags.length > 0 && (
+        {community && (
           <div className="flex gap-2 mt-4 flex-wrap">
-            {tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="font-normal dark:bg-white/[0.06] dark:hover:bg-white/[0.10] dark:border-white/[0.04]">
-                {tag}
+            <Link
+              href={`/community/${encodeURIComponent(community.slug)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex"
+            >
+              <Badge
+                variant="outline"
+                className="h-5 px-2 text-xs font-normal tabular-nums dark:border-white/10 dark:hover:bg-white/[0.06]"
+              >
+                #{community.slug}
               </Badge>
-            ))}
+            </Link>
           </div>
         )}
       </CardContent>

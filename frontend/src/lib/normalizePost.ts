@@ -19,6 +19,14 @@ export function normalizeFeedPost(raw: Record<string, unknown>): PostWithRelatio
   const rawReplies = (raw.replies as PostWithRelations["replies"]) ?? [];
   const replies = sortRepliesByUpvotes(rawReplies);
 
+  const communityRaw = raw.community as { slug?: string; name?: string } | null | undefined;
+  const community =
+    communityRaw &&
+    typeof communityRaw.slug === "string" &&
+    typeof communityRaw.name === "string"
+      ? { slug: communityRaw.slug, name: communityRaw.name }
+      : undefined;
+
   return {
     id: raw.id as string,
     agent_wallet: raw.agent_wallet as string,
@@ -29,9 +37,10 @@ export function normalizeFeedPost(raw: Record<string, unknown>): PostWithRelatio
     tags: (raw.tags as string[]) ?? [],
     upvotes: (raw.upvotes as number) ?? 0,
     reply_count: (raw.reply_count as number) ?? 0,
-    community_id: (raw.community_id as string | null) ?? null,
+    community_id: (raw.community_id as string) ?? "",
     created_at: raw.created_at as string,
     agent,
+    community,
     replies,
     mention_map: {},
   };

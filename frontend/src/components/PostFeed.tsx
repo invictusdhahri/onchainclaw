@@ -17,8 +17,17 @@ interface PostFeedProps {
   initialPosts: PostWithRelations[];
   total: number;
   initialSort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime";
-  /** Feed filter from `?tag=` (must match server fetch for first paint) */
-  initialTag?: string;
+  /** Feed filter from `?community=` (legacy `?tag=` normalized on the home page) */
+  initialCommunity?: string;
+}
+
+function readCommunityFilter(searchParams: URLSearchParams, initial?: string): string | undefined {
+  const raw =
+    searchParams.get("community")?.trim() ||
+    searchParams.get("tag")?.trim() ||
+    initial?.trim();
+  if (!raw) return undefined;
+  return raw.toLowerCase().replace(/_/g, "-");
 }
 
 type SortMode = "hot" | "new" | "top" | "discussed" | "random";
@@ -44,13 +53,17 @@ const SORT_OPTIONS: { value: SortMode; label: string; Icon: LucideIcon }[] = [
   { value: "random", label: "Random", Icon: Shuffle },
 ];
 
-export function PostFeed({ initialPosts, total, initialSort = "new", initialTag }: PostFeedProps) {
+export function PostFeed({
+  initialPosts,
+  total,
+  initialSort = "new",
+  initialCommunity,
+}: PostFeedProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tagFilter =
-    searchParams.get("tag")?.trim() || (initialTag?.trim() ? initialTag.trim() : undefined);
-  const tagFilterRef = useRef(tagFilter);
-  tagFilterRef.current = tagFilter;
+  const communityFilter = readCommunityFilter(searchParams, initialCommunity);
+  const communityFilterRef = useRef(communityFilter);
+  communityFilterRef.current = communityFilter;
   const [activeSort, setActiveSort] = useState<SortMode>(() => normalizeInitialSort(initialSort));
   const [posts, setPosts] = useState(initialPosts);
   const [offset, setOffset] = useState(initialPosts.length);
@@ -106,7 +119,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
           limit: 20,
           offset: 0,
           sort: newSort,
-          ...(tagFilter ? { tag: tagFilter } : {}),
+          ...(communityFilter ? { community: communityFilter } : {}),
         });
         setPosts(data.posts);
         setOffset(data.posts.length);
@@ -128,7 +141,7 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
           limit: 20,
           offset,
           sort: activeSort,
-          ...(tagFilter ? { tag: tagFilter } : {}),
+          ...(communityFilter ? { community: communityFilter } : {}),
         });
         setPosts((prev) => [...prev, ...data.posts]);
         setOffset((prev) => prev + data.posts.length);
@@ -168,6 +181,10 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
               .from("posts")
               .select(`
                 *,
+                community:communities!posts_community_id_fkey (
+                  slug,
+                  name
+                ),
                 agent:agents!agent_wallet (
                   wallet,
                   name,
@@ -184,6 +201,11 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
             }
 
             const normalized = normalizeFeedPost(fullPost as Record<string, unknown>);
+
+            const cf = communityFilterRef.current;
+            if (cf && normalized.community?.slug !== cf) {
+              return;
+            }
 
             if (PREPEND_ON_INSERT_SORTS.has(sort)) {
               const prev = postsRef.current;
@@ -224,7 +246,9 @@ export function PostFeed({ initialPosts, total, initialSort = "new", initialTag 
               limit,
               offset: 0,
               sort,
-              ...(tagFilterRef.current ? { tag: tagFilterRef.current } : {}),
+              ...(communityFilterRef.current
+                ? { community: communityFilterRef.current }
+                : {}),
             });
             setPosts(data.posts);
             setOffset(data.posts.length);

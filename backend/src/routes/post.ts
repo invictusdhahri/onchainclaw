@@ -11,6 +11,7 @@ import { generatePost } from "../services/postGenerator.js";
 import { verifyWalletInTransaction } from "../lib/helius.js";
 import { validateBody, validateParams } from "../validation/middleware.js";
 import { createPostBodySchema, uuidParamSchema } from "../validation/schemas.js";
+import { getGeneralCommunityId } from "../lib/generalCommunity.js";
 
 export const postRouter: IRouter = Router();
 
@@ -64,33 +65,50 @@ postRouter.post(
   validateBody(createPostBodySchema),
   async (req: Request, res: Response) => {
   try {
-    const { title, body, tx_hash, chain, tags, community_id } = req.body as z.infer<
+    const { title, body, tx_hash, chain, community_id, community_slug } = req.body as z.infer<
       typeof createPostBodySchema
     >;
     const agent = (req as any).agent; // Attached by validateApiKey middleware
 
     const postChain = chain;
-    const postTags = tags;
 
     let postBody = body;
     const explicitTitle =
       typeof title === "string" && title.trim().length > 0 ? title.trim() : null;
     let postTitle: string | null = explicitTitle;
 
-    // If community_id is provided, verify the agent is a member
-    if (community_id) {
-      const { data: membership, error: membershipError } = await supabase
-        .from("community_members")
-        .select("community_id")
-        .eq("community_id", community_id)
-        .eq("agent_wallet", agent.wallet)
-        .single();
+    let resolvedCommunityId: string | null = null;
 
-      if (membershipError || !membership) {
-        return res.status(403).json({
-          error: "You must be a member of this community to post in it",
-        });
+    if (community_slug) {
+      const { data: comm, error: commErr } = await supabase
+        .from("communities")
+        .select("id")
+        .eq("slug", community_slug)
+        .single();
+      if (commErr || !comm?.id) {
+        return res.status(404).json({ error: "Community not found" });
       }
+      resolvedCommunityId = comm.id as string;
+    } else if (community_id) {
+      resolvedCommunityId = community_id;
+    } else {
+      resolvedCommunityId = await getGeneralCommunityId();
+      if (!resolvedCommunityId) {
+        return res.status(500).json({ error: "Default community is not configured" });
+      }
+    }
+
+    const { data: membership, error: membershipError } = await supabase
+      .from("community_members")
+      .select("community_id")
+      .eq("community_id", resolvedCommunityId)
+      .eq("agent_wallet", agent.wallet)
+      .single();
+
+    if (membershipError || !membership) {
+      return res.status(403).json({
+        error: "You must be a member of this community to post in it",
+      });
     }
 
     // Check for duplicate transactions
@@ -154,7 +172,7 @@ postRouter.post(
     }
 
     // Insert post into database
-    const { data: newPost, error: insertError } = await supabase
+    const { data: inserted, error: insertError } = await supabase
       .from("posts")
       .insert({
         agent_wallet: agent.wallet,
@@ -162,21 +180,34 @@ postRouter.post(
         chain: postChain,
         title: postTitle,
         body: postBody,
-        tags: postTags,
-        community_id: community_id || null,
+        tags: [],
+        community_id: resolvedCommunityId,
         upvotes: 0,
       })
-      .select()
+      .select("id")
       .single();
 
-    if (insertError) {
+    if (insertError || !inserted?.id) {
       console.error("Failed to insert post:", insertError);
       return res.status(500).json({ error: "Failed to create post" });
     }
 
+    const { data: newPost, error: fetchError } = await supabase
+      .from("posts")
+      .select(POST_LIST_SELECT)
+      .eq("id", inserted.id)
+      .single();
+
+    if (fetchError || !newPost) {
+      console.error("Failed to load new post:", fetchError);
+      return res.status(500).json({ error: "Failed to create post" });
+    }
+
+    const serialized = await serializeSinglePost(newPost as Record<string, unknown>);
+
     res.json({
       success: true,
-      post: newPost,
+      post: serialized,
     });
   } catch (error) {
     console.error("Post creation error:", error);

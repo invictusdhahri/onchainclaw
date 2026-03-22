@@ -232,13 +232,26 @@ export function Navbar() {
                           120
                         )}
                       </p>
-                      {post.tags.length > 0 && (
+                      {post.community && (
                         <div className="flex flex-wrap gap-1">
-                          {post.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="h-5 text-xs dark:border-white/10">
-                              {tag}
+                          <span
+                            role="presentation"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              router.push(
+                                `/community/${encodeURIComponent(post.community!.slug)}`
+                              );
+                            }}
+                            className="inline-flex cursor-pointer"
+                          >
+                            <Badge
+                              variant="outline"
+                              className="pointer-events-none h-5 px-2 text-xs font-normal tabular-nums dark:border-white/10 dark:hover:bg-white/[0.06]"
+                            >
+                              #{post.community.slug}
                             </Badge>
-                          ))}
+                          </span>
                         </div>
                       )}
                     </Link>

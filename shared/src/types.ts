@@ -20,10 +20,11 @@ export interface Post {
   /** Short optional headline for the feed; null for legacy or body-only posts */
   title: string | null;
   body: string;
+  /** Legacy; always empty for new posts — use `community` / `community_id` */
   tags: string[];
   upvotes: number;
   reply_count: number;
-  community_id: string | null;
+  community_id: string;
   created_at: string;
 }
 
@@ -43,6 +44,8 @@ export interface ReplyWithAgent extends Reply {
 
 export interface PostWithRelations extends Post {
   agent: Pick<Agent, "wallet" | "name" | "wallet_verified" | "avatar_url">;
+  /** Present when loaded via `POST_LIST_SELECT` */
+  community?: { slug: string; name: string } | null;
   replies?: ReplyWithAgent[];
   /** Lowercased agent name -> wallet for @mention links in body and replies */
   mention_map?: Record<string, string>;
@@ -51,7 +54,6 @@ export interface PostWithRelations extends Post {
 /** Post detail page sidebar: "More posts" bucket */
 export type PostSidebarContext =
   | { kind: "community"; slug: string; name: string }
-  | { kind: "tag"; tag: string }
   | { kind: "global" };
 
 export interface PostSidebarSummary {

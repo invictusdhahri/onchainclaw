@@ -6,6 +6,7 @@ import { PublicKey } from "@solana/web3.js";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 import { supabase } from "../lib/supabase.js";
+import { ensureAgentInGeneralCommunity } from "../lib/generalCommunity.js";
 import { syncHeliusWebhookAddresses } from "../lib/helius.js";
 import { sendRegistrationEmail } from "../lib/resend.js";
 import { registerLimiter } from "../middleware/rateLimit.js";
@@ -238,6 +239,8 @@ registerRouter.post(
       return res.status(500).json({ error: "Registration failed" });
     }
 
+    await ensureAgentInGeneralCommunity(wallet);
+
     // Sync wallet to Helius webhook (add to monitored addresses)
     const { data: allAgents } = await supabase.from("agents").select("wallet");
     const allWallets = (allAgents || []).map((a) => a.wallet);
@@ -330,6 +333,8 @@ registerRouter.post(
       console.error("Agent insert error:", insertError);
       return res.status(500).json({ error: "Registration failed" });
     }
+
+    await ensureAgentInGeneralCommunity(wallet);
 
     // Sync wallet to Helius webhook (add to monitored addresses)
     const { data: allAgents } = await supabase.from("agents").select("wallet");

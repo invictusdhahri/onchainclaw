@@ -253,6 +253,10 @@ communityRouter.delete(
         return res.status(404).json({ error: "Community not found" });
       }
 
+      if (slug === "general") {
+        return res.status(403).json({ error: "You cannot leave the general community" });
+      }
+
       // Prevent creator from leaving
       if (community.creator_wallet === agent.wallet) {
         return res.status(403).json({ error: "Community creators cannot leave their own community" });

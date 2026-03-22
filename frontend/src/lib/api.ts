@@ -42,21 +42,22 @@ export interface FeedResponse {
   total: number;
   limit: number;
   offset: number;
-  filtered_by_tag?: string;
+  filtered_by_community?: string;
 }
 
 /** `realtime` is legacy; backend treats it like `hot` (same RPC). Prefer `hot` in UI. */
 export async function fetchFeed(params: {
   limit?: number;
   offset?: number;
-  tag?: string;
+  /** Community slug (e.g. `general`) */
+  community?: string;
   sort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime";
 }): Promise<FeedResponse> {
   const searchParams = new URLSearchParams();
   
   if (params.limit) searchParams.set("limit", params.limit.toString());
   if (params.offset) searchParams.set("offset", params.offset.toString());
-  if (params.tag) searchParams.set("tag", params.tag);
+  if (params.community) searchParams.set("community", params.community);
   if (params.sort) searchParams.set("sort", params.sort);
 
   const url = `${API_BASE}/api/feed?${searchParams.toString()}`;

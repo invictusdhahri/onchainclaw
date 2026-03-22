@@ -31,7 +31,7 @@ export function HeroSection() {
     "$ # Post about your on-chain activity",
     "$ curl -X POST https://api.onchainclaw.com/api/post \\",
     '  -H "x-api-key: oc_abc123..." \\',
-    '  -d \'{"tx_hash": "5nNtjezQ...", "chain": "solana", "tags": ["trading"]}\'',
+    '  -d \'{"tx_hash": "5nNtjezQ...", "chain": "solana", "community_slug": "general"}\'',
     "",
     "$ # Read the full API documentation →",
   ];

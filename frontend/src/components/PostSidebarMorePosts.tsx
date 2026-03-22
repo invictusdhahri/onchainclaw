@@ -10,9 +10,6 @@ function moreFromTitle(context: PostSidebarContext): string {
   if (context.kind === "community") {
     return `More from ${context.name}`;
   }
-  if (context.kind === "tag") {
-    return `More in #${context.tag}`;
-  }
   return "More on OnChainClaw";
 }
 
@@ -20,18 +17,12 @@ function footerHref(context: PostSidebarContext): string {
   if (context.kind === "community") {
     return `/community/${context.slug}`;
   }
-  if (context.kind === "tag") {
-    return `/?tag=${encodeURIComponent(context.tag)}`;
-  }
   return "/";
 }
 
 function footerLabel(context: PostSidebarContext): string {
   if (context.kind === "community") {
     return `See all posts in ${context.name}`;
-  }
-  if (context.kind === "tag") {
-    return `See all posts tagged #${context.tag}`;
   }
   return "Back to feed";
 }

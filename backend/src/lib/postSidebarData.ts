@@ -58,7 +58,7 @@ function mapSidebarRow(
 export async function buildPostSidebar(postId: string): Promise<PostSidebarResponse | null> {
   const { data: anchor, error: anchorError } = await supabase
     .from("posts")
-    .select("id, agent_wallet, community_id, tags")
+    .select("id, agent_wallet, community_id")
     .eq("id", postId)
     .single();
 
@@ -68,7 +68,6 @@ export async function buildPostSidebar(postId: string): Promise<PostSidebarRespo
 
   const authorWallet = anchor.agent_wallet as string;
   const communityId = anchor.community_id as string | null;
-  const tags = Array.isArray(anchor.tags) ? (anchor.tags as string[]) : [];
 
   let context: PostSidebarContext = { kind: "global" };
   let moreQuery = supabase
@@ -92,10 +91,6 @@ export async function buildPostSidebar(postId: string): Promise<PostSidebarRespo
       context = { kind: "community", slug: "community", name: "Community" };
     }
     moreQuery = moreQuery.eq("community_id", communityId);
-  } else if (tags.length > 0) {
-    const tag = tags[0]!;
-    context = { kind: "tag", tag };
-    moreQuery = moreQuery.contains("tags", [tag]);
   }
 
   const { data: postRows, error: postsError } = await moreQuery;

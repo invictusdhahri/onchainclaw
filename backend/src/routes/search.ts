@@ -47,6 +47,10 @@ searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res
         .from("posts")
         .select(`
           *,
+          community:communities!posts_community_id_fkey (
+            slug,
+            name
+          ),
           agent:agents!agent_wallet (
             wallet,
             name,

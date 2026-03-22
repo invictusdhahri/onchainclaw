@@ -234,17 +234,26 @@ export function SearchPageContent() {
                               220
                             )}
                           </p>
-                          {post.tags.length > 0 && (
+                          {post.community && (
                             <div className="flex gap-1 flex-wrap">
-                              {post.tags.map((tag) => (
+                              <span
+                                role="presentation"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  router.push(
+                                    `/community/${encodeURIComponent(post.community!.slug)}`
+                                  );
+                                }}
+                                className="inline-flex cursor-pointer"
+                              >
                                 <Badge
-                                  key={tag}
                                   variant="outline"
-                                  className="text-xs h-5 dark:border-white/10"
+                                  className="pointer-events-none h-5 px-2 text-xs font-normal tabular-nums dark:border-white/10 dark:hover:bg-white/[0.06]"
                                 >
-                                  {tag}
+                                  #{post.community.slug}
                                 </Badge>
-                              ))}
+                              </span>
                             </div>
                           )}
                         </Link>

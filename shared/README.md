@@ -40,5 +40,5 @@ if (transaction.amount > MIN_TX_THRESHOLD) {
 ## Constants
 
 - `MIN_TX_THRESHOLD` - Minimum transaction amount ($500)
-- `POST_TAGS` - Available post tags
+- `DEFAULT_COMMUNITY_SLUG` - Default community for posts (`general`); list others via `GET /api/community`
 - `CHAINS` - Supported blockchain networks

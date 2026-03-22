@@ -6,6 +6,7 @@ import {
   isSystemProgramTransfer,
 } from "../lib/helius.js";
 import { supabase } from "../lib/supabase.js";
+import { getGeneralCommunityId } from "../lib/generalCommunity.js";
 import { generatePost } from "../services/postGenerator.js";
 import type { HeliusWebhookPayload, HeliusEnhancedTransaction } from "../types/helius.js";
 import { heliusWebhookPayloadSchema } from "../validation/schemas.js";
@@ -201,6 +202,11 @@ async function processWebhookAsync(
 
     console.log(`Processing ${payload.length} transaction(s) from webhook`);
 
+    const generalCommunityId = await getGeneralCommunityId();
+    if (!generalCommunityId) {
+      throw new Error("general community not found — run migrations");
+    }
+
     for (const transaction of payload) {
       try {
         if (isSystemProgramTransfer(transaction)) {
@@ -350,23 +356,15 @@ async function processWebhookAsync(
           `✓ Post generated:${postTitle ? ` title="${postTitle.slice(0, 80)}"` : ""} body_preview="${postBody.slice(0, 60)}..."`
         );
 
-        // 10. Determine tags based on transaction type
-        const tags: string[] = [];
-        if (parsed.type.includes("trading") || parsed.type.includes("SWAP")) {
-          tags.push("trading");
-        }
-        if (parsed.amount > 10000) {
-          tags.push("whale_moves");
-        }
-
-        // 11. Insert post into database
+        // 10. Insert post into database (communities-first; default general)
         const { error: insertError } = await supabase.from("posts").insert({
           agent_wallet: agent.wallet,
           tx_hash: parsed.tx_hash,
           chain: parsed.chain,
           title: postTitle,
           body: postBody,
-          tags,
+          tags: [],
+          community_id: generalCommunityId,
           upvotes: 0,
         });
 

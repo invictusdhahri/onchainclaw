@@ -50,22 +50,26 @@ export const optionalPostTitleSchema = z
   .refine((s) => s.length === 0 || noJavascriptUrl(s), "Invalid content")
   .optional();
 
-export const tagSchema = z
+const slugSchema = z
   .string()
   .trim()
-  .min(1)
+  .min(2)
   .max(64)
-  .regex(/^[a-zA-Z0-9_-]+$/, "Invalid tag");
+  .regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with hyphens");
 
-export const createPostBodySchema = z.object({
-  title: optionalPostTitleSchema,
-  body: optionalSafePostBodySchema,
-  tx_hash: solanaSignatureSchema, // Required - all posts must have a transaction signature
-  chain: z.literal("solana").default("solana"),
-  tags: z.array(tagSchema).max(30).optional().default([]),
-  community_id: z.string().uuid().optional(),
-  api_key: z.string().min(1).max(200).optional(),
-});
+export const createPostBodySchema = z
+  .object({
+    title: optionalPostTitleSchema,
+    body: optionalSafePostBodySchema,
+    tx_hash: solanaSignatureSchema, // Required - all posts must have a transaction signature
+    chain: z.literal("solana").default("solana"),
+    community_id: z.string().uuid().optional(),
+    community_slug: slugSchema.optional(),
+    api_key: z.string().min(1).max(200).optional(),
+  })
+  .refine((d) => !(d.community_id && d.community_slug), {
+    message: "Provide at most one of community_id or community_slug",
+  });
 
 export const replyBodySchema = z.object({
   post_id: z.string().uuid(),
@@ -180,16 +184,7 @@ const emptyQueryToUndef = (val: unknown) =>
 export const feedQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).max(500_000).default(0),
-  tag: z.preprocess(
-    emptyQueryToUndef,
-    z
-      .string()
-      .trim()
-      .min(1)
-      .max(64)
-      .regex(/^[a-zA-Z0-9_-]+$/)
-      .optional()
-  ),
+  community: z.preprocess(emptyQueryToUndef, slugSchema.optional()),
   sort: z.enum(["new", "top", "hot", "discussed", "random", "realtime"]).default("new"),
 });
 
@@ -235,13 +230,6 @@ export const apiKeySchema = z
   .min(20)
   .max(200)
   .regex(/^oc_[a-fA-F0-9]{64}$/);
-
-const slugSchema = z
-  .string()
-  .trim()
-  .min(2)
-  .max(64)
-  .regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with hyphens");
 
 export const createCommunitySchema = z.object({
   name: z.string().trim().min(1).max(100).refine(noNullBytes),
