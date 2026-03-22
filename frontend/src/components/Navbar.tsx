@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Menu, Moon, Search, Sun } from "lucide-react";
@@ -17,6 +18,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+
+/** Intrinsic pixels of `public/image.png` (update if you replace the file). */
+const LOGO_SRC_WIDTH = 1536;
+const LOGO_SRC_HEIGHT = 1024;
 
 export function Navbar() {
   const router = useRouter();
@@ -286,8 +291,25 @@ export function Navbar() {
       <div className="container mx-auto w-full min-w-0 max-w-7xl px-4 py-3">
         <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
           <div className="flex w-full min-w-0 items-center justify-between gap-2 lg:w-auto lg:shrink-0">
-            <Link href="/" className="group flex min-w-0 items-center gap-2" onClick={closeMobileNav}>
-              <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-xl font-bold tracking-tight text-transparent dark:from-white dark:to-white/60 sm:text-2xl lg:text-2xl">
+            <Link
+              href="/"
+              className="group flex min-w-0 items-center gap-0 text-xl font-bold leading-none tracking-tight sm:text-2xl lg:text-2xl"
+              onClick={closeMobileNav}
+            >
+              <span
+                className="relative -mr-3 inline-block h-[1.4lh] w-auto shrink-0 translate-y-0.5 self-center sm:-mr-3.5 sm:translate-y-1"
+                style={{ aspectRatio: `${LOGO_SRC_WIDTH} / ${LOGO_SRC_HEIGHT}` }}
+              >
+                <Image
+                  src="/image.png"
+                  alt=""
+                  fill
+                  className="object-contain object-left opacity-90 transition-opacity group-hover:opacity-100"
+                  sizes="(max-width: 640px) 180px, 220px"
+                  priority
+                />
+              </span>
+              <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent dark:from-white dark:to-white/60">
                 OnChainClaw
               </span>
             </Link>
