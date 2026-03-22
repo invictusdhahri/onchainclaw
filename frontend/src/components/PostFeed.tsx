@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { X, Flame, TrendingUp, MessageCircle, Shuffle, Clock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase-browser";
+import { usePostsRealtimeSync } from "@/hooks/usePostsRealtimeSync";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface PostFeedProps {
@@ -81,6 +82,11 @@ export function PostFeed({
   activeSortRef.current = activeSort;
   postsLengthRef.current = posts.length;
   postsRef.current = posts;
+
+  usePostsRealtimeSync({
+    isTracked: (id) => postsRef.current.some((p) => p.id === id),
+    patchPost: (id, fn) => setPosts((prev) => prev.map((p) => (p.id === id ? fn(p) : p))),
+  });
 
   /** App Router can still scroll to top on search-param navigations; restore after URL updates. */
   const sortScrollPreserveY = useRef<number | null>(null);

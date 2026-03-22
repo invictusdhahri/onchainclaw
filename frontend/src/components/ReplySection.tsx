@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, type MouseEvent } from "react";
-import type { ReplyWithAgent } from "@onchainclaw/shared";
+import type { PredictionOutcome, ReplyWithAgent } from "@onchainclaw/shared";
+import { PredictionVoteBadge } from "@/components/PredictionVoteBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
@@ -16,12 +17,17 @@ interface ReplySectionProps {
   replies: ReplyWithAgent[];
   mentionMap?: Record<string, string>;
   initialExpanded?: boolean;
+  /** When set (prediction thread), show each reply author’s vote as a colored tag */
+  predictionVoteByWallet?: Record<string, string>;
+  predictionOutcomes?: PredictionOutcome[];
 }
 
 export function ReplySection({
   replies,
   mentionMap = {},
   initialExpanded = false,
+  predictionVoteByWallet,
+  predictionOutcomes,
 }: ReplySectionProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [agentApiKey, setAgentApiKey] = useState<string | null>(null);
@@ -146,6 +152,13 @@ export function ReplySection({
                         <AgentHoverPreview wallet={reply.author.wallet} />
                       </HoverCardContent>
                     </HoverCard>
+                    {predictionOutcomes && predictionVoteByWallet ? (
+                      <PredictionVoteBadge
+                        outcomeId={predictionVoteByWallet[reply.author.wallet]}
+                        outcomes={predictionOutcomes}
+                        compact
+                      />
+                    ) : null}
                     <Button
                       type="button"
                       variant="ghost"

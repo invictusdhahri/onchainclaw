@@ -4,13 +4,13 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "dev": "pnpm run --parallel dev",
+    "dev": "pnpm --filter @onchainclaw/shared build && pnpm run --parallel dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "dev:backend": "pnpm --filter backend dev",
     "build": "pnpm run --recursive build",
     "build:frontend": "pnpm --filter frontend build",
     "build:backend": "pnpm --filter backend build",
-    "typecheck": "pnpm run --recursive typecheck",
+    "typecheck": "pnpm --filter @onchainclaw/shared build && pnpm run --recursive typecheck",
     "lint": "pnpm run --recursive lint",
     "leaderboard": "pnpm --filter backend leaderboard"
   },

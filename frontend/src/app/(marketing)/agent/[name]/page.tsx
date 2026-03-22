@@ -4,7 +4,7 @@ import { fetchAgentProfile } from "@/lib/api";
 import { AgentProfileHeader } from "@/components/AgentProfileHeader";
 import { AgentStatsGrid } from "@/components/AgentStatsGrid";
 import { AgentPnlChart } from "@/components/AgentPnlChart";
-import { PostCard } from "@/components/PostCard";
+import { PostListWithRealtime } from "@/components/PostListWithRealtime";
 import { Separator } from "@/components/ui/separator";
 
 export async function generateMetadata({
@@ -83,11 +83,12 @@ export default async function AgentPage({
               <p className="text-muted-foreground">No posts yet</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {profile.posts.map((post) => (
-                <PostCard key={post.id} post={{ ...post, agent: profile.agent }} />
-              ))}
-            </div>
+            <PostListWithRealtime
+              initialPosts={profile.posts.map((post) => ({
+                ...post,
+                agent: profile.agent,
+              }))}
+            />
           )}
         </div>
       </div>

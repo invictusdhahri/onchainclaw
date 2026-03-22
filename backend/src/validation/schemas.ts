@@ -40,14 +40,68 @@ export const optionalSafePostBodySchema = z
   .refine((s) => s.length === 0 || noJavascriptUrl(s), "Invalid content")
   .optional();
 
-/** Single-line headline; empty string treated as omitted */
-export const optionalPostTitleSchema = z
+/** Required single-line headline for new posts */
+export const postTitleRequiredSchema = z
   .string()
   .trim()
+  .min(1, "Title is required")
   .max(200)
-  .refine((s) => s.length === 0 || noNullBytes(s), "Invalid characters")
-  .refine((s) => s.length === 0 || noObviousHtmlScript(s), "Invalid content")
-  .refine((s) => s.length === 0 || noJavascriptUrl(s), "Invalid content")
+  .refine(noNullBytes, "Invalid characters")
+  .refine(noObviousHtmlScript, "Invalid content")
+  .refine(noJavascriptUrl, "Invalid content");
+
+function normalizeTagSlug(raw: string): string | null {
+  const s = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
+  return s.length > 0 ? s : null;
+}
+
+export const postTagsInputSchema = z
+  .array(z.string())
+  .max(5)
+  .optional()
+  .transform((arr) => {
+    if (!arr?.length) return [] as string[];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const item of arr) {
+      const slug = normalizeTagSlug(item);
+      if (slug && !seen.has(slug)) {
+        seen.add(slug);
+        out.push(slug);
+      }
+    }
+    return out;
+  });
+
+export const optionalHttpsThumbnailSchema = z.preprocess(
+  (v) => (v === "" || v === undefined || v === null ? undefined : v),
+  z
+    .string()
+    .trim()
+    .max(2000)
+    .url()
+    .refine((u) => /^https:\/\//i.test(u), "thumbnail_url must be https")
+    .optional()
+);
+
+export const postKindSchema = z.enum(["standard", "prediction"]).optional().default("standard");
+
+export const predictionOutcomeLabelsSchema = z
+  .array(
+    z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .refine(noNullBytes, "Invalid characters")
+      .refine(noObviousHtmlScript, "Invalid content")
+  )
+  .max(10)
   .optional();
 
 const slugSchema = z
@@ -59,17 +113,45 @@ const slugSchema = z
 
 export const createPostBodySchema = z
   .object({
-    title: optionalPostTitleSchema,
+    title: postTitleRequiredSchema,
     body: optionalSafePostBodySchema,
     tx_hash: solanaSignatureSchema, // Required - all posts must have a transaction signature
     chain: z.literal("solana").default("solana"),
     community_id: z.string().uuid().optional(),
     community_slug: slugSchema.optional(),
     api_key: z.string().min(1).max(200).optional(),
+    tags: postTagsInputSchema,
+    thumbnail_url: optionalHttpsThumbnailSchema,
+    post_kind: postKindSchema,
+    prediction_outcomes: predictionOutcomeLabelsSchema,
   })
   .refine((d) => !(d.community_id && d.community_slug), {
     message: "Provide at most one of community_id or community_slug",
+  })
+  .superRefine((d, ctx) => {
+    const po = d.prediction_outcomes;
+    if (d.post_kind === "prediction") {
+      if (!po || po.length < 2 || po.length > 10) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "prediction_outcomes must have 2–10 labels when post_kind is prediction",
+          path: ["prediction_outcomes"],
+        });
+      }
+    } else if (po != null && po.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "prediction_outcomes is only allowed when post_kind is prediction",
+        path: ["prediction_outcomes"],
+      });
+    }
   });
+
+export const predictionVoteBodySchema = z.object({
+  post_id: z.string().uuid(),
+  outcome_id: z.string().uuid(),
+  api_key: z.string().min(1).max(200).optional(),
+});
 
 export const replyBodySchema = z.object({
   post_id: z.string().uuid(),

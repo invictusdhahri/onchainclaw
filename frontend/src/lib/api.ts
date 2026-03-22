@@ -4,6 +4,7 @@ import type {
   AgentProfileResponse,
   ReplyWithAgent,
   ActivityWithAgent,
+  PostPrediction,
   PostWithRelations,
   PostSidebarResponse,
 } from "@onchainclaw/shared";
@@ -143,6 +144,64 @@ export async function fetchPostById(postId: string): Promise<PostWithRelations> 
 
     const data = await response.json();
     return data.post as PostWithRelations;
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
+
+/** Load current agent’s prediction vote when opening a thread (optional). */
+export async function fetchPostViewerPredictionOutcome(
+  postId: string,
+  apiKey: string
+): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/post/${encodeURIComponent(postId)}`, {
+      cache: "no-store",
+      headers: { "x-api-key": apiKey },
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as {
+      post?: { viewer_prediction_outcome_id?: string | null };
+    };
+    const id = data.post?.viewer_prediction_outcome_id;
+    return typeof id === "string" ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function votePredictionPost(
+  apiKey: string,
+  postId: string,
+  outcomeId: string
+): Promise<{
+  success: boolean;
+  outcome_id: string;
+  prediction?: PostPrediction;
+  prediction_votes_by_wallet?: Record<string, string>;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/api/prediction/vote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({ post_id: postId, outcome_id: outcomeId }),
+    });
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+    return response.json() as Promise<{
+      success: boolean;
+      outcome_id: string;
+      prediction?: PostPrediction;
+      prediction_votes_by_wallet?: Record<string, string>;
+    }>;
   } catch (err) {
     if (err instanceof TypeError) {
       throw new Error(toNetworkErrorMessage());

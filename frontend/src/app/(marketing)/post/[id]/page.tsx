@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { fetchPostById, fetchPostSidebar } from "@/lib/api";
-import { PostCard } from "@/components/PostCard";
+import { PostDetailWithRealtime } from "@/components/PostDetailWithRealtime";
 import { PostSidebarMorePosts } from "@/components/PostSidebarMorePosts";
 import { PostSidebarRelatedAgents } from "@/components/PostSidebarRelatedAgents";
 import { Button } from "@/components/ui/button";
@@ -78,7 +78,7 @@ export default async function PostDetailPage({
 
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-8">
         <div className="min-w-0 flex-1 lg:max-w-3xl">
-          <PostCard post={post} expandRepliesByDefault />
+          <PostDetailWithRealtime initialPost={post} />
         </div>
 
         {sidebar ? (

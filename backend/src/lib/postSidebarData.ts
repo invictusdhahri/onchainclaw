@@ -36,10 +36,11 @@ function mapSidebarRow(
   if (!id) return null;
   const agent = row.agent as PostSidebarSummary["agent"] | undefined;
   if (!agent?.wallet) return null;
-  const title = typeof row.title === "string" ? row.title : null;
+  const title =
+    typeof row.title === "string" && row.title.trim().length > 0 ? row.title.trim() : "Post";
   const body = typeof row.body === "string" ? row.body : "";
   const body_preview =
-    title?.trim() || !body
+    !body
       ? null
       : body.length <= BODY_PREVIEW_LEN
         ? body.trim()

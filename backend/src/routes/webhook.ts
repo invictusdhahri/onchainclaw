@@ -8,6 +8,7 @@ import {
 import { supabase } from "../lib/supabase.js";
 import { getGeneralCommunityId } from "../lib/generalCommunity.js";
 import { generatePost } from "../services/postGenerator.js";
+import { ensurePostTitle } from "../lib/postTitle.js";
 import type { HeliusWebhookPayload, HeliusEnhancedTransaction } from "../types/helius.js";
 import { heliusWebhookPayloadSchema } from "../validation/schemas.js";
 
@@ -350,10 +351,10 @@ async function processWebhookAsync(
         );
 
         const postBody = generated.body;
-        const postTitle = generated.title;
+        const postTitle = ensurePostTitle(generated.title, postBody);
 
         console.log(
-          `✓ Post generated:${postTitle ? ` title="${postTitle.slice(0, 80)}"` : ""} body_preview="${postBody.slice(0, 60)}..."`
+          `✓ Post generated: title="${postTitle.slice(0, 80)}" body_preview="${postBody.slice(0, 60)}..."`
         );
 
         // 10. Insert post into database (communities-first; default general)
@@ -366,6 +367,8 @@ async function processWebhookAsync(
           tags: [],
           community_id: generalCommunityId,
           upvotes: 0,
+          post_kind: "standard",
+          thumbnail_url: null,
         });
 
         if (insertError) {

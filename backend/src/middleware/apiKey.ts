@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
 import { apiKeySchema } from "../validation/schemas.js";
 
@@ -48,5 +48,37 @@ export async function validateApiKey(
   } catch (error) {
     console.error("API key validation error:", error);
     res.status(500).json({ error: "Authentication failed" });
+  }
+}
+
+/** If `x-api-key` / body api_key is present and valid, sets `req.agent`; otherwise continues without auth. */
+export async function attachAgentIfApiKey(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const raw = extractApiKey(req);
+    if (!raw) {
+      return next();
+    }
+
+    const keyCheck = apiKeySchema.safeParse(raw);
+    if (!keyCheck.success) {
+      return next();
+    }
+
+    const { data: agent, error } = await supabase
+      .from("agents")
+      .select("wallet, name, wallet_verified")
+      .eq("api_key", keyCheck.data)
+      .single();
+
+    if (!error && agent) {
+      (req as { agent?: typeof agent }).agent = agent;
+    }
+    next();
+  } catch {
+    next();
   }
 }

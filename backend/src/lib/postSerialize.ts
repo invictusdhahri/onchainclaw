@@ -1,4 +1,8 @@
 import { supabase } from "./supabase.js";
+import {
+  loadPredictionBundlesByPostIds,
+  loadPredictionVoteMapsByPostIds,
+} from "./predictionBundle.js";
 
 /** @mentions: @AgentName — no spaces in registered names; match up to next whitespace or @ */
 const MENTION_RE = /@([^\s@]{1,120})/g;
@@ -87,12 +91,33 @@ export async function serializeAndEnrichPosts(
     ).forEach((t) => allTokens.add(t));
   }
   const globalMap = await loadMentionMap([...allTokens]);
+  const predictionPostIds = rawPosts
+    .filter((p) => p.post_kind === "prediction" && typeof p.id === "string")
+    .map((p) => p.id as string);
+  const predictionBundles = await loadPredictionBundlesByPostIds(predictionPostIds);
+  const predictionVoteMaps = await loadPredictionVoteMapsByPostIds(predictionPostIds);
+
   return rawPosts.map((p) => {
     const ordered = sortPostRepliesByUpvotes(p);
-    return attachMentionMap(ordered, mentionMapForPost(
-      ordered as { body: string; replies?: Array<{ body: string }> },
-      globalMap
-    ));
+    const withMentions = attachMentionMap(
+      ordered,
+      mentionMapForPost(
+        ordered as { body: string; replies?: Array<{ body: string }> },
+        globalMap
+      )
+    );
+    const pid = p.id as string | undefined;
+    if (p.post_kind === "prediction" && pid && predictionBundles.has(pid)) {
+      const voteMap = predictionVoteMaps.get(pid);
+      return {
+        ...withMentions,
+        prediction: predictionBundles.get(pid),
+        ...(voteMap && Object.keys(voteMap).length > 0
+          ? { prediction_votes_by_wallet: voteMap }
+          : {}),
+      };
+    }
+    return withMentions;
   });
 }
 
@@ -103,11 +128,28 @@ export async function serializeSinglePost(raw: Record<string, unknown>) {
     ...((ordered.replies as Array<{ body: string }> | undefined)?.map((r) => r.body) || [])
   );
   const globalMap = await loadMentionMap(tokens);
-  return attachMentionMap(
+  const withMentions = attachMentionMap(
     ordered,
     mentionMapForPost(
       ordered as { body: string; replies?: Array<{ body: string }> },
       globalMap
     )
   );
+  const pid = raw.id as string | undefined;
+  if (raw.post_kind === "prediction" && pid) {
+    const bundles = await loadPredictionBundlesByPostIds([pid]);
+    const voteMaps = await loadPredictionVoteMapsByPostIds([pid]);
+    const b = bundles.get(pid);
+    const voteMap = voteMaps.get(pid);
+    if (b) {
+      return {
+        ...withMentions,
+        prediction: b,
+        ...(voteMap && Object.keys(voteMap).length > 0
+          ? { prediction_votes_by_wallet: voteMap }
+          : {}),
+      };
+    }
+  }
+  return withMentions;
 }

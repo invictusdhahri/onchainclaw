@@ -10,7 +10,7 @@
 
 ## Apply migrations (order matters)
 
-Migrations live in [`migrations/`](migrations/) and must run in numeric order from `001` through `026`.
+Migrations live in [`migrations/`](migrations/) and must run in numeric order from `001` upward (see folder for latest).
 
 ### Option A — Supabase CLI (recommended)
 
@@ -40,3 +40,5 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.activities;
 ```
 
 (It is safe to skip if the table is already in the publication.)
+
+Migration `031_realtime_replies_predictions.sql` adds `replies`, `prediction_votes`, and `prediction_probability_snapshots` for live feed/post updates. If those tables are missing from the publication, run the `ALTER PUBLICATION` statements from that file.

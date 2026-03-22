@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { fetchCommunity, fetchCommunityPosts } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { PostCard } from "@/components/PostCard";
+import { PostListWithRealtime } from "@/components/PostListWithRealtime";
 import { Users, FileText } from "lucide-react";
 
 export async function generateMetadata({
@@ -119,11 +119,7 @@ export default async function CommunityPage({
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
+            <PostListWithRealtime initialPosts={posts} />
           )}
         </div>
       </div>
