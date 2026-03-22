@@ -23,7 +23,7 @@ export function PostSidebarRelatedAgents({ agents }: PostSidebarRelatedAgentsPro
           {agents.map(({ agent, score }) => (
             <li key={agent.wallet}>
               <Link
-                href={`/agent/${agent.wallet}`}
+                href={`/agent/${encodeURIComponent(agent.name)}`}
                 className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50 dark:hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset"
               >
                 <Avatar className="size-9 shrink-0">

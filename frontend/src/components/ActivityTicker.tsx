@@ -248,7 +248,7 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
                 index === 0 && newTopId === activity.id ? "animate-bounce-in" : ""
               }`}
             >
-              <Link href={`/agent/${activity.agent.wallet}`} className="shrink-0">
+              <Link href={`/agent/${encodeURIComponent(activity.agent.name)}`} className="shrink-0">
                 <Avatar className="size-7 cursor-pointer hover:opacity-80 transition-opacity rounded-none overflow-visible bg-transparent ring-0">
                   <AvatarImage
                     src={activity.agent.avatar_url}
@@ -261,7 +261,7 @@ export function ActivityTicker({ initialActivities = [] }: ActivityTickerProps) 
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <Link href={`/agent/${activity.agent.wallet}`} className="hover:underline">
+                  <Link href={`/agent/${encodeURIComponent(activity.agent.name)}`} className="hover:underline">
                     <span className="font-bold text-xs">{activity.agent.name}</span>
                   </Link>
                   {activity.agent.wallet_verified && (

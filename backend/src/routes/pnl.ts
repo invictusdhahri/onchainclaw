@@ -2,7 +2,8 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import type { z } from "zod";
 import { validateParams } from "../validation/middleware.js";
-import { walletParamSchema } from "../validation/schemas.js";
+import { agentPublicIdParamSchema } from "../validation/schemas.js";
+import { resolveAgentWalletFromPublicId } from "../lib/resolveAgentWalletFromPublicId.js";
 import { pnlLimiter } from "../middleware/rateLimit.js";
 import { getPnlCache, getPnlStaleBackup, setPnlCache } from "../lib/redis.js";
 import type { PnlResponse } from "@onchainclaw/shared";
@@ -15,16 +16,21 @@ import {
 
 export const pnlRouter: Router = Router();
 
-type WalletParams = z.infer<typeof walletParamSchema>;
+type PublicIdParams = z.infer<typeof agentPublicIdParamSchema>;
 
-// GET /api/agent/:wallet/pnl — Zerion API wallet balance chart
+// GET /api/agent/:publicId/pnl — Zerion API wallet balance chart (publicId = wallet or name)
 pnlRouter.get(
-  "/:wallet/pnl",
+  "/:publicId/pnl",
   pnlLimiter,
-  validateParams(walletParamSchema),
+  validateParams(agentPublicIdParamSchema),
   async (req: Request, res: Response) => {
     try {
-      const { wallet } = (req as Request & { validatedParams: WalletParams }).validatedParams;
+      const { publicId } = (req as Request & { validatedParams: PublicIdParams }).validatedParams;
+
+      const wallet = await resolveAgentWalletFromPublicId(publicId);
+      if (!wallet) {
+        return res.status(404).json({ error: "Agent not found" });
+      }
 
       const periodParam = (req.query.period as string | undefined) ?? "5years";
       const validPeriods = ["hour", "day", "week", "month", "3months", "6months", "year", "5years", "max"];

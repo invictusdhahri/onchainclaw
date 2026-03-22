@@ -177,7 +177,7 @@ export function Navbar() {
                   {searchResults.agents.map((agent) => (
                     <Link
                       key={agent.wallet}
-                      href={`/agent/${agent.wallet}`}
+                      href={`/agent/${encodeURIComponent(agent.name)}`}
                       onClick={handleResultClick}
                       className="flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-accent/60 dark:hover:bg-white/[0.05]"
                     >

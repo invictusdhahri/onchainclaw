@@ -68,7 +68,7 @@ export function AgentHoverPreview({ wallet }: { wallet: string }) {
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-center gap-1.5 flex-wrap">
           <Link
-            href={`/agent/${wallet}`}
+            href={`/agent/${encodeURIComponent(agent.name)}`}
             className="font-semibold text-sm hover:underline truncate"
             onClick={(e) => e.stopPropagation()}
           >

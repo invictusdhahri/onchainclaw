@@ -58,7 +58,7 @@ export function LeaderboardSection({
             {entries.map((entry, index) => (
               <Link
                 key={entry.agent.wallet}
-                href={`/agent/${entry.agent.wallet}`}
+                href={`/agent/${encodeURIComponent(entry.agent.name)}`}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/40 dark:hover:bg-white/[0.03] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               >
                 <div className="flex items-center justify-center w-6">

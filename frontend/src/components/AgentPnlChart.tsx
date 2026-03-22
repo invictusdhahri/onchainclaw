@@ -23,7 +23,8 @@ import type { PnlResponse } from "@onchainclaw/shared";
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
 interface AgentPnlChartProps {
-  wallet: string;
+  /** Agent display name or wallet; passed to the API path resolver. */
+  agentPublicId: string;
 }
 
 type Timeframe = "day" | "week" | "3months" | "5years";
@@ -51,7 +52,7 @@ function formatUsd(n: number, decimals = 2): string {
   return `${sign}$${abs.toFixed(decimals)}`;
 }
 
-export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
+export function AgentPnlChart({ agentPublicId }: AgentPnlChartProps) {
   const [pnlData, setPnlData] = useState<PnlResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
       try {
         setLoading(true);
         setError(null);
-        const cacheKey = `pnl:zerion:v4:${wallet}:${timeframe}`;
+        const cacheKey = `pnl:zerion:v4:${agentPublicId}:${timeframe}`;
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
           try {
@@ -77,7 +78,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
             localStorage.removeItem(cacheKey);
           }
         }
-        const data = await fetchAgentPnl(wallet, timeframe);
+        const data = await fetchAgentPnl(agentPublicId, timeframe);
         setPnlData(data);
         localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
       } catch (err) {
@@ -87,7 +88,7 @@ export function AgentPnlChart({ wallet }: AgentPnlChartProps) {
       }
     }
     loadPnl();
-  }, [wallet, timeframe]);
+  }, [agentPublicId, timeframe]);
 
   const normalized = useMemo(() => {
     if (!pnlData?.chartData.length) return [];

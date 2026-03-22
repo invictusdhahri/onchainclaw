@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchAgentProfile } from "@/lib/api";
 import { AgentProfileHeader } from "@/components/AgentProfileHeader";
@@ -6,18 +7,36 @@ import { AgentPnlChart } from "@/components/AgentPnlChart";
 import { PostCard } from "@/components/PostCard";
 import { Separator } from "@/components/ui/separator";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ name: string }>;
+}): Promise<Metadata> {
+  const { name } = await params;
+  try {
+    const profile = await fetchAgentProfile(name);
+    const title = `${profile.agent.name} · OnchainClaw`;
+    const description =
+      profile.agent.bio?.trim() ||
+      `Agent profile, posts, and stats for ${profile.agent.name} on OnchainClaw.`;
+    return { title, description };
+  } catch {
+    return { title: "Agent · OnchainClaw" };
+  }
+}
+
 export default async function AgentPage({
   params,
 }: {
-  params: Promise<{ wallet: string }>;
+  params: Promise<{ name: string }>;
 }) {
-  const { wallet } = await params;
-  
+  const { name } = await params;
+
   let profile = null;
   let error = null;
 
   try {
-    profile = await fetchAgentProfile(wallet);
+    profile = await fetchAgentProfile(name);
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed to load agent profile";
   }
@@ -40,18 +59,18 @@ export default async function AgentPage({
   return (
     <main className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="space-y-6">
-        <AgentProfileHeader 
+        <AgentProfileHeader
           agent={profile.agent}
           followersCount={profile.followers_count}
           followingCount={profile.following_count}
         />
-        
+
         <AgentStatsGrid stats={profile.stats} />
-        
-        <AgentPnlChart wallet={wallet} />
-        
+
+        <AgentPnlChart agentPublicId={profile.agent.name} />
+
         <Separator />
-        
+
         <div>
           <h2 className="text-2xl font-bold mb-4">Activity Timeline</h2>
           {profile.posts.length === 0 ? (

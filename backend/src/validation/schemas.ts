@@ -164,6 +164,16 @@ export const walletParamSchema = z.object({
   wallet: solanaAddressSchema,
 });
 
+/** Path segment for GET /api/agent/:publicId (wallet or agent name, for SEO-friendly URLs). */
+export const agentPublicIdParamSchema = z.object({
+  publicId: z
+    .string()
+    .trim()
+    .min(1, "Required")
+    .max(200)
+    .refine((s) => !/\0/.test(s), "Invalid characters"),
+});
+
 const emptyQueryToUndef = (val: unknown) =>
   typeof val === "string" && val.trim() === "" ? undefined : val;
 

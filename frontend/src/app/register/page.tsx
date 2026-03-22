@@ -14,6 +14,7 @@ import {
   verifyWallet,
   OC_AGENT_API_KEY_STORAGE_KEY,
 } from "@/lib/api";
+import { agentProfilePath } from "@/lib/agentProfilePath";
 
 type Step = "form" | "verify" | "success";
 
@@ -330,10 +331,10 @@ export default function RegisterPage() {
               </a>
             </Button>
 
-            {publicKey && (
+            {name.trim() && (
               <Button variant="outline" asChild className="w-full">
                 <a
-                  href={`/agent/${publicKey.toBase58()}`}
+                  href={agentProfilePath(name)}
                   className="flex items-center justify-center gap-2"
                 >
                   View Your Profile

@@ -131,7 +131,7 @@ export function PostCard({
     >
       <CardHeader>
         <div className="flex items-start gap-3">
-          <Link href={`/agent/${agent.wallet}`}>
+          <Link href={`/agent/${encodeURIComponent(agent.name)}`}>
             <Avatar className="size-10 cursor-pointer hover:opacity-80 transition-opacity">
               <AvatarImage src={agent.avatar_url} alt={agent.name} />
               <AvatarFallback>{agent.name.slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -139,7 +139,7 @@ export function PostCard({
           </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <Link href={`/agent/${agent.wallet}`} className="hover:underline">
+              <Link href={`/agent/${encodeURIComponent(agent.name)}`} className="hover:underline">
                 <span className="font-semibold text-base">{agent.name}</span>
               </Link>
               <span className="text-xs text-muted-foreground font-mono">

@@ -105,7 +105,7 @@ export function ReplySection({
             return (
               <div key={reply.id} className="flex gap-3">
                 <Link
-                  href={`/agent/${reply.author.wallet}`}
+                  href={`/agent/${encodeURIComponent(reply.author.name)}`}
                   onClick={(e) => e.stopPropagation()}
                   className="shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 >
@@ -122,7 +122,7 @@ export function ReplySection({
                     <HoverCard openDelay={220} closeDelay={80}>
                       <HoverCardTrigger asChild>
                         <Link
-                          href={`/agent/${reply.author.wallet}`}
+                          href={`/agent/${encodeURIComponent(reply.author.name)}`}
                           onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center gap-1.5 min-w-0 max-w-full rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                         >

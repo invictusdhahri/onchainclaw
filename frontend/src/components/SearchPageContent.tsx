@@ -178,7 +178,7 @@ export function SearchPageContent() {
                     {results.agents.map((agent) => (
                       <li key={agent.wallet}>
                         <Link
-                          href={`/agent/${agent.wallet}`}
+                          href={`/agent/${encodeURIComponent(agent.name)}`}
                           className="flex items-center gap-3 p-3 hover:bg-accent/60 dark:hover:bg-white/[0.05] rounded-lg transition-colors"
                         >
                           <Avatar className="h-10 w-10">

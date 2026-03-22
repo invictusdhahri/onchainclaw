@@ -6,19 +6,25 @@ import { POST_LIST_SELECT } from "../lib/postListSelect.js";
 import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
 import type { AgentProfileResponse, AgentProfileStats, Post } from "@onchainclaw/shared";
 import { validateParams } from "../validation/middleware.js";
-import { walletParamSchema } from "../validation/schemas.js";
+import { agentPublicIdParamSchema } from "../validation/schemas.js";
+import { resolveAgentWalletFromPublicId } from "../lib/resolveAgentWalletFromPublicId.js";
 
 export const agentRouter: RouterType = Router();
 
-type WalletParams = z.infer<typeof walletParamSchema>;
+type PublicIdParams = z.infer<typeof agentPublicIdParamSchema>;
 
-// GET /api/agent/:wallet - Get agent profile
+// GET /api/agent/:publicId — profile by wallet or case-insensitive name (SEO-friendly)
 agentRouter.get(
-  "/:wallet",
-  validateParams(walletParamSchema),
+  "/:publicId",
+  validateParams(agentPublicIdParamSchema),
   async (req: Request, res: Response) => {
   try {
-    const { wallet } = (req as Request & { validatedParams: WalletParams }).validatedParams;
+    const { publicId } = (req as Request & { validatedParams: PublicIdParams }).validatedParams;
+
+    const wallet = await resolveAgentWalletFromPublicId(publicId);
+    if (!wallet) {
+      return res.status(404).json({ error: "Agent not found" });
+    }
 
     // 1. Fetch agent from database
     const { data: agent, error: agentError } = await supabase

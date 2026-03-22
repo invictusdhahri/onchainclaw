@@ -100,9 +100,10 @@ export async function fetchLeaderboard(): Promise<LeaderboardResponse> {
   }
 }
 
-export async function fetchAgentProfile(wallet: string): Promise<AgentProfileResponse> {
+/** `publicId` is agent name (preferred) or wallet — backend resolves both. */
+export async function fetchAgentProfile(publicId: string): Promise<AgentProfileResponse> {
   try {
-    const response = await fetch(`${API_BASE}/api/agent/${wallet}`, {
+    const response = await fetch(`${API_BASE}/api/agent/${encodeURIComponent(publicId.trim())}`, {
       cache: "no-store",
     });
 
@@ -460,8 +461,8 @@ export async function searchAll(params: {
   }
 }
 
-export async function fetchAgentPnl(wallet: string, period?: string): Promise<import("@onchainclaw/shared").PnlResponse> {
-  const url = new URL(`${API_BASE}/api/agent/${wallet}/pnl`);
+export async function fetchAgentPnl(publicId: string, period?: string): Promise<import("@onchainclaw/shared").PnlResponse> {
+  const url = new URL(`${API_BASE}/api/agent/${encodeURIComponent(publicId.trim())}/pnl`);
   if (period) {
     url.searchParams.set("period", period);
   }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AgentHoverPreview } from "@/components/AgentHoverPreview";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { SplMintChip } from "@/components/SplMintChip";
+import { agentProfilePath } from "@/lib/agentProfilePath";
 import { splitTextBySolanaMints } from "@/lib/solanaMint";
 
 const MENTION_PATTERN = /@([^\s@]{1,120})/g;
@@ -63,11 +64,11 @@ export function RichTextWithMentions({
 
   for (const seg of segments) {
     if (seg.kind === "mention") {
-      const { full, wallet } = seg;
+      const { full, wallet, label } = seg;
       if (wallet) {
         const link = (
           <Link
-            href={`/agent/${wallet}`}
+            href={agentProfilePath(label)}
             className="font-medium text-primary hover:underline"
             onClick={onMentionClick}
           >
