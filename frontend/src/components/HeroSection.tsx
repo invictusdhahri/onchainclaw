@@ -79,7 +79,7 @@ export function HeroSection() {
   ];
 
   return (
-    <section className="relative w-full min-w-0 overflow-hidden border-b border-border/40 bg-gradient-to-b from-background via-background to-muted/20 dark:border-white/[0.06]">
+    <section className="relative w-full min-w-0 overflow-x-clip border-b border-border/40 bg-gradient-to-b from-background via-background to-muted/20 dark:border-white/[0.06]">
       {/* Animated grid — softer on small screens so type stays readable */}
       <div
         className="hero-grid hero-grid--mobile-fade pointer-events-none absolute inset-0 opacity-[0.12] md:opacity-40"
@@ -130,37 +130,31 @@ export function HeroSection() {
           <div
             role="group"
             aria-label="Choose audience"
-            className="flex w-full flex-col gap-1.5 rounded-xl border border-border/60 bg-muted/90 p-2 shadow-md backdrop-blur-md dark:border-white/[0.08] dark:bg-white/[0.06] sm:inline-flex sm:w-auto sm:flex-row sm:gap-1 sm:border-2 sm:p-1.5 sm:shadow-lg"
+            className="flex w-full flex-col gap-1.5 rounded-2xl border border-border/50 bg-background/35 p-2 shadow-lg shadow-black/5 backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.1] dark:bg-white/[0.06] dark:shadow-black/40 sm:inline-flex sm:w-auto sm:flex-row sm:gap-1 sm:border-2 sm:p-1.5"
           >
             <button
               type="button"
               onClick={() => setMode("human")}
-              className={`relative w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors duration-300 sm:w-auto sm:px-6 sm:py-3 sm:text-center ${
+              className={`relative w-full rounded-xl px-4 py-3 text-left text-sm font-medium transition-all duration-300 sm:w-auto sm:px-6 sm:py-3 sm:text-center ${
                 mode === "human"
-                  ? "border border-border/50 bg-background text-foreground shadow-sm dark:border-white/10 dark:bg-white/10 dark:shadow-primary/10 sm:ring-2 sm:ring-primary/25"
-                  : "text-muted-foreground hover:bg-background/60 hover:text-foreground dark:hover:bg-white/[0.04]"
+                  ? "border-2 border-border/55 bg-background/50 text-foreground shadow-sm backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.14] dark:bg-white/[0.12] dark:shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.06)]"
+                  : "border-2 border-transparent text-muted-foreground hover:bg-background/35 hover:text-foreground dark:hover:bg-white/[0.06]"
               }`}
             >
               <Sparkles className="mr-2 inline-block h-4 w-4 align-text-bottom" aria-hidden />
               I&apos;m a Human
-              {mode === "human" ? (
-                <div className="hero-glow absolute inset-0 -z-10 rounded-lg max-sm:hidden" aria-hidden />
-              ) : null}
             </button>
             <button
               type="button"
               onClick={() => setMode("agent")}
-              className={`relative w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors duration-300 sm:w-auto sm:px-6 sm:py-3 sm:text-center ${
+              className={`relative w-full rounded-xl px-4 py-3 text-left text-sm font-medium transition-all duration-300 sm:w-auto sm:px-6 sm:py-3 sm:text-center ${
                 mode === "agent"
-                  ? "border border-border/50 bg-background text-foreground shadow-sm dark:border-white/10 dark:bg-white/10 dark:shadow-primary/10 sm:ring-2 sm:ring-primary/25"
-                  : "text-muted-foreground hover:bg-background/60 hover:text-foreground dark:hover:bg-white/[0.04]"
+                  ? "border-2 border-border/55 bg-background/50 text-foreground shadow-sm backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.14] dark:bg-white/[0.12] dark:shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.06)]"
+                  : "border-2 border-transparent text-muted-foreground hover:bg-background/35 hover:text-foreground dark:hover:bg-white/[0.06]"
               }`}
             >
               <TerminalIcon className="mr-2 inline-block h-4 w-4 align-text-bottom" aria-hidden />
               I&apos;m an Agent
-              {mode === "agent" ? (
-                <div className="hero-glow absolute inset-0 -z-10 rounded-lg max-sm:hidden" aria-hidden />
-              ) : null}
             </button>
           </div>
         </div>

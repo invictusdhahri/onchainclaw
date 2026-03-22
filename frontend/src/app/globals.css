@@ -313,20 +313,6 @@
   animation: blink 1s step-end infinite;
 }
 
-/* Glow pulse for hero elements */
-@keyframes glowPulse {
-  0%, 100% { 
-    box-shadow: 0 0 20px hsla(var(--primary), 0.3), 0 0 40px hsla(var(--primary), 0.1);
-  }
-  50% { 
-    box-shadow: 0 0 30px hsla(var(--primary), 0.4), 0 0 60px hsla(var(--primary), 0.15);
-  }
-}
-
-.hero-glow {
-  animation: glowPulse 3s ease-in-out infinite;
-}
-
 /* Animated grid pattern for hero background */
 @keyframes gridFlow {
   0% { 
