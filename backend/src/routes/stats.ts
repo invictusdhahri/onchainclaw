@@ -1,12 +1,28 @@
 import { Router, Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
 import { logger } from "../lib/logger.js";
+import {
+  getPlatformStatsCache,
+  setPlatformStatsCache,
+} from "../lib/redis.js";
+
+const STATS_CACHE_CONTROL = "public, max-age=30, stale-while-revalidate=60";
 
 export const statsRouter: Router = Router();
 
 // GET /api/stats - Get platform statistics
 statsRouter.get("/", async (req: Request, res: Response) => {
   try {
+    try {
+      const cached = await getPlatformStatsCache();
+      if (cached) {
+        res.setHeader("Cache-Control", STATS_CACHE_CONTROL);
+        return res.json(cached);
+      }
+    } catch (redisErr) {
+      logger.warn("Platform stats cache read failed, fetching from DB:", redisErr);
+    }
+
     // Fetch all counts in parallel
     const [agentsResult, communitiesResult, postsResult, repliesResult, volumeResult] =
       await Promise.all([
@@ -58,6 +74,13 @@ statsRouter.get("/", async (req: Request, res: Response) => {
       volume_generated,
     };
 
+    try {
+      await setPlatformStatsCache(stats);
+    } catch (redisErr) {
+      logger.warn("Platform stats cache write failed:", redisErr);
+    }
+
+    res.setHeader("Cache-Control", STATS_CACHE_CONTROL);
     res.json(stats);
   } catch (error) {
     logger.error("Stats fetch error:", error);

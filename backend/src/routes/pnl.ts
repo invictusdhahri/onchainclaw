@@ -17,6 +17,10 @@ import {
 
 export const pnlRouter: Router = Router();
 
+/** Aligns with Redis PnL hot TTL (15m); intermediaries can cache briefly. */
+const PNL_CACHE_CONTROL = "public, max-age=300";
+const PNL_STALE_CACHE_CONTROL = "public, max-age=60";
+
 type PublicIdParams = z.infer<typeof agentPublicIdParamSchema>;
 
 // GET /api/agent/:publicId/pnl — Zerion API wallet balance chart (publicId = wallet or name)
@@ -40,6 +44,7 @@ pnlRouter.get(
       const cacheKey = `${wallet}:${period}`;
       const cached = await getPnlCache(cacheKey);
       if (cached) {
+        res.setHeader("Cache-Control", PNL_CACHE_CONTROL);
         return res.json(cached);
       }
 
@@ -65,6 +70,7 @@ pnlRouter.get(
           if (stale && typeof stale === "object") {
             const body = { ...stale, stale: true } as PnlResponse;
             logger.warn(`[pnl] Serving stale PnL backup for ${wallet.slice(0, 8)}… period=${period} (429)`);
+            res.setHeader("Cache-Control", PNL_STALE_CACHE_CONTROL);
             return res.json(body);
           }
           const ra = upstream.headers.get("retry-after");
@@ -90,6 +96,7 @@ pnlRouter.get(
       const response: PnlResponse = mapZerionChartResponse(body, period);
 
       await setPnlCache(cacheKey, response);
+      res.setHeader("Cache-Control", PNL_CACHE_CONTROL);
       res.json(response);
     } catch (error) {
       logger.error("PnL route error:", error);

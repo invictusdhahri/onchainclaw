@@ -1,4 +1,5 @@
 import { Redis } from "ioredis";
+import type { LeaderboardResponse } from "@onchainclaw/shared";
 import { logger } from "./logger.js";
 
 function resolveRedisUrl(): string {
@@ -82,15 +83,16 @@ const PNL_STALE_PREFIX = "onclaw:pnl:zerion:backup:v4:";
 const PNL_STALE_TTL = 172800; // 48 hours
 
 /**
- * Store PnL in Redis (hot cache + stale backup for 429 fallback)
+ * Store PnL in Redis (hot cache + stale backup for 429 fallback).
+ * @param cacheSegment Redis key segment after prefix — typically `wallet:period` (see pnl route).
  */
 export async function setPnlCache(
-  wallet: string,
+  cacheSegment: string,
   data: any
 ): Promise<void> {
   const payload = JSON.stringify(data);
-  const key = `${PNL_PREFIX}${wallet}`;
-  const staleKey = `${PNL_STALE_PREFIX}${wallet}`;
+  const key = `${PNL_PREFIX}${cacheSegment}`;
+  const staleKey = `${PNL_STALE_PREFIX}${cacheSegment}`;
   await redis.set(key, payload, "EX", PNL_TTL);
   await redis.set(staleKey, payload, "EX", PNL_STALE_TTL);
 }
@@ -99,8 +101,8 @@ export async function setPnlCache(
  * Retrieve PnL data from Redis
  * Returns null if not found or expired
  */
-export async function getPnlCache(wallet: string): Promise<any | null> {
-  const key = `${PNL_PREFIX}${wallet}`;
+export async function getPnlCache(cacheSegment: string): Promise<any | null> {
+  const key = `${PNL_PREFIX}${cacheSegment}`;
   const data = await redis.get(key);
   return data ? JSON.parse(data) : null;
 }
@@ -108,8 +110,48 @@ export async function getPnlCache(wallet: string): Promise<any | null> {
 /**
  * Last good PnL payload (48h TTL) — used when upstream returns 429
  */
-export async function getPnlStaleBackup(wallet: string): Promise<any | null> {
-  const staleKey = `${PNL_STALE_PREFIX}${wallet}`;
+export async function getPnlStaleBackup(cacheSegment: string): Promise<any | null> {
+  const staleKey = `${PNL_STALE_PREFIX}${cacheSegment}`;
   const data = await redis.get(staleKey);
   return data ? JSON.parse(data) : null;
+}
+
+/** GET /api/stats aggregated counts + volume */
+const PLATFORM_STATS_KEY = "onclaw:platform:stats:v1";
+const PLATFORM_STATS_TTL_SEC = Math.max(
+  5,
+  parseInt(process.env.PLATFORM_STATS_CACHE_TTL_SEC || "60", 10) || 60
+);
+
+export type PlatformStatsPayload = {
+  verified_agents: number;
+  communities: number;
+  posts: number;
+  comments: number;
+  volume_generated: number;
+};
+
+export async function getPlatformStatsCache(): Promise<PlatformStatsPayload | null> {
+  const data = await redis.get(PLATFORM_STATS_KEY);
+  return data ? (JSON.parse(data) as PlatformStatsPayload) : null;
+}
+
+export async function setPlatformStatsCache(payload: PlatformStatsPayload): Promise<void> {
+  await redis.set(PLATFORM_STATS_KEY, JSON.stringify(payload), "EX", PLATFORM_STATS_TTL_SEC);
+}
+
+/** GET /api/leaderboard full JSON */
+const LEADERBOARD_KEY = "onclaw:leaderboard:v1";
+const LEADERBOARD_TTL_SEC = Math.max(
+  10,
+  parseInt(process.env.LEADERBOARD_CACHE_TTL_SEC || "180", 10) || 180
+);
+
+export async function getLeaderboardCache(): Promise<LeaderboardResponse | null> {
+  const data = await redis.get(LEADERBOARD_KEY);
+  return data ? (JSON.parse(data) as LeaderboardResponse) : null;
+}
+
+export async function setLeaderboardCache(payload: LeaderboardResponse): Promise<void> {
+  await redis.set(LEADERBOARD_KEY, JSON.stringify(payload), "EX", LEADERBOARD_TTL_SEC);
 }

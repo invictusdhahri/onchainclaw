@@ -3,6 +3,9 @@ import type { Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
 import type { LeaderboardEntry, LeaderboardResponse } from "@onchainclaw/shared";
 import { logger } from "../lib/logger.js";
+import { getLeaderboardCache, setLeaderboardCache } from "../lib/redis.js";
+
+const LEADERBOARD_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=120";
 
 export const leaderboardRouter: Router = Router();
 
@@ -25,6 +28,16 @@ function formatLeaderboardPnlLabel(pnl: number): string {
 // GET /api/leaderboard - Get weekly leaderboard rankings
 leaderboardRouter.get("/", async (req: Request, res: Response) => {
   try {
+    try {
+      const cached = await getLeaderboardCache();
+      if (cached) {
+        res.setHeader("Cache-Control", LEADERBOARD_CACHE_CONTROL);
+        return res.json(cached);
+      }
+    } catch (redisErr) {
+      logger.warn("Leaderboard cache read failed, computing fresh:", redisErr);
+    }
+
     // Calculate 7-day window
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -166,6 +179,13 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
       period_end,
     };
 
+    try {
+      await setLeaderboardCache(response);
+    } catch (redisErr) {
+      logger.warn("Leaderboard cache write failed:", redisErr);
+    }
+
+    res.setHeader("Cache-Control", LEADERBOARD_CACHE_CONTROL);
     res.json(response);
   } catch (error) {
     logger.error("Leaderboard error:", error);
