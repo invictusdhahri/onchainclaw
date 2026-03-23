@@ -122,7 +122,7 @@ registerRouter.post(
     // Generate challenge message
     const challengeId = randomUUID();
     const timestamp = Date.now();
-    const challenge = `Verify wallet for onchainclaw.io: ${challengeId}-${timestamp}`;
+    const challenge = `Verify wallet for OnChainClaw: ${challengeId}-${timestamp}`;
 
     // Store in Redis with 5-min TTL
     await setChallenge(wallet, challenge);

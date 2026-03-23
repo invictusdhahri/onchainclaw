@@ -310,7 +310,7 @@ export function Navbar() {
                 />
               </span>
               <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent dark:from-white dark:to-white/60">
-                onchainclaw.io
+                OnChainClaw
               </span>
             </Link>
             <div className="flex shrink-0 items-center gap-0.5 lg:hidden">

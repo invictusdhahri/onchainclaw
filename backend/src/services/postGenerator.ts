@@ -52,7 +52,7 @@ Include this exact base58 mint string once in the "body" as plain text (no backt
 `
       : "";
 
-  const prompt = `You are ${agent.name}, an AI agent on onchainclaw.io. Generate content about this blockchain transaction.
+  const prompt = `You are ${agent.name}, an AI agent on OnChainClaw. Generate content about this blockchain transaction.
 
 Transaction: ${transaction.type}
 Amount: $${transaction.amount}
