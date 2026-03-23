@@ -1,6 +1,6 @@
 /**
  * Canonical site origin for metadata, OG URLs, sitemap, and robots.
- * Set NEXT_PUBLIC_SITE_URL in production (e.g. https://your-app.vercel.app).
+ * Set NEXT_PUBLIC_SITE_URL in production (e.g. https://www.onchainclaw.io).
  */
 export function getSiteUrl(): URL {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();

@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: path.resolve(__dirname, "../backend/.env") });
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "OnChainClaw <noreply@onchainclaw.com>";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onchainclaw.io <noreply@onchainclaw.io>";
 
 // Get test email from command line
 const testEmail = process.argv[2];
@@ -46,7 +46,7 @@ async function testEmail() {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: testEmail,
-      subject: "🧪 OnChainClaw Email Test",
+      subject: "🧪 onchainclaw.io email test",
       html: `
 <!DOCTYPE html>
 <html>
@@ -81,7 +81,7 @@ async function testEmail() {
     </div>
     
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
-      <p style="margin: 5px 0;">This was a test email sent from your OnChainClaw backend</p>
+      <p style="margin: 5px 0;">This was a test email sent from your onchainclaw.io backend</p>
       <p style="margin: 5px 0;">Timestamp: ${new Date().toISOString()}</p>
     </div>
   </div>

@@ -37,7 +37,7 @@ open https://resend.com/signup
 
 ### **Step 2: Add Domain (1 min)**
 1. Dashboard → **Domains** → **Add Domain**
-2. Enter: `onchainclaw.com`
+2. Enter: `onchainclaw.io`
 3. **Copy the 3 DNS records** (keep tab open)
 
 ### **Step 3: Configure DNS (5 min)**
@@ -68,18 +68,18 @@ Value: v=DMARC1; p=none; rua=mailto:postmaster@resend.com
 ### **Step 4: Verify DNS (10 min wait)**
 ```bash
 # Check if DNS propagated
-dig TXT onchainclaw.com +short
-dig MX onchainclaw.com +short
-dig TXT _dmarc.onchainclaw.com +short
+dig TXT onchainclaw.io +short
+dig MX onchainclaw.io +short
+dig TXT _dmarc.onchainclaw.io +short
 
 # Then click "Verify DNS Records" in Resend dashboard
 ```
 
 ### **Step 5: Get API Key (1 min)**
 1. Dashboard → **API Keys** → **Create API Key**
-2. Name: `OnChainClaw Production`
+2. Name: `onchainclaw.io production`
 3. Permission: **Sending access**
-4. Domain: `onchainclaw.com`
+4. Domain: `onchainclaw.io`
 5. **Copy the key** (starts with `re_...`)
 
 ### **Step 6: Add to Render (2 min)**
@@ -97,7 +97,7 @@ dig TXT _dmarc.onchainclaw.com +short
 node scripts/test-email.mjs your-email@example.com
 
 # Production test (after Render deploy)
-curl -X POST https://onchainclaw.onrender.com/api/register/challenge \
+curl -X POST https://api.onchainclaw.io/api/register/challenge \
   -H "Content-Type: application/json" \
   -d '{"wallet": "YOUR_WALLET_ADDRESS"}'
 ```
@@ -110,13 +110,13 @@ curl -X POST https://onchainclaw.onrender.com/api/register/challenge \
 
 **Production (Render):**
 - `RESEND_API_KEY=re_abc123...` ← (from Resend dashboard)
-- `RESEND_FROM_EMAIL=OnChainClaw <noreply@onchainclaw.com>` ← (optional, has default)
+- `RESEND_FROM_EMAIL=onchainclaw.io <noreply@onchainclaw.io>` ← (optional, has default)
 
 **Local Development:**
 ```bash
 # backend/.env
 RESEND_API_KEY=re_abc123...
-RESEND_FROM_EMAIL="OnChainClaw <noreply@onchainclaw.com>"
+RESEND_FROM_EMAIL="onchainclaw.io <noreply@onchainclaw.io>"
 ```
 
 ### **DNS Records Required**
@@ -178,7 +178,7 @@ After setup, verify:
 ```bash
 # Wait 10 minutes after adding DNS records
 # Then verify propagation:
-dig TXT onchainclaw.com +short
+dig TXT onchainclaw.io +short
 
 # If empty, DNS hasn't propagated yet (wait longer)
 # If showing old values, flush DNS cache
@@ -218,7 +218,7 @@ ipconfig /flushdns
 sudo systemd-resolve --flush-caches
 
 # Then check again:
-dig TXT onchainclaw.com +short
+dig TXT onchainclaw.io +short
 ```
 
 ---

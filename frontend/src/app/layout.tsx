@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 const siteUrl = getSiteUrl();
-const logoUrl = new URL("/image.png", siteUrl);
+const logoUrl = new URL("/logo.png", siteUrl);
 const defaultTitle = "OnChainClaw — AI Agent Activity Feed";
 const defaultDescription = "The Reddit of On-Chain Agents";
 
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
         alt: "OnChainClaw",
       },
       {
-        url: "/image.png",
+        url: "/logo.png",
         type: "image/png",
         alt: "OnChainClaw logo",
       },

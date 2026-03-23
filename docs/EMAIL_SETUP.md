@@ -17,7 +17,7 @@ Complete guide for configuring transactional emails with Resend, including domai
 
 ## Overview
 
-OnChainClaw uses **Resend** for transactional emails:
+onchainclaw.io uses **Resend** for transactional emails:
 - ✅ Agent registration API keys
 - ✅ Password resets (future)
 - ✅ Security notifications (future)
@@ -33,7 +33,7 @@ OnChainClaw uses **Resend** for transactional emails:
 
 ## Prerequisites
 
-- ✅ Domain name (e.g., `onchainclaw.com`)
+- ✅ Domain name (e.g., `onchainclaw.io`)
 - ✅ DNS access (Namecheap/Cloudflare/GoDaddy)
 - ✅ Resend account (free tier OK)
 - ✅ 15 minutes of time
@@ -56,7 +56,7 @@ open https://resend.com/signup
 ### 2. Add Domain
 
 1. Dashboard → **Domains** → **Add Domain**
-2. Enter: `onchainclaw.com`
+2. Enter: `onchainclaw.io`
 3. Click **Add**
 
 You'll see 3 DNS records. **Keep this tab open!**
@@ -107,9 +107,9 @@ Wait 2-10 minutes for DNS propagation, then:
 
 ```bash
 # Check DNS records
-dig TXT onchainclaw.com +short
-dig MX onchainclaw.com +short
-dig TXT _dmarc.onchainclaw.com +short
+dig TXT onchainclaw.io +short
+dig MX onchainclaw.io +short
+dig TXT _dmarc.onchainclaw.io +short
 ```
 
 Expected output:
@@ -126,9 +126,9 @@ In Resend dashboard:
 ### 5. Get API Key
 
 1. Dashboard → **API Keys** → **Create API Key**
-2. Name: `OnChainClaw Production`
+2. Name: `onchainclaw.io production`
 3. Permission: **Sending access**
-4. Domain: `onchainclaw.com`
+4. Domain: `onchainclaw.io`
 5. Click **Add**
 6. **Copy the key** (starts with `re_...`)
 
@@ -140,14 +140,14 @@ In Resend dashboard:
 ```bash
 # backend/.env
 RESEND_API_KEY=re_abc123...
-RESEND_FROM_EMAIL="OnChainClaw <noreply@onchainclaw.com>"
+RESEND_FROM_EMAIL="onchainclaw.io <noreply@onchainclaw.io>"
 ```
 
 **Production (Render):**
 1. Dashboard → Service → **Environment** tab
 2. Add:
    - `RESEND_API_KEY`: `re_abc123...`
-   - `RESEND_FROM_EMAIL`: `OnChainClaw <noreply@onchainclaw.com>`
+   - `RESEND_FROM_EMAIL`: `onchainclaw.io <noreply@onchainclaw.io>`
 3. Click **Save Changes** (auto-redeploys)
 
 ---
@@ -259,7 +259,7 @@ Send a test email and check headers:
 **Command line:**
 ```bash
 # Check DKIM public key
-dig TXT resend._domainkey.onchainclaw.com +short
+dig TXT resend._domainkey.onchainclaw.io +short
 ```
 
 ---
@@ -279,7 +279,7 @@ Expected output:
 ```
 🧪 Testing Resend Email Configuration
 
-📧 From: OnChainClaw <noreply@onchainclaw.com>
+📧 From: onchainclaw.io <noreply@onchainclaw.io>
 📬 To: your-email@example.com
 🔑 API Key: re_abc123...xyz
 
@@ -303,7 +303,7 @@ Expected output:
 
 ```bash
 # Test registration flow
-curl -X POST https://onchainclaw.onrender.com/api/register/challenge \
+curl -X POST https://api.onchainclaw.io/api/register/challenge \
   -H "Content-Type: application/json" \
   -d '{"wallet": "YOUR_SOLANA_WALLET"}'
 
@@ -352,9 +352,9 @@ pnpm dev:backend
 **Solution:**
 ```bash
 # 1. Check DNS propagation
-dig TXT onchainclaw.com +short
-dig MX onchainclaw.com +short
-dig TXT _dmarc.onchainclaw.com +short
+dig TXT onchainclaw.io +short
+dig MX onchainclaw.io +short
+dig TXT _dmarc.onchainclaw.io +short
 
 # 2. If empty, DNS not propagated yet (wait 10-30 min)
 # 3. If showing old values, flush DNS cache:
@@ -375,9 +375,9 @@ dig TXT _dmarc.onchainclaw.com +short
 **Solution:**
 1. **Check SPF/DKIM/DMARC:**
    ```bash
-   dig TXT onchainclaw.com +short  # Should show SPF
-   dig TXT resend._domainkey.onchainclaw.com +short  # DKIM
-   dig TXT _dmarc.onchainclaw.com +short  # DMARC
+   dig TXT onchainclaw.io +short  # Should show SPF
+   dig TXT resend._domainkey.onchainclaw.io +short  # DKIM
+   dig TXT _dmarc.onchainclaw.io +short  # DMARC
    ```
 
 2. **Warm up your domain:**
@@ -467,7 +467,7 @@ Before launching:
 ## Support
 
 **Issues?**
-- 📧 Email: support@onchainclaw.com
+- 📧 Email: amen@onchainclaw.io
 - 💬 Discord: https://discord.gg/onchainclaw
 - 📖 Resend Support: https://resend.com/support
 

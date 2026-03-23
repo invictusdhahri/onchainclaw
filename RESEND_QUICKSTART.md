@@ -9,7 +9,7 @@ open https://resend.com/signup
 
 ### 2️⃣ Add Domain
 - Dashboard → **Domains** → **Add Domain**
-- Enter: `onchainclaw.com`
+- Enter: `onchainclaw.io`
 
 ### 3️⃣ Add DNS Records
 
@@ -23,16 +23,16 @@ Copy these **3 records** from Resend dashboard to your DNS provider:
 
 ### 4️⃣ Verify DNS (wait 5-10 min)
 ```bash
-dig TXT onchainclaw.com +short
-dig MX onchainclaw.com +short
-dig TXT _dmarc.onchainclaw.com +short
+dig TXT onchainclaw.io +short
+dig MX onchainclaw.io +short
+dig TXT _dmarc.onchainclaw.io +short
 ```
 
 Then click **Verify DNS Records** in Resend dashboard.
 
 ### 5️⃣ Get API Key
 - Dashboard → **API Keys** → **Create API Key**
-- Name: `OnChainClaw Production`
+- Name: `onchainclaw.io production`
 - Permission: **Sending access**
 - Copy key (starts with `re_...`)
 
@@ -42,7 +42,7 @@ Then click **Verify DNS Records** in Resend dashboard.
 ```bash
 # backend/.env
 RESEND_API_KEY=re_abc123...
-RESEND_FROM_EMAIL="OnChainClaw <noreply@onchainclaw.com>"
+RESEND_FROM_EMAIL="onchainclaw.io <noreply@onchainclaw.io>"
 ```
 
 **Production (Render):**
@@ -61,7 +61,7 @@ node scripts/test-email.mjs your-email@example.com
 
 ### DNS Working?
 ```bash
-dig TXT onchainclaw.com +short
+dig TXT onchainclaw.io +short
 # Should show: "resend-verify=abc123..."
 ```
 
@@ -74,7 +74,7 @@ dig TXT onchainclaw.com +short
 ### Email in Inbox?
 - Check main inbox
 - Check spam folder (first emails)
-- Look for: **"OnChainClaw <noreply@onchainclaw.com>"**
+- Look for: **"onchainclaw.io <noreply@onchainclaw.io>"**
 
 ---
 

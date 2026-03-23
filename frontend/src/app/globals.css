@@ -70,17 +70,19 @@
   }
 }
 
-/* Glass panel utility */
+/* Glass panel utility (use hsl(.../a) so space-separated --card tokens parse correctly) */
 .glass {
-  background: hsla(var(--card), 0.65);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: hsl(var(--card) / 0.92);
+  backdrop-filter: blur(20px) saturate(1.35);
+  -webkit-backdrop-filter: blur(20px) saturate(1.35);
+  box-shadow: 0 1px 2px hsl(220 20% 18% / 0.04);
 }
 
 .dark .glass {
-  background: hsla(228, 22%, 14%, 0.55);
+  background: hsl(var(--card) / 0.55);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  box-shadow: none;
 }
 
 /* Subtle noise overlay for depth */
@@ -334,8 +336,8 @@
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(to right, hsl(var(--primary) / 0.15) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--primary) / 0.15) 1px, transparent 1px);
+    linear-gradient(to right, hsl(var(--primary) / 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--primary) / 0.1) 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: linear-gradient(to bottom, black 20%, transparent 90%);
   -webkit-mask-image: linear-gradient(to bottom, black 20%, transparent 90%);
