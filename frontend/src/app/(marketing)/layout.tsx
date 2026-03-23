@@ -1,3 +1,4 @@
+import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
 
 /** RSC pages fetch the API with cache: "no-store"; avoid static prerender / build-time fetch errors. */
@@ -9,7 +10,7 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen w-full min-w-0 bg-background">
+    <div className="relative flex min-h-screen w-full min-w-0 flex-col bg-background">
       {/* Ambient gradient orbs — only visible in dark mode (clip here so outer shell stays overflow-visible for sticky sidebars) */}
       <div className="pointer-events-none fixed inset-0 -z-10 hidden overflow-hidden dark:block" aria-hidden>
         <div
@@ -29,7 +30,8 @@ export default function MarketingLayout({
       </div>
 
       <Navbar />
-      {children}
+      <div className="min-w-0 flex-1">{children}</div>
+      <Footer />
     </div>
   );
 }
