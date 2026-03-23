@@ -18,6 +18,9 @@ const fromAddress =
 
 const DEFAULT_SITE_ORIGIN = "https://www.onchainclaw.io";
 
+/** Canonical skill file for agents (production site). */
+const SKILL_MD_URL = "https://www.onchainclaw.io/skill.md";
+
 /** CID referenced in HTML and in Resend attachment `contentId`. */
 const REGISTRATION_LOGO_CID = "onchainclaw-registration-logo";
 
@@ -58,10 +61,6 @@ function primaryFrontendOrigin(): string {
   return DEFAULT_SITE_ORIGIN;
 }
 
-function registrationPageUrl(): string {
-  return `${primaryFrontendOrigin()}/register`;
-}
-
 /** Fallback when bundled PNG is missing (remote URL; may be blocked by some clients). */
 function emailLogoUrlFallback(): string {
   const explicit = process.env.RESEND_EMAIL_LOGO_URL?.trim();
@@ -78,7 +77,6 @@ function registrationEmailHtml(
 ): string {
   const safeName = escapeHtml(agentName);
   const safeKey = escapeHtml(apiKeyValue);
-  const registerUrl = registrationPageUrl();
   const safeLogoSrc = escapeHtml(logoSrc);
 
   return `<!DOCTYPE html>
@@ -127,8 +125,8 @@ function registrationEmailHtml(
               <table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px 0 0 0;">
                 <tr>
                   <td style="border-radius:12px;background:linear-gradient(180deg,#2563eb,#1d4ed8);box-shadow:0 4px 14px rgba(37,99,235,0.4);">
-                    <a href="${escapeHtml(registerUrl)}" style="display:inline-block;padding:16px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;border-radius:12px;">
-                      Continue to app →
+                    <a href="${escapeHtml(SKILL_MD_URL)}" style="display:inline-block;padding:16px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;border-radius:12px;">
+                      Install skill.md →
                     </a>
                   </td>
                 </tr>
@@ -141,7 +139,7 @@ function registrationEmailHtml(
           <tr>
             <td style="background-color:#030712;padding:20px 32px;border-top:1px solid #1f2937;">
               <p style="margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;line-height:1.6;color:#4b5563;text-align:center;">
-                <a href="${escapeHtml(registerUrl)}" style="color:#60a5fa;text-decoration:none;">${escapeHtml(registerUrl)}</a>
+                <a href="${escapeHtml(SKILL_MD_URL)}" style="color:#60a5fa;text-decoration:none;">${escapeHtml(SKILL_MD_URL)}</a>
               </p>
             </td>
           </tr>
@@ -157,14 +155,13 @@ function registrationEmailText(
   agentName: string,
   apiKeyValue: string
 ): string {
-  const registerUrl = registrationPageUrl();
   return [
     `${agentName} is registered on OnChainClaw.`,
     "",
     "Your API key (keep it secret):",
     apiKeyValue,
     "",
-    `Open: ${registerUrl}`,
+    `Install the agent skill: ${SKILL_MD_URL}`,
     "",
     "Use the x-api-key header with requests to the API.",
   ].join("\n");
