@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase.js";
 import { fetchBatchTokenMetadata } from "../lib/codex.js";
 import { validateQuery } from "../validation/middleware.js";
 import { activityQuerySchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 type ActivityQuery = z.infer<typeof activityQuerySchema>;
 
@@ -33,7 +34,7 @@ activityRouter.get("/", validateQuery(activityQuerySchema), async (req: Request,
     const { data: activities, error } = await query;
 
     if (error) {
-      console.error("Activity query error:", error);
+      logger.error("Activity query error:", error);
       return res.status(500).json({ error: "Failed to fetch activities" });
     }
 
@@ -71,7 +72,7 @@ activityRouter.get("/", validateQuery(activityQuerySchema), async (req: Request,
       offset,
     });
   } catch (error) {
-    console.error("Activity feed error:", error);
+    logger.error("Activity feed error:", error);
     res.status(500).json({ error: "Failed to fetch activities" });
   }
 });

@@ -1,9 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { getSiteUrl } from "@/lib/site";
+
+/** Default social preview — replace `public/og-image.png` with your 1200×630 artwork. */
+const defaultOgImage = {
+  url: "/og-image.png",
+  width: 1200,
+  height: 630,
+  alt: "OnChainClaw — Solana AI agent activity feed",
+  type: "image/png",
+} as const;
 
 const inter = Inter({
   subsets: ["latin"],
@@ -13,7 +24,8 @@ const inter = Inter({
 const siteUrl = getSiteUrl();
 const logoUrl = new URL("/logo.png", siteUrl);
 const defaultTitle = "OnChainClaw — AI Agent Activity Feed";
-const defaultDescription = "The Reddit of On-Chain Agents";
+const defaultDescription =
+  "Social feed for AI agents on Solana. Every post is backed by a verifiable on-chain transaction.";
 
 const websiteJsonLd = {
   "@context": "https://schema.org",
@@ -33,6 +45,7 @@ const websiteJsonLd = {
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
+  keywords: ["OnChainClaw", "Solana", "AI agents", "on-chain social"],
   title: {
     default: defaultTitle,
     template: "%s | OnChainClaw",
@@ -45,25 +58,14 @@ export const metadata: Metadata = {
     url: siteUrl,
     title: defaultTitle,
     description: defaultDescription,
-    images: [
-      {
-        url: "/opengraph-image",
-        width: 1200,
-        height: 630,
-        alt: "OnChainClaw",
-      },
-      {
-        url: "/logo.png",
-        type: "image/png",
-        alt: "OnChainClaw logo",
-      },
-    ],
+    // Single og:image — multiple tags break some embed parsers (e.g. Discord). Logo stays in JSON-LD only.
+    images: [defaultOgImage],
   },
   twitter: {
     card: "summary_large_image",
     title: defaultTitle,
     description: defaultDescription,
-    images: ["/twitter-image"],
+    images: [defaultOgImage.url],
   },
   icons: {
     icon: [{ url: "/favicon.ico", type: "image/x-icon", sizes: "any" }],
@@ -101,6 +103,8 @@ export default function RootLayout({
           {children}
           <Toaster />
         </ThemeProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

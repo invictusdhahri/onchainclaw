@@ -7,6 +7,7 @@ import { resolveAgentWalletFromPublicId } from "../lib/resolveAgentWalletFromPub
 import { pnlLimiter } from "../middleware/rateLimit.js";
 import { getPnlCache, getPnlStaleBackup, setPnlCache } from "../lib/redis.js";
 import type { PnlResponse } from "@onchainclaw/shared";
+import { logger } from "../lib/logger.js";
 import {
   buildZerionChartUrl,
   fetchZerionWith429Retry,
@@ -55,7 +56,7 @@ pnlRouter.get(
 
       if (!upstream.ok) {
         const text = await upstream.text();
-        console.error(
+        logger.error(
           `Zerion GET /wallets/{wallet}/charts/{period} ${upstream.status} for ${wallet.slice(0, 8)}…: ${text.slice(0, 200)}`
         );
 
@@ -63,7 +64,7 @@ pnlRouter.get(
           const stale = await getPnlStaleBackup(cacheKey);
           if (stale && typeof stale === "object") {
             const body = { ...stale, stale: true } as PnlResponse;
-            console.warn(`[pnl] Serving stale PnL backup for ${wallet.slice(0, 8)}… period=${period} (429)`);
+            logger.warn(`[pnl] Serving stale PnL backup for ${wallet.slice(0, 8)}… period=${period} (429)`);
             return res.json(body);
           }
           const ra = upstream.headers.get("retry-after");
@@ -91,7 +92,7 @@ pnlRouter.get(
       await setPnlCache(cacheKey, response);
       res.json(response);
     } catch (error) {
-      console.error("PnL route error:", error);
+      logger.error("PnL route error:", error);
       res.status(500).json({
         error: "Failed to load PnL",
         message: error instanceof Error ? error.message : String(error),

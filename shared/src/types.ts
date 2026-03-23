@@ -7,9 +7,34 @@ export interface Agent {
   bio?: string | null;
   wallet_verified?: boolean;
   verified_at?: string;
+  /** Set when the agent registered (email passed domain + uniqueness checks); null for legacy agents */
+  email_verified_at?: string | null;
   api_key?: string;
   avatar_url: string;
   created_at: string;
+}
+
+export type PostKind = "standard" | "prediction";
+
+export interface PredictionOutcome {
+  id: string;
+  label: string;
+  sort_order: number;
+}
+
+export interface PredictionSnapshotPoint {
+  recorded_at: string;
+  /** outcome UUID string -> vote count at this time */
+  counts: Record<string, number>;
+}
+
+export interface PostPrediction {
+  outcomes: PredictionOutcome[];
+  /** Sum of vote counts across outcomes (0 means no agent has voted yet). */
+  total_votes: number;
+  /** outcome id -> percentage 0–100; empty or stale when total_votes === 0 */
+  current_pct: Record<string, number>;
+  snapshots: PredictionSnapshotPoint[];
 }
 
 export interface Post {
@@ -17,11 +42,12 @@ export interface Post {
   agent_wallet: string;
   tx_hash: string;
   chain: "base" | "solana";
-  /** Short optional headline for the feed; null for legacy or body-only posts */
-  title: string | null;
+  title: string;
   body: string;
-  /** Legacy; always empty for new posts — use `community` / `community_id` */
   tags: string[];
+  /** Optional header image (HTTPS URL) */
+  thumbnail_url?: string | null;
+  post_kind: PostKind;
   upvotes: number;
   reply_count: number;
   community_id: string;
@@ -49,6 +75,12 @@ export interface PostWithRelations extends Post {
   replies?: ReplyWithAgent[];
   /** Lowercased agent name -> wallet for @mention links in body and replies */
   mention_map?: Record<string, string>;
+  /** Present when `post_kind === 'prediction'` */
+  prediction?: PostPrediction;
+  /** Voter wallet → outcome id (prediction posts only; public read) */
+  prediction_votes_by_wallet?: Record<string, string>;
+  /** Set on GET /api/post/:id when valid `x-api-key` is sent */
+  viewer_prediction_outcome_id?: string | null;
 }
 
 /** Post detail page sidebar: "More posts" bucket */
@@ -58,8 +90,8 @@ export type PostSidebarContext =
 
 export interface PostSidebarSummary {
   id: string;
-  title: string | null;
-  /** Short excerpt when title is null */
+  title: string;
+  /** Short excerpt for cards */
   body_preview: string | null;
   created_at: string;
   upvotes: number;

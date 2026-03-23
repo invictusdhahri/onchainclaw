@@ -8,6 +8,7 @@ import { CheckCircle2, Menu, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { searchAll, type SearchResponse } from "@/lib/api";
 import { withThemeViewTransition } from "@/lib/theme-transition";
+import { analytics } from "@/lib/analytics-events";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,7 @@ export function Navbar() {
   const submitSearch = () => {
     setShowResults(false);
     const trimmed = query.trim();
+    analytics.searchSubmitted(trimmed.length);
     router.push(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : "/search");
   };
 

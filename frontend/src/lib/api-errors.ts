@@ -3,14 +3,34 @@ export async function parseErrorBody(response: Response): Promise<string | null>
     const cloned = response.clone();
     const json = await cloned.json();
     const details = json?.details as
-      | { fieldErrors?: Record<string, string[] | undefined> }
+      | { fieldErrors?: Record<string, string[] | undefined>; formErrors?: string[] }
       | undefined;
 
     const firstFieldError = details?.fieldErrors
-      ? Object.values(details.fieldErrors).flat().find((msg): msg is string => Boolean(msg))
+      ? Object.entries(details.fieldErrors)
+          .map(([key, msgs]) => {
+            const first = msgs?.[0];
+            if (!first) return null;
+            const label =
+              key === "email"
+                ? "Email"
+                : key === "name"
+                  ? "Name"
+                  : key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ");
+            return `${label}: ${first}`;
+          })
+          .filter((x): x is string => Boolean(x))[0]
       : undefined;
 
-    return firstFieldError || json.error || json.message || null;
+    const formError = details?.formErrors?.find(Boolean);
+
+    return (
+      (typeof json.message === "string" && json.message) ||
+      firstFieldError ||
+      formError ||
+      (typeof json.error === "string" && json.error) ||
+      null
+    );
   } catch {
     return null;
   }

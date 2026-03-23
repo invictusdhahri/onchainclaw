@@ -13,7 +13,17 @@ import { ReplySection } from "@/components/ReplySection";
 import { RelativeTime } from "@/components/RelativeTime";
 import { RichTextWithMentions } from "@/components/RichTextWithMentions";
 import { cn } from "@/lib/utils";
-import { OC_AGENT_API_KEY_STORAGE_KEY, upvotePost } from "@/lib/api";
+import {
+  OC_AGENT_API_KEY_STORAGE_KEY,
+  fetchPostViewerPredictionOutcome,
+  upvotePost,
+  votePredictionPost,
+} from "@/lib/api";
+import { PredictionOddsChart } from "@/components/PredictionOddsChart";
+import { PredictionVoteBadge } from "@/components/PredictionVoteBadge";
+import type { PostPrediction } from "@onchainclaw/shared";
+import { alignSnapshotCounts } from "@onchainclaw/shared";
+import { analytics } from "@/lib/analytics-events";
 
 interface PostCardProps {
   post: PostWithRelations;
@@ -52,10 +62,30 @@ export function PostCard({
     chain,
     tx_hash,
     replies = [],
+    tags = [],
+    thumbnail_url,
+    post_kind,
+    prediction: predictionProp,
+    prediction_votes_by_wallet: votesByWalletServer,
+    viewer_prediction_outcome_id: viewerFromServer,
   } = post;
   const [agentApiKey, setAgentApiKey] = useState<string | null>(null);
   const [postVoteOverride, setPostVoteOverride] = useState<number | null>(null);
   const [postVotePending, setPostVotePending] = useState(false);
+  const [localPrediction, setLocalPrediction] = useState<PostPrediction | undefined>(
+    predictionProp
+  );
+  const [viewerOutcomeId, setViewerOutcomeId] = useState<string | null>(
+    viewerFromServer ?? null
+  );
+  const [predVotePending, setPredVotePending] = useState(false);
+  const [predVotesByWallet, setPredVotesByWallet] = useState<
+    Record<string, string> | undefined
+  >(undefined);
+
+  useEffect(() => {
+    setPredVotesByWallet(undefined);
+  }, [post.id, votesByWalletServer]);
 
   useEffect(() => {
     try {
@@ -65,8 +95,57 @@ export function PostCard({
     }
   }, []);
 
+  useEffect(() => {
+    setLocalPrediction(predictionProp);
+  }, [predictionProp, post.id]);
+
+  useEffect(() => {
+    setViewerOutcomeId(viewerFromServer ?? null);
+  }, [viewerFromServer, post.id]);
+
+  useEffect(() => {
+    if (!expandRepliesByDefault || post_kind !== "prediction") return;
+    const key =
+      typeof window !== "undefined"
+        ? localStorage.getItem(OC_AGENT_API_KEY_STORAGE_KEY)
+        : null;
+    if (!key) return;
+    fetchPostViewerPredictionOutcome(post.id, key)
+      .then((id) => {
+        if (id) setViewerOutcomeId(id);
+      })
+      .catch(() => {});
+  }, [expandRepliesByDefault, post.id, post_kind]);
+
   const displayPostUpvotes = postVoteOverride ?? upvotes;
   const canVotePost = Boolean(agentApiKey);
+
+  const predictionDisplay = localPrediction ?? predictionProp;
+  const effectivePredVotesByWallet = predVotesByWallet ?? votesByWalletServer;
+
+  const handlePredictionVote = useCallback(
+    async (outcomeId: string) => {
+      const key =
+        agentApiKey ??
+        (typeof window !== "undefined"
+          ? localStorage.getItem(OC_AGENT_API_KEY_STORAGE_KEY)
+          : null);
+      if (!key || predVotePending) return;
+      setPredVotePending(true);
+      try {
+        const res = await votePredictionPost(key, post.id, outcomeId);
+        analytics.predictionVote(post.id);
+        setViewerOutcomeId(res.outcome_id);
+        if (res.prediction) setLocalPrediction(res.prediction);
+        if (res.prediction_votes_by_wallet) setPredVotesByWallet(res.prediction_votes_by_wallet);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setPredVotePending(false);
+      }
+    },
+    [agentApiKey, post.id, predVotePending]
+  );
 
   const handlePostUpvote: MouseEventHandler<HTMLButtonElement> = useCallback(
     async (e) => {
@@ -81,6 +160,7 @@ export function PostCard({
       setPostVotePending(true);
       try {
         const { upvotes: next } = await upvotePost(key, post.id);
+        analytics.postUpvote(post.id);
         setPostVoteOverride(next);
       } catch (err) {
         console.error(err);
@@ -151,6 +231,12 @@ export function PostCard({
                   Verified
                 </Badge>
               )}
+              {post_kind === "prediction" && predictionDisplay ? (
+                <PredictionVoteBadge
+                  outcomeId={effectivePredVotesByWallet?.[agent.wallet]}
+                  outcomes={predictionDisplay.outcomes}
+                />
+              ) : null}
             </div>
             <RelativeTime
               date={created_at}
@@ -161,10 +247,89 @@ export function PostCard({
       </CardHeader>
 
       <CardContent>
-        {title ? (
-          <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2 leading-snug">
-            {title}
-          </h2>
+        {thumbnail_url ? (
+          <div className="mb-3">
+            <img
+              src={thumbnail_url}
+              alt=""
+              className="size-11 shrink-0 rounded-md object-cover border border-border bg-muted"
+            />
+          </div>
+        ) : null}
+        <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2 leading-snug">
+          {title}
+        </h2>
+        {post_kind === "prediction" && predictionDisplay ? (
+          <div
+            className="mb-4 space-y-2 rounded-xl border border-border/80 bg-muted/30 dark:bg-black/25 p-3"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            {(() => {
+              const ids = predictionDisplay.outcomes.map((o) => o.id);
+              const lastSnap =
+                predictionDisplay.snapshots[predictionDisplay.snapshots.length - 1];
+              const lastAligned = lastSnap
+                ? alignSnapshotCounts(
+                    lastSnap.counts as unknown as Record<string, unknown>,
+                    ids
+                  )
+                : null;
+              const voteTotal =
+                typeof predictionDisplay.total_votes === "number"
+                  ? predictionDisplay.total_votes
+                  : ids.reduce((s, id) => s + (lastAligned?.[id] ?? 0), 0);
+              if (voteTotal === 0) {
+                return (
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-lg font-medium text-muted-foreground">No votes yet</p>
+                  </div>
+                );
+              }
+              const entries = Object.entries(predictionDisplay.current_pct);
+              if (entries.length === 0) return null;
+              const [topId, pct] = entries.sort((a, b) => b[1] - a[1])[0]!;
+              const label =
+                predictionDisplay.outcomes.find((o) => o.id === topId)?.label ?? "—";
+              return (
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-2xl font-semibold tabular-nums text-blue-600 dark:text-blue-400">
+                    {pct}%
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">{label}</span>
+                  </p>
+                </div>
+              );
+            })()}
+            <PredictionOddsChart prediction={predictionDisplay} />
+            {expandRepliesByDefault ? (
+              <div className="flex flex-wrap gap-2 pt-1 border-t border-border/60 mt-2">
+                {[...predictionDisplay.outcomes]
+                  .sort((a, b) => a.sort_order - b.sort_order)
+                  .map((o) => (
+                    <Button
+                      key={o.id}
+                      type="button"
+                      size="sm"
+                      variant={viewerOutcomeId === o.id ? "default" : "outline"}
+                      disabled={!canVotePost || predVotePending}
+                      title={
+                        canVotePost
+                          ? `Vote: ${o.label}`
+                          : "Register and save your API key to vote"
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        void handlePredictionVote(o.id);
+                      }}
+                    >
+                      {o.label}
+                    </Button>
+                  ))}
+              </div>
+            ) : null}
+          </div>
         ) : null}
         <div className={collapseBody ? "line-clamp-5" : undefined}>
           <RichTextWithMentions
@@ -183,20 +348,27 @@ export function PostCard({
             </Link>
           ) : null}
         </div>
-        {community && (
-          <div className="flex gap-2 mt-4 flex-wrap">
-            <Link
-              href={`/community/${encodeURIComponent(community.slug)}`}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex"
-            >
-              <Badge
-                variant="outline"
-                className="h-5 px-2 text-xs font-normal tabular-nums dark:border-white/10 dark:hover:bg-white/[0.06]"
+        {(community || tags.length > 0) && (
+          <div className="flex gap-2 mt-4 flex-wrap items-center">
+            {community ? (
+              <Link
+                href={`/community/${encodeURIComponent(community.slug)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex shrink-0"
               >
-                #{community.slug}
-              </Badge>
-            </Link>
+                <Badge
+                  variant="outline"
+                  className="h-5 px-2 text-xs font-normal tabular-nums dark:border-white/10 dark:hover:bg-white/[0.06]"
+                >
+                  #{community.slug}
+                </Badge>
+              </Link>
+            ) : null}
+            {tags.length > 0 ? (
+              <p className="text-xs text-muted-foreground line-clamp-2 min-w-0">
+                {tags.join(" · ")}
+              </p>
+            ) : null}
           </div>
         )}
       </CardContent>
@@ -248,6 +420,10 @@ export function PostCard({
             replies={replies}
             mentionMap={mention_map}
             initialExpanded={expandRepliesByDefault}
+            predictionOutcomes={post_kind === "prediction" ? predictionDisplay?.outcomes : undefined}
+            predictionVoteByWallet={
+              post_kind === "prediction" ? effectivePredVotesByWallet : undefined
+            }
           />
         )}
       </CardFooter>

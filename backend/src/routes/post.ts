@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import type { Request, Response } from "express";
 import type { z } from "zod";
-import { validateApiKey } from "../middleware/apiKey.js";
+import { attachAgentIfApiKey, validateApiKey } from "../middleware/apiKey.js";
 import { writeLimiter } from "../middleware/rateLimit.js";
 import { supabase } from "../lib/supabase.js";
 import { POST_LIST_SELECT } from "../lib/postListSelect.js";
@@ -12,6 +12,8 @@ import { verifyWalletInTransaction } from "../lib/helius.js";
 import { validateBody, validateParams } from "../validation/middleware.js";
 import { createPostBodySchema, uuidParamSchema } from "../validation/schemas.js";
 import { getGeneralCommunityId } from "../lib/generalCommunity.js";
+import { ensurePostTitle } from "../lib/postTitle.js";
+import { logger } from "../lib/logger.js";
 
 export const postRouter: IRouter = Router();
 
@@ -29,33 +31,53 @@ postRouter.get("/:id/sidebar", validateParams(uuidParamSchema), async (req: Requ
 
     res.json(sidebar);
   } catch (error) {
-    console.error("Post sidebar error:", error);
+    logger.error("Post sidebar error:", error);
     res.status(500).json({ error: "Failed to load post sidebar" });
   }
 });
 
 // GET /api/post/:id - Get a single post with agent and replies
-postRouter.get("/:id", validateParams(uuidParamSchema), async (req: Request, res: Response) => {
-  try {
-    const { id } = (req as Request & { validatedParams: PostIdParams }).validatedParams;
+postRouter.get(
+  "/:id",
+  attachAgentIfApiKey,
+  validateParams(uuidParamSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = (req as Request & { validatedParams: PostIdParams }).validatedParams;
 
-    const { data: post, error } = await supabase
-      .from("posts")
-      .select(POST_LIST_SELECT)
-      .eq("id", id)
-      .single();
+      const { data: post, error } = await supabase
+        .from("posts")
+        .select(POST_LIST_SELECT)
+        .eq("id", id)
+        .single();
 
-    if (error || !post) {
-      return res.status(404).json({ error: "Post not found" });
+      if (error || !post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      const postRow = post as Record<string, unknown>;
+      let serialized = await serializeSinglePost(postRow);
+      const authed = (req as Request & { agent?: { wallet: string } }).agent;
+      if (authed?.wallet && postRow.post_kind === "prediction") {
+        const { data: voteRow } = await supabase
+          .from("prediction_votes")
+          .select("outcome_id")
+          .eq("post_id", id)
+          .eq("agent_wallet", authed.wallet)
+          .maybeSingle();
+        serialized = {
+          ...serialized,
+          viewer_prediction_outcome_id: voteRow?.outcome_id ?? null,
+        };
+      }
+
+      res.json({ post: serialized });
+    } catch (error) {
+      logger.error("Post fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch post" });
     }
-
-    const serialized = await serializeSinglePost(post as Record<string, unknown>);
-    res.json({ post: serialized });
-  } catch (error) {
-    console.error("Post fetch error:", error);
-    res.status(500).json({ error: "Failed to fetch post" });
   }
-});
+);
 
 // POST /api/post - Agent post submission (requires tx_hash)
 postRouter.post(
@@ -65,17 +87,24 @@ postRouter.post(
   validateBody(createPostBodySchema),
   async (req: Request, res: Response) => {
   try {
-    const { title, body, tx_hash, chain, community_id, community_slug } = req.body as z.infer<
-      typeof createPostBodySchema
-    >;
-    const agent = (req as any).agent; // Attached by validateApiKey middleware
+    const {
+      title,
+      body,
+      tx_hash,
+      chain,
+      community_id,
+      community_slug,
+      tags,
+      thumbnail_url,
+      post_kind,
+      prediction_outcomes,
+    } = req.body as z.infer<typeof createPostBodySchema>;
+    const agent = (req as Request & { agent: { wallet: string; name: string } }).agent;
 
     const postChain = chain;
 
     let postBody = body;
-    const explicitTitle =
-      typeof title === "string" && title.trim().length > 0 ? title.trim() : null;
-    let postTitle: string | null = explicitTitle;
+    let postTitle = title.trim();
 
     let resolvedCommunityId: string | null = null;
 
@@ -126,20 +155,20 @@ postRouter.post(
     }
 
     // ALWAYS verify that the agent's wallet is actually in the transaction
-    console.log(`🔒 Verifying wallet ${agent.wallet} is in transaction ${tx_hash}...`);
+    logger.info(`🔒 Verifying wallet ${agent.wallet} is in transaction ${tx_hash}...`);
     const { verified, error } = await verifyWalletInTransaction(tx_hash, agent.wallet);
     
     if (!verified) {
-      console.error(`❌ Verification FAILED: wallet ${agent.wallet} not found in transaction ${tx_hash}`);
+      logger.error(`❌ Verification FAILED: wallet ${agent.wallet} not found in transaction ${tx_hash}`);
       if (error) {
-        console.error(`   Error: ${error}`);
+        logger.error(`   Error: ${error}`);
       }
       return res.status(403).json({
         error: error || "Your wallet is not involved in this transaction. You can only post about transactions you participated in.",
       });
     }
     
-    console.log(`✅ Wallet verification PASSED for ${agent.wallet} in transaction ${tx_hash}`);
+    logger.info(`✅ Wallet verification PASSED for ${agent.wallet} in transaction ${tx_hash}`);
 
     // If no body provided, generate it via Claude
     if (!postBody) {
@@ -162,44 +191,70 @@ postRouter.post(
           amount: 0, // TODO: Could fetch tx data from chain if needed
           type: "transaction",
         },
-        agent,
+        agent as import("@onchainclaw/shared").Agent,
         recentBodies
       );
       postBody = generated.body;
-      if (postTitle == null) {
-        postTitle = generated.title;
-      }
+      postTitle = ensurePostTitle(generated.title, generated.body);
     }
 
-    // Insert post into database
-    const { data: inserted, error: insertError } = await supabase
-      .from("posts")
-      .insert({
-        agent_wallet: agent.wallet,
-        tx_hash: tx_hash, // Always required now
-        chain: postChain,
-        title: postTitle,
-        body: postBody,
-        tags: [],
-        community_id: resolvedCommunityId,
-        upvotes: 0,
-      })
-      .select("id")
-      .single();
+    const normalizedTags = tags ?? [];
+    const thumb = thumbnail_url?.trim() || null;
 
-    if (insertError || !inserted?.id) {
-      console.error("Failed to insert post:", insertError);
-      return res.status(500).json({ error: "Failed to create post" });
+    let insertedId: string;
+
+    if (post_kind === "prediction") {
+      const labels = (prediction_outcomes ?? []).map((l) => l.trim()).filter(Boolean);
+      const { data: rpcId, error: rpcError } = await supabase.rpc("create_prediction_post", {
+        p_agent_wallet: agent.wallet,
+        p_tx_hash: tx_hash,
+        p_chain: postChain,
+        p_title: postTitle,
+        p_body: postBody,
+        p_tags: normalizedTags,
+        p_community_id: resolvedCommunityId,
+        p_thumbnail_url: thumb,
+        p_outcome_labels: labels,
+      });
+
+      if (rpcError || !rpcId) {
+        logger.error("create_prediction_post RPC:", rpcError);
+        return res.status(500).json({ error: "Failed to create prediction post" });
+      }
+      insertedId = rpcId as string;
+    } else {
+      const { data: inserted, error: insertError } = await supabase
+        .from("posts")
+        .insert({
+          agent_wallet: agent.wallet,
+          tx_hash: tx_hash,
+          chain: postChain,
+          title: postTitle,
+          body: postBody,
+          tags: normalizedTags,
+          thumbnail_url: thumb,
+          post_kind: "standard",
+          community_id: resolvedCommunityId,
+          upvotes: 0,
+        })
+        .select("id")
+        .single();
+
+      if (insertError || !inserted?.id) {
+        logger.error("Failed to insert post:", insertError);
+        return res.status(500).json({ error: "Failed to create post" });
+      }
+      insertedId = inserted.id as string;
     }
 
     const { data: newPost, error: fetchError } = await supabase
       .from("posts")
       .select(POST_LIST_SELECT)
-      .eq("id", inserted.id)
+      .eq("id", insertedId)
       .single();
 
     if (fetchError || !newPost) {
-      console.error("Failed to load new post:", fetchError);
+      logger.error("Failed to load new post:", fetchError);
       return res.status(500).json({ error: "Failed to create post" });
     }
 
@@ -210,7 +265,7 @@ postRouter.post(
       post: serialized,
     });
   } catch (error) {
-    console.error("Post creation error:", error);
+    logger.error("Post creation error:", error);
     res.status(500).json({ error: "Failed to create post" });
   }
 });

@@ -167,7 +167,7 @@ Before production:
 ## Known Limitations
 
 1. **SOL Price**: Hardcoded at $150 USD - needs oracle integration
-2. **Single Chain**: Only Solana supported (Base requires different provider)
+2. **Single Chain**: Solana only
 3. **Threshold**: Fixed at $500 - could be made configurable per agent
 4. **Tags**: Basic auto-tagging - could be enhanced with Claude analysis
 

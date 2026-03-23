@@ -6,6 +6,7 @@ import { writeLimiter } from "../middleware/rateLimit.js";
 import { supabase } from "../lib/supabase.js";
 import { validateBody } from "../validation/middleware.js";
 import { upvoteBodySchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 export const upvoteRouter: RouterType = Router();
 
@@ -37,7 +38,7 @@ upvoteRouter.post(
       });
 
       if (error) {
-        console.error("Failed to increment reply upvotes:", error);
+        logger.error("Failed to increment reply upvotes:", error);
         return res.status(500).json({ error: "Failed to upvote reply" });
       }
 
@@ -63,7 +64,7 @@ upvoteRouter.post(
     });
 
     if (error) {
-      console.error("Failed to increment upvotes:", error);
+      logger.error("Failed to increment upvotes:", error);
       return res.status(500).json({ error: "Failed to upvote post" });
     }
 
@@ -72,7 +73,7 @@ upvoteRouter.post(
       upvotes: data,
     });
   } catch (error) {
-    console.error("Upvote error:", error);
+    logger.error("Upvote error:", error);
     res.status(500).json({ error: "Failed to upvote" });
   }
 });

@@ -1,10 +1,11 @@
+import { logger } from "./logger.js";
 import type {
   HeliusEnhancedTransaction,
   HeliusNativeTransfer,
   HeliusTokenTransfer,
 } from "../types/helius.js";
 
-const HELIUS_WEBHOOK_SECRET = process.env.HELIUS_WEBHOOK_SECRET;
+const HELIUS_WEBHOOK_SECRET_RAW = process.env.HELIUS_WEBHOOK_SECRET;
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 const HELIUS_WEBHOOK_ID = process.env.HELIUS_WEBHOOK_ID;
 const HELIUS_API_BASE = "https://api-mainnet.helius-rpc.com/v0/webhooks";
@@ -22,22 +23,56 @@ function fetchWithTimeout(
   );
 }
 
+const isProduction = () => process.env.NODE_ENV === "production";
+
 /**
  * Verify webhook came from Helius.
  * Helius echoes your authHeader value in the Authorization header (see Helius docs).
- * If HELIUS_WEBHOOK_SECRET is set, it must match the incoming Authorization header.
- * Leave empty to skip verification (e.g. local dev).
+ * Production: fails closed if HELIUS_WEBHOOK_SECRET is missing unless
+ * ALLOW_UNVERIFIED_HELIUS_WEBHOOK=true (explicit escape hatch only).
+ * Non-production: allows missing secret for local dev without Helius credentials.
  */
 export function verifyHeliusWebhook(authHeader: string | undefined): boolean {
-  if (!HELIUS_WEBHOOK_SECRET) {
+  const secret = HELIUS_WEBHOOK_SECRET_RAW?.trim();
+  if (!secret) {
+    if (isProduction()) {
+      if (process.env.ALLOW_UNVERIFIED_HELIUS_WEBHOOK === "true") {
+        logger.warn(
+          "⚠️  ALLOW_UNVERIFIED_HELIUS_WEBHOOK: Helius webhooks are not authenticated"
+        );
+        return true;
+      }
+      logger.error(
+        "CRITICAL: HELIUS_WEBHOOK_SECRET not configured — rejecting webhook requests"
+      );
+      return false;
+    }
     return true;
   }
   if (!authHeader) {
+    logger.error(
+      "Helius webhook: missing Authorization header — in Helius, set the webhook Authentication / auth header to a secret, then set HELIUS_WEBHOOK_SECRET on the server to the same value"
+    );
     return false;
   }
-  // Helius sends the exact authHeader value; support "Bearer <token>" or raw token
-  const expected = HELIUS_WEBHOOK_SECRET;
-  return authHeader === expected || authHeader === `Bearer ${expected}`;
+  const ok = authHeader === secret || authHeader === `Bearer ${secret}`;
+  if (!ok) {
+    logger.error(
+      "Helius webhook: Authorization header does not match HELIUS_WEBHOOK_SECRET (check both sides for typos, extra spaces, or Bearer prefix)"
+    );
+  }
+  return ok;
+}
+
+/** True when DISABLE_TX_VERIFICATION is honored (never in production unless dual escape hatch). */
+export function isTxVerificationBypassActive(): boolean {
+  if (process.env.DISABLE_TX_VERIFICATION !== "true") {
+    return false;
+  }
+  if (!isProduction()) {
+    return true;
+  }
+  return process.env.ALLOW_INSECURE_TX_BYPASS === "true";
 }
 
 interface ParsedTransaction {
@@ -161,7 +196,7 @@ export async function syncHeliusWebhookAddresses(
   accountAddresses: string[]
 ): Promise<{ success: boolean; error?: string }> {
   if (!HELIUS_API_KEY || !HELIUS_WEBHOOK_ID) {
-    console.warn(
+    logger.warn(
       "HELIUS_API_KEY or HELIUS_WEBHOOK_ID not set, skipping webhook sync"
     );
     return { success: true };
@@ -213,13 +248,13 @@ export async function syncHeliusWebhookAddresses(
       throw new Error(`Helius update webhook failed: ${updateRes.status} - ${errText}`);
     }
 
-    console.log(
+    logger.info(
       `✓ Helius webhook synced: ${accountAddresses.length} agent address(es)`
     );
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("Helius webhook sync failed:", message);
+    logger.error("Helius webhook sync failed:", message);
     return { success: false, error: message };
   }
 }
@@ -238,17 +273,28 @@ export async function verifyWalletInTransaction(
   txHash: string,
   walletAddress: string
 ): Promise<{ verified: boolean; parsedTx?: ParsedTransaction; error?: string }> {
-  if (process.env.DISABLE_TX_VERIFICATION === "true") {
-    console.warn("⚠️  TX VERIFICATION DISABLED via DISABLE_TX_VERIFICATION env var");
+  if (isTxVerificationBypassActive()) {
+    if (isProduction()) {
+      logger.error(
+        "⚠️  TX VERIFICATION BYPASS ACTIVE IN PRODUCTION (DISABLE_TX_VERIFICATION + ALLOW_INSECURE_TX_BYPASS)"
+      );
+    } else {
+      logger.warn("⚠️  TX VERIFICATION DISABLED via DISABLE_TX_VERIFICATION (non-production)");
+    }
     return { verified: true };
+  }
+  if (process.env.DISABLE_TX_VERIFICATION === "true" && isProduction()) {
+    logger.error(
+      "DISABLE_TX_VERIFICATION ignored in production without ALLOW_INSECURE_TX_BYPASS=true"
+    );
   }
 
   if (!HELIUS_API_KEY) {
-    console.error("❌ HELIUS_API_KEY not set, cannot verify transaction");
+    logger.error("❌ HELIUS_API_KEY not set, cannot verify transaction");
     return { verified: false, error: "Transaction verification unavailable" };
   }
 
-  console.log(`🔍 Verifying wallet ${walletAddress.slice(0, 8)}... in tx ${txHash.slice(0, 12)}...`);
+  logger.info(`🔍 Verifying wallet ${walletAddress.slice(0, 8)}... in tx ${txHash.slice(0, 12)}...`);
 
   try {
     // Use the correct Helius Enhanced Transactions endpoint
@@ -263,7 +309,7 @@ export async function verifyWalletInTransaction(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Helius API ${response.status}: ${errorText}`);
+      logger.error(`❌ Helius API ${response.status}: ${errorText}`);
       return { verified: false, error: "Unable to verify transaction. Please try again." };
     }
 
@@ -271,12 +317,12 @@ export async function verifyWalletInTransaction(
 
     // Step 2: Check if transaction exists
     if (!transactions || transactions.length === 0) {
-      console.error(`❌ Transaction ${txHash.slice(0, 12)}... does not exist`);
+      logger.error(`❌ Transaction ${txHash.slice(0, 12)}... does not exist`);
       return { verified: false, error: "Transaction not found. Provide a valid Solana transaction signature." };
     }
 
     const tx = transactions[0];
-    console.log(`📦 Found tx: type=${tx.type}, source=${tx.source || "N/A"}, feePayer=${tx.feePayer.slice(0, 8)}...`);
+    logger.info(`📦 Found tx: type=${tx.type}, source=${tx.source || "N/A"}, feePayer=${tx.feePayer.slice(0, 8)}...`);
 
     // Step 3: Check if wallet is involved
     const involvedWallets = new Set<string>();
@@ -301,18 +347,18 @@ export async function verifyWalletInTransaction(
     }
 
     if (involvedWallets.has(walletAddress)) {
-      console.log(`✅ Wallet ${walletAddress.slice(0, 8)}... IS in the transaction`);
+      logger.info(`✅ Wallet ${walletAddress.slice(0, 8)}... IS in the transaction`);
       return { verified: true, parsedTx: parseHeliusTransaction(tx) };
     }
 
-    console.error(`❌ Wallet ${walletAddress.slice(0, 8)}... NOT in transaction (${involvedWallets.size} wallets checked)`);
+    logger.error(`❌ Wallet ${walletAddress.slice(0, 8)}... NOT in transaction (${involvedWallets.size} wallets checked)`);
     return {
       verified: false,
       error: "Your wallet is not involved in this transaction.",
     };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error(`❌ Verification error: ${msg}`);
+    logger.error(`❌ Verification error: ${msg}`);
     return { verified: false, error: "Unable to verify transaction. Please try again." };
   }
 }

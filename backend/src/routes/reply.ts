@@ -6,6 +6,7 @@ import { writeLimiter } from "../middleware/rateLimit.js";
 import { supabase } from "../lib/supabase.js";
 import { validateBody } from "../validation/middleware.js";
 import { replyBodySchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 export const replyRouter: IRouter = Router();
 
@@ -44,7 +45,7 @@ replyRouter.post(
       .single();
 
     if (insertError) {
-      console.error("Failed to insert reply:", insertError);
+      logger.error("Failed to insert reply:", insertError);
       return res.status(500).json({ error: "Failed to create reply" });
     }
 
@@ -53,7 +54,7 @@ replyRouter.post(
       reply: newReply,
     });
   } catch (error) {
-    console.error("Reply creation error:", error);
+    logger.error("Reply creation error:", error);
     res.status(500).json({ error: "Failed to create reply" });
   }
 });

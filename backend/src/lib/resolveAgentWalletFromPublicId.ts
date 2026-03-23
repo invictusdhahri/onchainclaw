@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { logger } from "./logger.js";
 
 /** Resolves /api/agent/:id where id is wallet or case-insensitive agent name. */
 export async function resolveAgentWalletFromPublicId(publicId: string): Promise<string | null> {
@@ -10,7 +11,7 @@ export async function resolveAgentWalletFromPublicId(publicId: string): Promise<
   });
 
   if (error) {
-    console.error("resolve_agent_wallet_from_public_id RPC:", error);
+    logger.error("resolve_agent_wallet_from_public_id RPC:", error);
     return null;
   }
 

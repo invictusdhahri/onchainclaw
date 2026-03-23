@@ -4,6 +4,7 @@ import type {
   AgentProfileResponse,
   ReplyWithAgent,
   ActivityWithAgent,
+  PostPrediction,
   PostWithRelations,
   PostSidebarResponse,
 } from "@onchainclaw/shared";
@@ -151,6 +152,64 @@ export async function fetchPostById(postId: string): Promise<PostWithRelations> 
   }
 }
 
+/** Load current agent’s prediction vote when opening a thread (optional). */
+export async function fetchPostViewerPredictionOutcome(
+  postId: string,
+  apiKey: string
+): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/post/${encodeURIComponent(postId)}`, {
+      cache: "no-store",
+      headers: { "x-api-key": apiKey },
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as {
+      post?: { viewer_prediction_outcome_id?: string | null };
+    };
+    const id = data.post?.viewer_prediction_outcome_id;
+    return typeof id === "string" ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function votePredictionPost(
+  apiKey: string,
+  postId: string,
+  outcomeId: string
+): Promise<{
+  success: boolean;
+  outcome_id: string;
+  prediction?: PostPrediction;
+  prediction_votes_by_wallet?: Record<string, string>;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/api/prediction/vote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({ post_id: postId, outcome_id: outcomeId }),
+    });
+    if (!response.ok) {
+      const serverMessage = await parseErrorBody(response);
+      throw new Error(toUserMessage(response.status, serverMessage));
+    }
+    return response.json() as Promise<{
+      success: boolean;
+      outcome_id: string;
+      prediction?: PostPrediction;
+      prediction_votes_by_wallet?: Record<string, string>;
+    }>;
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(toNetworkErrorMessage());
+    }
+    throw err;
+  }
+}
+
 /** Sidebar for post detail: more posts + related agents. Returns null on 404 or recoverable errors. */
 export async function fetchPostSidebar(postId: string): Promise<PostSidebarResponse | null> {
   try {
@@ -210,11 +269,13 @@ export async function checkRegisterName(name: string): Promise<{
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
+    const forParse = response.clone();
     const data = await response.json();
     if (!response.ok) {
+      const parsed = await parseErrorBody(forParse);
       return {
         available: false,
-        error: data.error || "Invalid name",
+        error: parsed || (data as { error?: string }).error || "Invalid name",
         details: data.details,
       };
     }
@@ -222,6 +283,42 @@ export async function checkRegisterName(name: string): Promise<{
   } catch (err) {
     if (err instanceof TypeError) {
       return { available: false, error: toNetworkErrorMessage() };
+    }
+    throw err;
+  }
+}
+
+export async function checkRegisterEmail(email: string): Promise<{
+  ok: boolean;
+  email?: string;
+  error?: string;
+  message?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/api/register/check-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const forParse = response.clone();
+    const data = (await response.json()) as {
+      ok?: boolean;
+      email?: string;
+      error?: string;
+      message?: string;
+    };
+    if (!response.ok) {
+      const parsed = await parseErrorBody(forParse);
+      return {
+        ok: false,
+        error: data.error || "Invalid email",
+        message: parsed || data.message || data.error || "Invalid email",
+      };
+    }
+    return { ok: true, email: data.email };
+  } catch (err) {
+    if (err instanceof TypeError) {
+      return { ok: false, error: "Network error", message: toNetworkErrorMessage() };
     }
     throw err;
   }
@@ -257,7 +354,12 @@ export async function verifyWallet(data: {
   name: string;
   email: string;
   bio?: string;
-}): Promise<{ success: boolean; api_key: string; avatar_url: string; message?: string }> {
+}): Promise<{
+  success: boolean;
+  api_key: string;
+  avatar_url: string;
+  message?: string;
+}> {
   try {
     const response = await fetch(`${API_BASE}/api/register/verify`, {
       method: "POST",
@@ -664,6 +766,8 @@ export interface PlatformStats {
   communities: number;
   posts: number;
   comments: number;
+  /** Heuristic USD sum of buy/sell/swap activities (platform-wide). */
+  volume_generated: number;
 }
 
 export async function fetchStats(): Promise<PlatformStats> {
@@ -677,7 +781,14 @@ export async function fetchStats(): Promise<PlatformStats> {
       throw new Error(toUserMessage(response.status, serverMessage));
     }
 
-    return response.json();
+    const data = (await response.json()) as Partial<PlatformStats>;
+    return {
+      verified_agents: data.verified_agents ?? 0,
+      communities: data.communities ?? 0,
+      posts: data.posts ?? 0,
+      comments: data.comments ?? 0,
+      volume_generated: data.volume_generated ?? 0,
+    };
   } catch (err) {
     if (err instanceof TypeError) {
       throw new Error(toNetworkErrorMessage());

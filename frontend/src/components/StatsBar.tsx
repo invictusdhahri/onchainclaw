@@ -3,18 +3,35 @@
 import { useEffect, useState, useRef } from "react";
 import { fetchStats, type PlatformStats } from "@/lib/api";
 
+/** Abbreviates large counts: 1000 → "1k", 100000 → "100k", 1e6 → "1m" (lowercase suffixes). */
+function formatCompactNumber(value: number): string {
+  const n = Math.round(Math.abs(value));
+  const sign = value < 0 ? "-" : "";
+  if (n >= 1_000_000) {
+    const scaled = n / 1_000_000;
+    return sign + scaled.toFixed(1).replace(/\.0$/, "") + "m";
+  }
+  if (n >= 1_000) {
+    const scaled = n / 1_000;
+    return sign + scaled.toFixed(1).replace(/\.0$/, "") + "k";
+  }
+  return sign + n.toLocaleString();
+}
+
 export function StatsBar() {
   const [stats, setStats] = useState<PlatformStats>({
     verified_agents: 0,
     communities: 0,
     posts: 0,
     comments: 0,
+    volume_generated: 0,
   });
   const [displayStats, setDisplayStats] = useState<PlatformStats>({
     verified_agents: 0,
     communities: 0,
     posts: 0,
     comments: 0,
+    volume_generated: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const hasAnimated = useRef(false);
@@ -58,6 +75,7 @@ export function StatsBar() {
           communities: Math.floor(stats.communities * eased),
           posts: Math.floor(stats.posts * eased),
           comments: Math.floor(stats.comments * eased),
+          volume_generated: Math.floor(stats.volume_generated * eased),
         });
 
         if (currentStep >= steps) {
@@ -73,21 +91,12 @@ export function StatsBar() {
     }
   }, [stats, isLoading]);
 
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
-    }
-    return num.toLocaleString();
-  };
-
   if (isLoading) {
     return (
       <div className="border-b border-border/40 dark:border-white/[0.06] bg-muted/30">
         <div className="container mx-auto w-full min-w-0 max-w-7xl px-4">
           <div className="flex items-center justify-center gap-8 py-6 animate-pulse">
+            <div className="h-16 w-32 bg-muted rounded" />
             <div className="h-16 w-32 bg-muted rounded" />
             <div className="h-16 w-32 bg-muted rounded" />
             <div className="h-16 w-32 bg-muted rounded" />
@@ -105,7 +114,7 @@ export function StatsBar() {
           {/* Verified Agents */}
           <div className="text-center group cursor-default animate-fade-in-up opacity-0 [animation-delay:100ms] [animation-fill-mode:forwards]">
             <div className="text-3xl md:text-4xl font-bold text-red-500 transition-all duration-300 group-hover:scale-110 relative stats-glow">
-              {formatNumber(displayStats.verified_agents)}
+              {formatCompactNumber(displayStats.verified_agents)}
             </div>
             <div className="text-xs md:text-sm text-muted-foreground mt-1 transition-colors duration-300 group-hover:text-foreground">
               Human-Verified AI Agents
@@ -117,7 +126,7 @@ export function StatsBar() {
           {/* Communities */}
           <div className="text-center group cursor-default animate-fade-in-up opacity-0 [animation-delay:300ms] [animation-fill-mode:forwards]">
             <div className="text-3xl md:text-4xl font-bold text-emerald-500 transition-all duration-300 group-hover:scale-110 relative stats-glow">
-              {formatNumber(displayStats.communities)}
+              {formatCompactNumber(displayStats.communities)}
             </div>
             <div className="text-xs md:text-sm text-muted-foreground mt-1 transition-colors duration-300 group-hover:text-foreground">
               communities
@@ -129,7 +138,7 @@ export function StatsBar() {
           {/* Posts */}
           <div className="text-center group cursor-default animate-fade-in-up opacity-0 [animation-delay:500ms] [animation-fill-mode:forwards]">
             <div className="text-3xl md:text-4xl font-bold text-blue-500 transition-all duration-300 group-hover:scale-110 relative stats-glow">
-              {formatNumber(displayStats.posts)}
+              {formatCompactNumber(displayStats.posts)}
             </div>
             <div className="text-xs md:text-sm text-muted-foreground mt-1 transition-colors duration-300 group-hover:text-foreground">
               posts
@@ -141,10 +150,22 @@ export function StatsBar() {
           {/* Comments */}
           <div className="text-center group cursor-default animate-fade-in-up opacity-0 [animation-delay:700ms] [animation-fill-mode:forwards]">
             <div className="text-3xl md:text-4xl font-bold text-yellow-500 transition-all duration-300 group-hover:scale-110 relative stats-glow">
-              {formatNumber(displayStats.comments)}
+              {formatCompactNumber(displayStats.comments)}
             </div>
             <div className="text-xs md:text-sm text-muted-foreground mt-1 transition-colors duration-300 group-hover:text-foreground">
               comments
+            </div>
+          </div>
+
+          <div className="h-12 w-px bg-border/50 hidden sm:block animate-fade-in-up opacity-0 [animation-delay:800ms] [animation-fill-mode:forwards]" aria-hidden />
+
+          {/* Volume generated (heuristic USD from on-chain activity) */}
+          <div className="text-center group cursor-default animate-fade-in-up opacity-0 [animation-delay:900ms] [animation-fill-mode:forwards]">
+            <div className="text-3xl md:text-4xl font-bold text-violet-500 transition-all duration-300 group-hover:scale-110 relative stats-glow">
+              ${formatCompactNumber(displayStats.volume_generated)}
+            </div>
+            <div className="text-xs md:text-sm text-muted-foreground mt-1 transition-colors duration-300 group-hover:text-foreground">
+              volume generated
             </div>
           </div>
         </div>

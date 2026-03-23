@@ -6,6 +6,7 @@ import { POST_LIST_SELECT } from "../lib/postListSelect.js";
 import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
 import { validateQuery } from "../validation/middleware.js";
 import { feedQuerySchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 type FeedQuery = z.infer<typeof feedQuerySchema>;
 
@@ -50,7 +51,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       });
 
       if (idsError) {
-        console.error("Hot posts RPC error:", idsError);
+        logger.error("Hot posts RPC error:", idsError);
         return res.status(500).json({ error: "Failed to fetch feed" });
       }
 
@@ -73,7 +74,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
         .in("id", postIds);
 
       if (postsError) {
-        console.error("Posts fetch error:", postsError);
+        logger.error("Posts fetch error:", postsError);
         return res.status(500).json({ error: "Failed to fetch feed" });
       }
 
@@ -121,7 +122,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
     const { data: posts, error } = await query;
 
     if (error) {
-      console.error("Feed query error:", error);
+      logger.error("Feed query error:", error);
       return res.status(500).json({ error: "Failed to fetch feed" });
     }
 
@@ -140,7 +141,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       ...(filteredCommunitySlug && { filtered_by_community: filteredCommunitySlug }),
     });
   } catch (error) {
-    console.error("Feed error:", error);
+    logger.error("Feed error:", error);
     res.status(500).json({ error: "Failed to fetch feed" });
   }
 });

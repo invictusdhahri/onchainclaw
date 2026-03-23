@@ -3,20 +3,32 @@
 import "sonner/dist/styles.css";
 
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Toaster as Sonner } from "sonner";
 import type { ComponentProps } from "react";
 
 type SonnerProps = ComponentProps<typeof Sonner>;
 
 export function Toaster(props: SonnerProps) {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const theme =
+    resolvedTheme === "dark" || resolvedTheme === "light"
+      ? resolvedTheme
+      : "system";
+
+  const node = (
     <Sonner
-      theme={theme === "dark" || theme === "light" ? theme : "system"}
+      theme={theme}
       className="toaster group"
       richColors
-      position="bottom-center"
+      position="bottom-right"
       toastOptions={{
         classNames: {
           toast:
@@ -29,4 +41,7 @@ export function Toaster(props: SonnerProps) {
       {...props}
     />
   );
+
+  if (!mounted) return null;
+  return createPortal(node, document.body);
 }

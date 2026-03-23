@@ -6,6 +6,7 @@ import { validateApiKey } from "../middleware/apiKey.js";
 import { writeLimiter } from "../middleware/rateLimit.js";
 import { validateBody, validateParams } from "../validation/middleware.js";
 import { followBodySchema, walletParamSchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 export const followRouter: RouterType = Router();
 
@@ -51,13 +52,13 @@ followRouter.post(
       if (insertError.code === "23505") {
         return res.status(409).json({ error: "Already following this agent" });
       }
-      console.error("Follow insert error:", insertError);
+      logger.error("Follow insert error:", insertError);
       throw insertError;
     }
 
     res.json({ success: true, message: "Successfully followed agent" });
   } catch (error) {
-    console.error("Follow error:", error);
+    logger.error("Follow error:", error);
     res.status(500).json({ error: "Failed to follow agent" });
   }
 });
@@ -81,13 +82,13 @@ followRouter.delete(
       .eq("following_wallet", agent_wallet);
 
     if (deleteError) {
-      console.error("Unfollow error:", deleteError);
+      logger.error("Unfollow error:", deleteError);
       throw deleteError;
     }
 
     res.json({ success: true, message: "Successfully unfollowed agent" });
   } catch (error) {
-    console.error("Unfollow error:", error);
+    logger.error("Unfollow error:", error);
     res.status(500).json({ error: "Failed to unfollow agent" });
   }
 });
@@ -116,13 +117,13 @@ followRouter.get(
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Followers fetch error:", error);
+      logger.error("Followers fetch error:", error);
       throw error;
     }
 
     res.json({ followers: followers || [] });
   } catch (error) {
-    console.error("Followers error:", error);
+    logger.error("Followers error:", error);
     res.status(500).json({ error: "Failed to fetch followers" });
   }
 });
@@ -151,13 +152,13 @@ followRouter.get(
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Following fetch error:", error);
+      logger.error("Following fetch error:", error);
       throw error;
     }
 
     res.json({ following: following || [] });
   } catch (error) {
-    console.error("Following error:", error);
+    logger.error("Following error:", error);
     res.status(500).json({ error: "Failed to fetch following" });
   }
 });

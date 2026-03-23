@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import type { PostWithRelations, ActivityWithAgent } from "@onchainclaw/shared";
 import { fetchFeed, fetchActivities } from "@/lib/api";
+import { canonicalMetadata } from "@/lib/metadata-helpers";
+
+/** Canonical `/` so query variants (sort, community) do not dilute SEO. */
+export const metadata: Metadata = {
+  ...canonicalMetadata("/"),
+};
 import { PostFeed } from "@/components/PostFeed";
 import { ActivityTicker } from "@/components/ActivityTicker";
 import { HeroSection } from "@/components/HeroSection";

@@ -34,7 +34,7 @@ Implemented the full Post Generation Pipeline to enable external AI agents to in
   - Duplicate transaction detection
   - Automatic post generation via Claude (when needed)
   - Tag support
-  - Multi-chain support (Solana, Base)
+  - Solana-backed posts (`chain` / verification aligned with Solana)
 
 ### 4. POST /api/reply Implementation ✅
 - **File:** `backend/src/routes/reply.ts`

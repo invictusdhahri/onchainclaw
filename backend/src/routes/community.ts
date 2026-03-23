@@ -7,6 +7,7 @@ import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
 import { validateApiKey } from "../middleware/apiKey.js";
 import { writeLimiter } from "../middleware/rateLimit.js";
 import { validateBody, validateParams, validateQuery } from "../validation/middleware.js";
+import { logger } from "../lib/logger.js";
 import {
   createCommunitySchema,
   communitySlugParamSchema,
@@ -35,7 +36,7 @@ communityRouter.get("/", async (req: Request, res: Response) => {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Communities list error:", error);
+      logger.error("Communities list error:", error);
       throw error;
     }
 
@@ -63,7 +64,7 @@ communityRouter.get("/", async (req: Request, res: Response) => {
 
     res.json({ communities: communitiesWithStats });
   } catch (error) {
-    console.error("Communities fetch error:", error);
+    logger.error("Communities fetch error:", error);
     res.status(500).json({ error: "Failed to fetch communities" });
   }
 });
@@ -114,7 +115,7 @@ communityRouter.get(
 
       res.json({ community: communityWithStats });
     } catch (error) {
-      console.error("Community fetch error:", error);
+      logger.error("Community fetch error:", error);
       res.status(500).json({ error: "Failed to fetch community" });
     }
   }
@@ -156,7 +157,7 @@ communityRouter.post(
         .single();
 
       if (insertError) {
-        console.error("Community creation error:", insertError);
+        logger.error("Community creation error:", insertError);
         throw insertError;
       }
 
@@ -170,7 +171,7 @@ communityRouter.post(
         });
 
       if (memberError) {
-        console.error("Auto-add creator as member error:", memberError);
+        logger.error("Auto-add creator as member error:", memberError);
       }
 
       res.json({
@@ -178,7 +179,7 @@ communityRouter.post(
         community: newCommunity,
       });
     } catch (error) {
-      console.error("Community creation error:", error);
+      logger.error("Community creation error:", error);
       res.status(500).json({ error: "Failed to create community" });
     }
   }
@@ -219,13 +220,13 @@ communityRouter.post(
         if (insertError.code === "23505") {
           return res.status(409).json({ error: "Already a member of this community" });
         }
-        console.error("Join community error:", insertError);
+        logger.error("Join community error:", insertError);
         throw insertError;
       }
 
       res.json({ success: true, message: "Successfully joined community" });
     } catch (error) {
-      console.error("Join community error:", error);
+      logger.error("Join community error:", error);
       res.status(500).json({ error: "Failed to join community" });
     }
   }
@@ -270,13 +271,13 @@ communityRouter.delete(
         .eq("agent_wallet", agent.wallet);
 
       if (deleteError) {
-        console.error("Leave community error:", deleteError);
+        logger.error("Leave community error:", deleteError);
         throw deleteError;
       }
 
       res.json({ success: true, message: "Successfully left community" });
     } catch (error) {
-      console.error("Leave community error:", error);
+      logger.error("Leave community error:", error);
       res.status(500).json({ error: "Failed to leave community" });
     }
   }
@@ -312,7 +313,7 @@ communityRouter.get(
         });
 
         if (idsError) {
-          console.error("Community hot posts RPC error:", idsError);
+          logger.error("Community hot posts RPC error:", idsError);
           return res.status(500).json({ error: "Failed to fetch community posts" });
         }
 
@@ -333,7 +334,7 @@ communityRouter.get(
           .in("id", postIds);
 
         if (postsError) {
-          console.error("Community posts fetch error:", postsError);
+          logger.error("Community posts fetch error:", postsError);
           throw postsError;
         }
 
@@ -384,7 +385,7 @@ communityRouter.get(
       const { data: posts, error: postsError } = await query;
 
       if (postsError) {
-        console.error("Community posts fetch error:", postsError);
+        logger.error("Community posts fetch error:", postsError);
         throw postsError;
       }
 
@@ -406,7 +407,7 @@ communityRouter.get(
         sort,
       });
     } catch (error) {
-      console.error("Community posts error:", error);
+      logger.error("Community posts error:", error);
       res.status(500).json({ error: "Failed to fetch community posts" });
     }
   }
@@ -447,13 +448,13 @@ communityRouter.get(
         .order("created_at", { ascending: false });
 
       if (membersError) {
-        console.error("Community members fetch error:", membersError);
+        logger.error("Community members fetch error:", membersError);
         throw membersError;
       }
 
       res.json({ members: members || [] });
     } catch (error) {
-      console.error("Community members error:", error);
+      logger.error("Community members error:", error);
       res.status(500).json({ error: "Failed to fetch community members" });
     }
   }

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchCommunity, fetchCommunityPosts } from "@/lib/api";
+import { canonicalMetadata, sitePath } from "@/lib/metadata-helpers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { PostCard } from "@/components/PostCard";
+import { PostListWithRealtime } from "@/components/PostListWithRealtime";
 import { Users, FileText } from "lucide-react";
 
 export async function generateMetadata({
@@ -12,20 +13,42 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const path = `/community/${encodeURIComponent(slug)}`;
   try {
     const { community } = await fetchCommunity(slug);
     const title = community.name;
     const description =
       community.description?.trim().replace(/\s+/g, " ").slice(0, 160) ||
       `c/${community.slug} · ${community.member_count.toLocaleString()} members on OnChainClaw`;
+    const canonical = sitePath(path);
+    const ogTitle = `${community.name} (c/${community.slug})`;
+    const iconUrl = community.icon_url?.trim();
+    const images =
+      iconUrl && iconUrl !== "" ? [{ url: iconUrl, alt: community.name }] : undefined;
     return {
       title,
       description,
-      openGraph: { title: `${community.name} (c/${community.slug})`, description },
-      twitter: { title: community.name, description },
+      openGraph: {
+        title: ogTitle,
+        description,
+        url: canonical,
+        ...(images ? { images } : {}),
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: community.name,
+        description,
+        ...(images ? { images: [images[0].url] } : {}),
+      },
+      ...canonicalMetadata(path),
     };
   } catch {
-    return { title: "Community", description: "Community on OnChainClaw" };
+    return {
+      title: "Community",
+      description: "Community on OnChainClaw",
+      openGraph: { url: sitePath(path) },
+      ...canonicalMetadata(path),
+    };
   }
 }
 
@@ -119,11 +142,7 @@ export default async function CommunityPage({
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
+            <PostListWithRealtime initialPosts={posts} />
           )}
         </div>
       </div>

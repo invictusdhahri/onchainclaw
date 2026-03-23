@@ -9,6 +9,11 @@ import { supabase } from "../lib/supabase.js";
 import { ensureAgentInGeneralCommunity } from "../lib/generalCommunity.js";
 import { syncHeliusWebhookAddresses } from "../lib/helius.js";
 import { sendRegistrationEmail } from "../lib/resend.js";
+import {
+  assertEmailDomainReceivesMail,
+  assertEmailNotAlreadyRegistered,
+  normalizeRegistrationEmail,
+} from "../lib/registrationEmail.js";
 import { registerLimiter } from "../middleware/rateLimit.js";
 import {
   setChallenge,
@@ -17,15 +22,66 @@ import {
   challengeExists,
 } from "../lib/redis.js";
 import { validateBody } from "../validation/middleware.js";
+import { logger } from "../lib/logger.js";
 import {
   registerChallengeSchema,
   registerCheckNameBodySchema,
+  registerCheckEmailSchema,
   registerLegacySchema,
   registerVerifySchema,
   agentRegistrationNameSchema,
 } from "../validation/schemas.js";
 
 export const registerRouter: Router = Router();
+
+async function finalizeAgentRegistration(params: {
+  wallet: string;
+  name: string;
+  /** Lowercased trimmed email */
+  email: string;
+  bio: string | null;
+  wallet_verified: boolean;
+}): Promise<{ api_key: string; avatar_url: string }> {
+  const { wallet, name, email, bio, wallet_verified } = params;
+  const api_key = `oc_${randomBytes(32).toString("hex")}`;
+  const avatar_url = `https://api.dicebear.com/7.x/bottts/svg?seed=${wallet}`;
+  const now = new Date().toISOString();
+
+  const { error: insertError } = await supabase.from("agents").insert({
+    wallet,
+    name,
+    email,
+    bio,
+    wallet_verified,
+    verified_at: wallet_verified ? now : null,
+    email_verified_at: now,
+    api_key,
+    avatar_url,
+  });
+
+  if (insertError) {
+    logger.error("Agent insert error:", insertError);
+    throw new Error("Registration failed");
+  }
+
+  await ensureAgentInGeneralCommunity(wallet);
+
+  const { data: allAgents } = await supabase.from("agents").select("wallet");
+  const allWallets = (allAgents || []).map((a) => a.wallet);
+  const syncResult = await syncHeliusWebhookAddresses(allWallets);
+  if (!syncResult.success) {
+    logger.error(
+      "Helius sync failed (agent still registered):",
+      syncResult.error
+    );
+  }
+
+  sendRegistrationEmail(email, name, api_key).catch((err) =>
+    logger.error("Registration email failed:", err)
+  );
+
+  return { api_key, avatar_url };
+}
 
 function decodeWalletSignature(signature: unknown): Uint8Array {
   // Some clients serialize Uint8Array/Buffer directly in JSON.
@@ -90,13 +146,37 @@ registerRouter.post(
         p_name: parsed.data,
       });
       if (error) {
-        console.error("agent_name_taken RPC error:", error);
+        logger.error("agent_name_taken RPC error:", error);
         return res.status(500).json({ error: "Failed to check name" });
       }
       res.json({ available: !taken });
     } catch (error) {
-      console.error("Check name error:", error);
+      logger.error("Check name error:", error);
       res.status(500).json({ error: "Failed to check name" });
+    }
+  }
+);
+
+// POST /api/register/check-email — domain can receive mail + not already on file
+registerRouter.post(
+  "/check-email",
+  registerLimiter,
+  validateBody(registerCheckEmailSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { email: raw } = req.body as z.infer<typeof registerCheckEmailSchema>;
+      const emailNorm = normalizeRegistrationEmail(raw);
+      await assertEmailDomainReceivesMail(emailNorm);
+      await assertEmailNotAlreadyRegistered(emailNorm);
+      res.json({ ok: true as const, email: emailNorm });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not validate email";
+      res.status(400).json({
+        ok: false as const,
+        error: "Invalid email",
+        message,
+      });
     }
   }
 );
@@ -129,7 +209,7 @@ registerRouter.post(
 
     res.json({ challenge });
   } catch (error) {
-    console.error("Challenge generation error:", error);
+    logger.error("Challenge generation error:", error);
     res.status(500).json({ error: "Failed to generate challenge" });
   }
 });
@@ -177,7 +257,7 @@ registerRouter.post(
         });
       }
     } catch (error) {
-      console.error("Signature verification error:", error);
+      logger.error("Signature verification error:", error);
       return res.status(401).json({
         error: "Invalid signature",
         message: "Failed to verify signature. Please try again.",
@@ -206,7 +286,7 @@ registerRouter.post(
       { p_name: name }
     );
     if (nameRpcError) {
-      console.error("agent_name_taken RPC error:", nameRpcError);
+      logger.error("agent_name_taken RPC error:", nameRpcError);
       return res.status(500).json({ error: "Registration failed" });
     }
     if (nameTaken) {
@@ -216,48 +296,34 @@ registerRouter.post(
       });
     }
 
-    // Generate API key
-    const api_key = `oc_${randomBytes(32).toString("hex")}`;
+    const emailNorm = normalizeRegistrationEmail(email);
+    try {
+      await assertEmailDomainReceivesMail(emailNorm);
+      await assertEmailNotAlreadyRegistered(emailNorm);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not validate email";
+      return res.status(400).json({
+        error: "Invalid email",
+        message,
+      });
+    }
 
-    // Generate avatar URL using DiceBear
-    const avatar_url = `https://api.dicebear.com/7.x/bottts/svg?seed=${wallet}`;
-
-    // Insert agent into database with verification
-    const { error: insertError } = await supabase.from("agents").insert({
-      wallet,
-      name,
-      email,
-      bio: bio ?? null,
-      wallet_verified: true,
-      verified_at: new Date().toISOString(),
-      api_key,
-      avatar_url,
-    });
-
-    if (insertError) {
-      console.error("Agent insert error:", insertError);
+    let api_key: string;
+    let avatar_url: string;
+    try {
+      const out = await finalizeAgentRegistration({
+        wallet,
+        name,
+        email: emailNorm,
+        bio: bio ?? null,
+        wallet_verified: true,
+      });
+      api_key = out.api_key;
+      avatar_url = out.avatar_url;
+    } catch {
       return res.status(500).json({ error: "Registration failed" });
     }
-
-    await ensureAgentInGeneralCommunity(wallet);
-
-    // Sync wallet to Helius webhook (add to monitored addresses)
-    const { data: allAgents } = await supabase.from("agents").select("wallet");
-    const allWallets = (allAgents || []).map((a) => a.wallet);
-
-    const syncResult = await syncHeliusWebhookAddresses(allWallets);
-    if (!syncResult.success) {
-      console.error(
-        "Helius sync failed (agent still registered):",
-        syncResult.error
-      );
-      // Don't fail registration - agent is in DB, webhook can be synced manually
-    }
-
-    // Send email with API key (non-blocking)
-    sendRegistrationEmail(email, name, api_key).catch((err) =>
-      console.error("Registration email failed:", err)
-    );
 
     res.json({
       success: true,
@@ -267,7 +333,7 @@ registerRouter.post(
         "Agent registered successfully with verified wallet. API key sent to email.",
     });
   } catch (error) {
-    console.error("Verification error:", error);
+    logger.error("Verification error:", error);
     res.status(500).json({ error: "Verification failed" });
   }
 });
@@ -303,7 +369,7 @@ registerRouter.post(
       { p_name: name }
     );
     if (nameRpcErrLegacy) {
-      console.error("agent_name_taken RPC error:", nameRpcErrLegacy);
+      logger.error("agent_name_taken RPC error:", nameRpcErrLegacy);
       return res.status(500).json({ error: "Registration failed" });
     }
     if (nameTakenLegacy) {
@@ -313,46 +379,34 @@ registerRouter.post(
       });
     }
 
-    // Generate API key
-    const api_key = `oc_${randomBytes(32).toString("hex")}`;
+    const emailNorm = normalizeRegistrationEmail(email);
+    try {
+      await assertEmailDomainReceivesMail(emailNorm);
+      await assertEmailNotAlreadyRegistered(emailNorm);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not validate email";
+      return res.status(400).json({
+        error: "Invalid email",
+        message,
+      });
+    }
 
-    // Generate avatar URL using DiceBear
-    const avatar_url = `https://api.dicebear.com/7.x/bottts/svg?seed=${wallet}`;
-
-    // Insert agent into database WITHOUT verification
-    const { error: insertError } = await supabase.from("agents").insert({
-      wallet,
-      name,
-      email,
-      bio: bio ?? null,
-      api_key,
-      avatar_url,
-    });
-
-    if (insertError) {
-      console.error("Agent insert error:", insertError);
+    let api_key: string;
+    let avatar_url: string;
+    try {
+      const out = await finalizeAgentRegistration({
+        wallet,
+        name,
+        email: emailNorm,
+        bio: bio ?? null,
+        wallet_verified: false,
+      });
+      api_key = out.api_key;
+      avatar_url = out.avatar_url;
+    } catch {
       return res.status(500).json({ error: "Registration failed" });
     }
-
-    await ensureAgentInGeneralCommunity(wallet);
-
-    // Sync wallet to Helius webhook (add to monitored addresses)
-    const { data: allAgents } = await supabase.from("agents").select("wallet");
-    const allWallets = (allAgents || []).map((a) => a.wallet);
-
-    const syncResult = await syncHeliusWebhookAddresses(allWallets);
-    if (!syncResult.success) {
-      console.error(
-        "Helius sync failed (agent still registered):",
-        syncResult.error
-      );
-      // Don't fail registration - agent is in DB, webhook can be synced manually
-    }
-
-    // Send email with API key (non-blocking)
-    sendRegistrationEmail(email, name, api_key).catch((err) =>
-      console.error("Registration email failed:", err)
-    );
 
     res.json({
       success: true,
@@ -362,7 +416,7 @@ registerRouter.post(
         "Agent registered successfully. API key sent to email. (Legacy registration without wallet verification)",
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    logger.error("Registration error:", error);
     res.status(500).json({ error: "Registration failed" });
   }
 });

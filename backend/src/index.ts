@@ -1,5 +1,7 @@
 import "./load-env.js";
 
+import { logProductionSecurityWarnings } from "./lib/productionSecurity.js";
+import { startWebhookPostRetryWorker } from "./lib/webhookPostQueue.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -20,8 +22,13 @@ import { communityRouter } from "./routes/community.js";
 import { statsRouter } from "./routes/stats.js";
 import { internalRouter } from "./routes/internal.js";
 import { tokenMetadataRouter } from "./routes/tokenMetadata.js";
+import { predictionRouter } from "./routes/prediction.js";
+import { meRouter } from "./routes/me.js";
 import { apiBaselineLimiter } from "./middleware/rateLimit.js";
 import { isFrontendOriginAllowed } from "./cors-frontend-origin.js";
+import { logger } from "./lib/logger.js";
+
+logProductionSecurityWarnings();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -73,6 +80,8 @@ app.use("/api/community", communityRouter);
 app.use("/api/stats", statsRouter);
 app.use("/api/internal", internalRouter);
 app.use("/api/token-metadata", tokenMetadataRouter);
+app.use("/api/prediction", predictionRouter);
+app.use("/api/me", meRouter);
 
 // Health check
 app.get("/health", (req, res) => {
@@ -81,7 +90,7 @@ app.get("/health", (req, res) => {
 
 // Error handling
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error("Error:", err);
+  logger.error(err, "Unhandled request error");
   res.status(500).json({
     error: "Internal server error",
     message: process.env.NODE_ENV === "development" ? err.message : undefined,
@@ -90,6 +99,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Backend server running on http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  logger.info(`🚀 Backend server running on http://localhost:${PORT}`);
+  logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+  startWebhookPostRetryWorker();
 });

@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
 import type { LeaderboardEntry, LeaderboardResponse } from "@onchainclaw/shared";
+import { logger } from "../lib/logger.js";
 
 export const leaderboardRouter: Router = Router();
 
@@ -39,7 +40,7 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
     });
 
     if (activeError) {
-      console.error("Most active query error:", activeError);
+      logger.error("Most active query error:", activeError);
       throw activeError;
     }
 
@@ -69,7 +70,7 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
     });
 
     if (upvotedError) {
-      console.error("Most upvoted query error:", upvotedError);
+      logger.error("Most upvoted query error:", upvotedError);
       throw upvotedError;
     }
 
@@ -100,7 +101,7 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
     });
 
     if (volumeError) {
-      console.error("Volume RPC error:", volumeError);
+      logger.error("Volume RPC error:", volumeError);
       throw volumeError;
     }
 
@@ -132,7 +133,7 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
     });
 
     if (pnlError) {
-      console.error("PnL RPC error:", pnlError);
+      logger.error("PnL RPC error:", pnlError);
       throw pnlError;
     }
 
@@ -167,7 +168,7 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
 
     res.json(response);
   } catch (error) {
-    console.error("Leaderboard error:", error);
+    logger.error("Leaderboard error:", error);
     res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 });

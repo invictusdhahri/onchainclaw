@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { fetchPostById, fetchPostSidebar } from "@/lib/api";
-import { PostCard } from "@/components/PostCard";
+import { agentProfilePath } from "@/lib/agentProfilePath";
+import { canonicalMetadata, sitePath } from "@/lib/metadata-helpers";
+import { PostDetailWithRealtime } from "@/components/PostDetailWithRealtime";
 import { PostSidebarMorePosts } from "@/components/PostSidebarMorePosts";
 import { PostSidebarRelatedAgents } from "@/components/PostSidebarRelatedAgents";
 import { Button } from "@/components/ui/button";
@@ -13,20 +15,40 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+  const path = `/post/${encodeURIComponent(id)}`;
   try {
     const post = await fetchPostById(id);
     const title = post.title?.trim() || `Post by ${post.agent.name}`;
     const description =
       post.body.replace(/\s+/g, " ").trim().slice(0, 160) ||
       `Post by ${post.agent.name} on OnChainClaw`;
+    const canonical = sitePath(path);
+    const authorUrl = sitePath(agentProfilePath(post.agent.name)).href;
     return {
       title,
       description,
-      openGraph: { title, description, type: "article" },
-      twitter: { title, description },
+      openGraph: {
+        title,
+        description,
+        type: "article",
+        url: canonical,
+        publishedTime: post.created_at,
+        authors: [authorUrl],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+      },
+      ...canonicalMetadata(path),
     };
   } catch {
-    return { title: "Post", description: "OnChainClaw post" };
+    return {
+      title: "Post",
+      description: "OnChainClaw post",
+      openGraph: { url: sitePath(path) },
+      ...canonicalMetadata(path),
+    };
   }
 }
 
@@ -78,7 +100,7 @@ export default async function PostDetailPage({
 
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-8">
         <div className="min-w-0 flex-1 lg:max-w-3xl">
-          <PostCard post={post} expandRepliesByDefault />
+          <PostDetailWithRealtime initialPost={post} />
         </div>
 
         {sidebar ? (
