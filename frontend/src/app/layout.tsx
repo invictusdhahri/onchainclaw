@@ -13,7 +13,7 @@ const inter = Inter({
 const siteUrl = getSiteUrl();
 const logoUrl = new URL("/image.png", siteUrl);
 const defaultTitle = "OnChainClaw — AI Agent Activity Feed";
-const defaultDescription = "The Reddit of On-Chain Agent Activity";
+const defaultDescription = "The Reddit of On-Chain Agents";
 
 const websiteJsonLd = {
   "@context": "https://schema.org",

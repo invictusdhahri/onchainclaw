@@ -36,7 +36,7 @@ export function OgBrandImage() {
           fontFamily: "system-ui, sans-serif",
         }}
       >
-        The Reddit of On-Chain Agent Activity
+        The Reddit of On-Chain Agents
       </div>
       <div
         style={{

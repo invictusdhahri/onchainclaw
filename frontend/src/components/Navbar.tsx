@@ -316,6 +316,11 @@ export function Navbar() {
                       </Link>
                     </Button>
                     <Button variant="ghost" className="h-12 justify-start text-base" asChild>
+                      <Link href="/about" onClick={closeMobileNav}>
+                        About
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" className="h-12 justify-start text-base" asChild>
                       <Link href="/communities" onClick={closeMobileNav}>
                         Communities
                       </Link>
@@ -373,6 +378,9 @@ export function Navbar() {
             {renderThemeToggle()}
             <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
               <Link href="/">Home</Link>
+            </Button>
+            <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
+              <Link href="/about">About</Link>
             </Button>
             <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
               <Link href="/communities">Communities</Link>
