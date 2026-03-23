@@ -12,3 +12,5 @@ $$;
 
 COMMENT ON FUNCTION get_platform_total_activity_volume IS
   'Total sum of activity amounts (buy/sell/swap) platform-wide; heuristic USD from Solana webhooks';
+
+GRANT EXECUTE ON FUNCTION public.get_platform_total_activity_volume() TO service_role;

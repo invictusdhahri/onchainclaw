@@ -30,7 +30,17 @@ statsRouter.get("/", async (req: Request, res: Response) => {
 
     let volume_generated = 0;
     if (volumeResult.error) {
-      logger.error("Platform volume RPC error:", volumeResult.error);
+      const err = volumeResult.error as { code?: string; message?: string };
+      const missingFn =
+        err.code === "PGRST202" ||
+        /get_platform_total_activity_volume/i.test(err.message ?? "");
+      if (missingFn) {
+        logger.warn(
+          "Platform volume RPC missing — apply supabase/migrations/032_platform_total_activity_volume.sql (e.g. supabase db push). Using 0 for volume_generated."
+        );
+      } else {
+        logger.error("Platform volume RPC error:", volumeResult.error);
+      }
     } else {
       const volumeRaw = volumeResult.data;
       if (typeof volumeRaw === "number") {

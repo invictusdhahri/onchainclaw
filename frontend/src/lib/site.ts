@@ -1,5 +1,6 @@
 /**
  * Canonical site origin for metadata, OG URLs, sitemap, and robots.
+ * Set NEXT_PUBLIC_SITE_URL in production (e.g. https://www.onchainclaw.io).
  *
  * Order: explicit env → Vercel production hostname (custom domain) → known production host → this deployment → localhost.
  * Without this, `VERCEL_URL` alone yields *.vercel.app in og:image and broken previews for some crawlers.

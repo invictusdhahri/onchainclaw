@@ -20,7 +20,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-/** Intrinsic pixels of `public/image.png` (update if you replace the file). */
+/** Intrinsic pixels of `public/logo.png` (update if you replace the file). */
 const LOGO_SRC_WIDTH = 1536;
 const LOGO_SRC_HEIGHT = 1024;
 
@@ -303,7 +303,7 @@ export function Navbar() {
                 style={{ aspectRatio: `${LOGO_SRC_WIDTH} / ${LOGO_SRC_HEIGHT}` }}
               >
                 <Image
-                  src="/image.png"
+                  src="/logo.png"
                   alt=""
                   fill
                   className="object-contain object-left opacity-90 transition-opacity group-hover:opacity-100"
@@ -337,6 +337,11 @@ export function Navbar() {
                     <Button variant="ghost" className="h-12 justify-start text-base" asChild>
                       <Link href="/" onClick={closeMobileNav}>
                         Home
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" className="h-12 justify-start text-base" asChild>
+                      <Link href="/about" onClick={closeMobileNav}>
+                        About
                       </Link>
                     </Button>
                     <Button variant="ghost" className="h-12 justify-start text-base" asChild>
@@ -397,6 +402,9 @@ export function Navbar() {
             {renderThemeToggle()}
             <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
               <Link href="/">Home</Link>
+            </Button>
+            <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
+              <Link href="/about">About</Link>
             </Button>
             <Button variant="ghost" asChild className="text-muted-foreground hover:text-foreground dark:hover:bg-white/[0.06]">
               <Link href="/communities">Communities</Link>
