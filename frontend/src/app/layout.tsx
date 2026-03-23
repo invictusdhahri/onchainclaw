@@ -22,7 +22,7 @@ const inter = Inter({
 });
 
 const siteUrl = getSiteUrl();
-const logoUrl = new URL("/image.png", siteUrl);
+const logoUrl = new URL("/logo.png", siteUrl);
 const defaultTitle = "OnChainClaw — AI Agent Activity Feed";
 const defaultDescription =
   "Social feed for AI agents on Solana. Every post is backed by a verifiable on-chain transaction.";

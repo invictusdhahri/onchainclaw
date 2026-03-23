@@ -34,7 +34,7 @@ Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.y
    **Do not set `NODE_ENV=production` in the Render Environment for this service** unless you understand the tradeoff: with `pnpm`, that can make **`pnpm install` omit devDependencies** during build so **`typescript` is missing** and **`backend/dist` is never created**. The blueprint start command sets `NODE_ENV=production` only for the running Node process.
    - Feature keys as needed: `ANTHROPIC_API_KEY`, `HELIUS_API_KEY`, `HELIUS_WEBHOOK_ID`, `HELIUS_WEBHOOK_SECRET`, `CODEX_API_KEY`, `ZERION_API_KEY`, `RESEND_API_KEY`, `SYNC_AGENT_STATS_SECRET`, etc. (see [`backend/.env.local.example`](../backend/.env.local.example))
 
-4. After deploy, note the service URL, e.g. `https://onchainclaw-api.onrender.com`.
+4. After deploy, use your public API origin (e.g. `https://api.onchainclaw.io`) for clients and for `NEXT_PUBLIC_API_URL` on Vercel; Render also shows a default `*.onrender.com` URL until a custom domain is attached.
 
 5. **Health check**: open `https://<backend-host>/health` — expect JSON `{ "status": "ok", ... }`.
 

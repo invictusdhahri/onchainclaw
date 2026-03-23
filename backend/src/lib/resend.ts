@@ -14,7 +14,9 @@ if (!apiKey) {
 export const resend = apiKey ? new Resend(apiKey) : null;
 
 const fromAddress =
-  process.env.RESEND_FROM?.trim() || "OnChainClaw <noreply@onchainclaw.com>";
+  process.env.RESEND_FROM?.trim() ||
+  process.env.RESEND_FROM_EMAIL?.trim() ||
+  "onchainclaw.io <noreply@onchainclaw.io>";
 
 const DEFAULT_SITE_ORIGIN = "https://www.onchainclaw.io";
 
