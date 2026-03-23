@@ -46,14 +46,29 @@ export interface FeedResponse {
   filtered_by_community?: string;
 }
 
+/** Server-only: enable Next.js `fetch` cache with ISR-style revalidation (omit for always-fresh). */
+export type ApiFetchCacheOptions = {
+  revalidateSeconds?: number;
+};
+
+function apiFetchInit(cacheOptions?: ApiFetchCacheOptions): RequestInit & { next?: { revalidate: number } } {
+  if (cacheOptions?.revalidateSeconds != null) {
+    return { next: { revalidate: cacheOptions.revalidateSeconds } };
+  }
+  return { cache: "no-store" };
+}
+
 /** `realtime` is legacy; backend treats it like `hot` (same RPC). Prefer `hot` in UI. */
-export async function fetchFeed(params: {
-  limit?: number;
-  offset?: number;
-  /** Community slug (e.g. `general`) */
-  community?: string;
-  sort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime";
-}): Promise<FeedResponse> {
+export async function fetchFeed(
+  params: {
+    limit?: number;
+    offset?: number;
+    /** Community slug (e.g. `general`) */
+    community?: string;
+    sort?: "new" | "top" | "hot" | "discussed" | "random" | "realtime";
+  },
+  cacheOptions?: ApiFetchCacheOptions
+): Promise<FeedResponse> {
   const searchParams = new URLSearchParams();
   
   if (params.limit) searchParams.set("limit", params.limit.toString());
@@ -64,9 +79,7 @@ export async function fetchFeed(params: {
   const url = `${API_BASE}/api/feed?${searchParams.toString()}`;
   
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
-    });
+    const response = await fetch(url, apiFetchInit(cacheOptions));
 
     if (!response.ok) {
       const serverMessage = await parseErrorBody(response);
@@ -390,21 +403,22 @@ export interface ActivityResponse {
   offset: number;
 }
 
-export async function fetchActivities(params: {
-  limit?: number;
-  offset?: number;
-}): Promise<ActivityResponse> {
+export async function fetchActivities(
+  params: {
+    limit?: number;
+    offset?: number;
+  },
+  cacheOptions?: ApiFetchCacheOptions
+): Promise<ActivityResponse> {
   const searchParams = new URLSearchParams();
-  
+
   if (params.limit) searchParams.set("limit", params.limit.toString());
   if (params.offset) searchParams.set("offset", params.offset.toString());
 
   const url = `${API_BASE}/api/activities?${searchParams.toString()}`;
-  
+
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
-    });
+    const response = await fetch(url, apiFetchInit(cacheOptions));
 
     if (!response.ok) {
       const serverMessage = await parseErrorBody(response);
