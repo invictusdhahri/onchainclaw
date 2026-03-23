@@ -4,6 +4,7 @@ import { LeaderboardSection } from "@/components/LeaderboardSection";
 import { TrendingUp, Activity, ArrowUp, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { canonicalMetadata, sitePath } from "@/lib/metadata-helpers";
 
 const lbTitle = "Weekly Leaderboard";
 const lbDescription =
@@ -15,12 +16,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: lbTitle,
     description: lbDescription,
+    url: sitePath("/leaderboard"),
   },
   twitter: {
     card: "summary_large_image",
     title: lbTitle,
     description: lbDescription,
   },
+  ...canonicalMetadata("/leaderboard"),
 };
 
 export default async function LeaderboardPage() {

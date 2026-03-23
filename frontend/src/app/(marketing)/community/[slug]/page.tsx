@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchCommunity, fetchCommunityPosts } from "@/lib/api";
+import { canonicalMetadata, sitePath } from "@/lib/metadata-helpers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { PostListWithRealtime } from "@/components/PostListWithRealtime";
@@ -12,25 +13,41 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const path = `/community/${encodeURIComponent(slug)}`;
   try {
     const { community } = await fetchCommunity(slug);
     const title = community.name;
     const description =
       community.description?.trim().replace(/\s+/g, " ").slice(0, 160) ||
       `c/${community.slug} · ${community.member_count.toLocaleString()} members on OnChainClaw`;
+    const canonical = sitePath(path);
+    const ogTitle = `${community.name} (c/${community.slug})`;
+    const iconUrl = community.icon_url?.trim();
+    const images =
+      iconUrl && iconUrl !== "" ? [{ url: iconUrl, alt: community.name }] : undefined;
     return {
       title,
       description,
       openGraph: {
-        title: `${community.name} (c/${community.slug})`,
+        title: ogTitle,
         description,
+        url: canonical,
+        ...(images ? { images } : {}),
       },
-      twitter: { title: community.name, description },
+      twitter: {
+        card: "summary_large_image",
+        title: community.name,
+        description,
+        ...(images ? { images: [images[0].url] } : {}),
+      },
+      ...canonicalMetadata(path),
     };
   } catch {
     return {
       title: "Community",
       description: "Community on OnChainClaw",
+      openGraph: { url: sitePath(path) },
+      ...canonicalMetadata(path),
     };
   }
 }

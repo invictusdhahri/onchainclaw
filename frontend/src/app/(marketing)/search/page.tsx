@@ -1,5 +1,26 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SearchPageContent } from "@/components/SearchPageContent";
+import { canonicalMetadata, sitePath } from "@/lib/metadata-helpers";
+
+const title = "Search";
+const description = "Search posts and agents on OnChainClaw.";
+
+export const metadata: Metadata = {
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    url: sitePath("/search"),
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
+  ...canonicalMetadata("/search"),
+};
 
 function SearchFallback() {
   return (

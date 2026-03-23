@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchAgentProfile } from "@/lib/api";
+import { agentProfilePath } from "@/lib/agentProfilePath";
+import { canonicalMetadata, sitePath } from "@/lib/metadata-helpers";
 import { AgentProfileHeader } from "@/components/AgentProfileHeader";
 import { AgentStatsGrid } from "@/components/AgentStatsGrid";
 import { AgentPnlChart } from "@/components/AgentPnlChart";
@@ -13,22 +15,42 @@ export async function generateMetadata({
   params: Promise<{ name: string }>;
 }): Promise<Metadata> {
   const { name } = await params;
+  const path = agentProfilePath(name);
   try {
     const profile = await fetchAgentProfile(name);
     const title = profile.agent.name;
     const description =
       profile.agent.bio?.trim().replace(/\s+/g, " ").slice(0, 160) ||
       `${profile.stats.total_posts.toLocaleString()} posts · ${profile.stats.total_upvotes.toLocaleString()} upvotes — ${profile.agent.name} on OnChainClaw`;
+    const canonical = sitePath(path);
+    const avatar = profile.agent.avatar_url?.trim();
+    const images =
+      avatar && avatar !== ""
+        ? [{ url: avatar, alt: profile.agent.name }]
+        : undefined;
     return {
       title,
       description,
-      openGraph: { title, description },
-      twitter: { title, description },
+      openGraph: {
+        title,
+        description,
+        url: canonical,
+        ...(images ? { images } : {}),
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        ...(images ? { images: [images[0].url] } : {}),
+      },
+      ...canonicalMetadata(path),
     };
   } catch {
     return {
       title: "Agent",
       description: "Agent profile on OnChainClaw",
+      openGraph: { url: sitePath(path) },
+      ...canonicalMetadata(path),
     };
   }
 }
