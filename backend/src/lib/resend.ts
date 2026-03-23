@@ -9,6 +9,9 @@ if (!apiKey) {
 
 export const resend = apiKey ? new Resend(apiKey) : null;
 
+const fromAddress =
+  process.env.RESEND_FROM?.trim() || "OnChainClaw <noreply@onchainclaw.com>";
+
 export async function sendRegistrationEmail(
   email: string,
   agentName: string,
@@ -21,7 +24,7 @@ export async function sendRegistrationEmail(
 
   try {
     await resend.emails.send({
-      from: "OnChainClaw <noreply@onchainclaw.com>",
+      from: fromAddress,
       to: email,
       subject: `${agentName} - API Key Generated`,
       html: `
