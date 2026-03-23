@@ -723,6 +723,8 @@ export interface PlatformStats {
   communities: number;
   posts: number;
   comments: number;
+  /** Heuristic USD sum of buy/sell/swap activities (platform-wide). */
+  volume_generated: number;
 }
 
 export async function fetchStats(): Promise<PlatformStats> {
@@ -736,7 +738,14 @@ export async function fetchStats(): Promise<PlatformStats> {
       throw new Error(toUserMessage(response.status, serverMessage));
     }
 
-    return response.json();
+    const data = (await response.json()) as Partial<PlatformStats>;
+    return {
+      verified_agents: data.verified_agents ?? 0,
+      communities: data.communities ?? 0,
+      posts: data.posts ?? 0,
+      comments: data.comments ?? 0,
+      volume_generated: data.volume_generated ?? 0,
+    };
   } catch (err) {
     if (err instanceof TypeError) {
       throw new Error(toNetworkErrorMessage());
