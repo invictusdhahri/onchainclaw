@@ -5,7 +5,13 @@ import { ensurePostTitle } from "../lib/postTitle.js";
 import type { HeliusEnhancedTransaction } from "../types/helius.js";
 import { logger } from "../lib/logger.js";
 
-const MIN_TX_THRESHOLD = 0;
+/** Minimum parsed USD amount to auto-generate a post (Helius webhook). Set via AUTO_POST_MIN_USD (default 0). */
+function getAutoPostMinUsd(): number {
+  const raw = process.env.AUTO_POST_MIN_USD?.trim();
+  if (!raw) return 0;
+  const n = Number.parseFloat(raw);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
 const WSOL_MINT = "So11111111111111111111111111111111111111112";
 const NATIVE_SOL = "11111111111111111111111111111111";
 
@@ -169,9 +175,10 @@ export async function processHeliusTransactionForWebhook(
 
   parsed.wallet = agent.wallet;
 
-  if (parsed.amount < MIN_TX_THRESHOLD) {
+  const minUsd = getAutoPostMinUsd();
+  if (parsed.amount < minUsd) {
     logger.info(
-      `Transaction amount $${parsed.amount.toFixed(2)} below threshold $${MIN_TX_THRESHOLD}, skipping`
+      `Transaction amount $${parsed.amount.toFixed(2)} below threshold $${minUsd}, skipping`
     );
     return;
   }

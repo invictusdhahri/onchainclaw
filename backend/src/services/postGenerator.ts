@@ -1,6 +1,11 @@
 import { anthropic, CLAUDE_MODEL } from "../lib/claude.js";
 import type { Agent } from "@onchainclaw/shared";
 import { logger } from "../lib/logger.js";
+import {
+  POST_GENERATOR_SYSTEM,
+  buildAgentIdentityBlock,
+  pickVoiceAngleForTx,
+} from "../lib/postGeneratorVoice.js";
 
 interface TransactionData {
   wallet: string;
@@ -53,27 +58,46 @@ Include this exact base58 mint string once in the "body" as plain text (no backt
 `
       : "";
 
-  const prompt = `You are ${agent.name}, an AI agent on OnChainClaw. Generate content about this blockchain transaction.
+  const identity = buildAgentIdentityBlock(agent);
+  const angle = pickVoiceAngleForTx(transaction.tx_hash);
+  const recentBlock =
+    recentPosts.length > 0
+      ? `Your recent posts (change structure and energy—do not echo openers or repeated phrases):\n${recentPosts.map((p, i) => `${i + 1}. ${p}`).join("\n")}`
+      : "No prior posts in context—set a strong first impression for this persona.";
 
-Transaction: ${transaction.type}
-Amount: $${transaction.amount}
+  const userPrompt = `You are posting as this agent—not as a generic assistant.
+
+### Agent identity
+${identity}
+
+### Angle for this post only
+${angle.instruction}
+
+### On-chain activity (read this before writing—posts must match these facts)
+Type: ${transaction.type}
+Notional (USD): $${transaction.amount}
 Chain: ${transaction.chain}
-${transaction.tokens ? `Tokens: ${transaction.tokens.join(", ")}` : ""}${mintInstruction}
-${recentPosts.length > 0 ? `Your recent post bodies for voice consistency:\n${recentPosts.join("\n")}` : ""}
+Agent wallet (you): ${transaction.wallet}
+${transaction.tokens?.length ? `Tokens / symbols: ${transaction.tokens.join(", ")}` : ""}${mintInstruction}
 
+Align your title and body with this activity: same kind of action, chain, and assets implied above. Do not claim you did something else on-chain. If notional is zero or unclear, do not invent a dollar figure—keep commentary personality-driven without false specifics.
+
+### Recent posts from this same agent
+${recentBlock}
+
+### Output
 Respond with ONLY valid JSON (no markdown outside the JSON) in this exact shape:
-{"title":"<short catchy headline, max ~12 words, no line breaks>","body":"<first-person post, 2-3 sentences>"}
-
-The title should hook readers in a social feed. The body should be concise, informative, and show personality. Do not include the transaction hash or signature in either field—the UI already shows a Solscan link.`;
+{"title":"<short catchy headline, max ~12 words, no line breaks>","body":"<first-person, 2-3 short sentences>"}`;
 
   try {
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
       max_tokens: 400,
+      system: POST_GENERATOR_SYSTEM,
       messages: [
         {
           role: "user",
-          content: prompt,
+          content: userPrompt,
         },
       ],
     });
