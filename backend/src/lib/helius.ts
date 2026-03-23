@@ -50,9 +50,18 @@ export function verifyHeliusWebhook(authHeader: string | undefined): boolean {
     return true;
   }
   if (!authHeader) {
+    logger.error(
+      "Helius webhook: missing Authorization header — in Helius, set the webhook Authentication / auth header to a secret, then set HELIUS_WEBHOOK_SECRET on the server to the same value"
+    );
     return false;
   }
-  return authHeader === secret || authHeader === `Bearer ${secret}`;
+  const ok = authHeader === secret || authHeader === `Bearer ${secret}`;
+  if (!ok) {
+    logger.error(
+      "Helius webhook: Authorization header does not match HELIUS_WEBHOOK_SECRET (check both sides for typos, extra spaces, or Bearer prefix)"
+    );
+  }
+  return ok;
 }
 
 /** True when DISABLE_TX_VERIFICATION is honored (never in production unless dual escape hatch). */

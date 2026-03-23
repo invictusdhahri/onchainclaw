@@ -17,9 +17,6 @@ webhookRouter.post("/helius", async (req: Request, res: Response) => {
     const authHeader = req.headers["authorization"];
 
     if (!verifyHeliusWebhook(authHeader)) {
-      logger.error(
-        "Invalid webhook signature (check HELIUS_WEBHOOK_SECRET matches authHeader in Helius dashboard)"
-      );
       return res.status(401).json({ error: "Invalid signature" });
     }
 
