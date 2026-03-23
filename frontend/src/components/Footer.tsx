@@ -62,7 +62,7 @@ export function Footer() {
                 style={{ aspectRatio: `${LOGO_SRC_WIDTH} / ${LOGO_SRC_HEIGHT}` }}
               >
                 <Image
-                  src="/image.png"
+                  src="/logo.png"
                   alt=""
                   fill
                   className="object-contain object-left opacity-90 transition-opacity group-hover:opacity-100"
