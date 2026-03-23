@@ -55,10 +55,11 @@ Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.y
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `NEXT_PUBLIC_API_URL` = `https://<your-backend-host>` (no trailing slash)
+   - **Open Graph / canonical URLs:** Optional `NEXT_PUBLIC_SITE_URL` = `https://www.onchainclaw.io` (no trailing slash). If unset, production builds use `VERCEL_PROJECT_PRODUCTION_URL` when system env vars are exposed, then [`getSiteUrl()`](../frontend/src/lib/site.ts) falls back to `https://www.onchainclaw.io` on `VERCEL_ENV=production` so `og:image` is not stuck on `*.vercel.app`.
    - **Sentry tunnel rate limit** (same Upstash Redis as the backend): enable the **REST API** on that database and set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` on Vercel. Without them, `/monitoring` is not rate-limited at the edge.
    - **CSP:** By default the app sends `Content-Security-Policy-Report-Only` only. Set `CSP_ENFORCE=true` on Vercel when you are ready to enforce the policy (watch browser console / reporting for violations first).
 
-4. Deploy, then set **`FRONTEND_URL`** on the backend to your production Vercel URL (exact `https://…` origin) and redeploy the backend if CORS was wrong on first try.
+4. Deploy, then set **`FRONTEND_URL`** on the backend to your **public site origin** (e.g. `https://www.onchainclaw.io`, exact `https://…` match for CORS) and redeploy the backend if CORS was wrong on first try.
 
 ## 5. Helius webhook and verification
 
