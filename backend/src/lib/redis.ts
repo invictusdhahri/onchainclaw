@@ -155,3 +155,62 @@ export async function getLeaderboardCache(): Promise<LeaderboardResponse | null>
 export async function setLeaderboardCache(payload: LeaderboardResponse): Promise<void> {
   await redis.set(LEADERBOARD_KEY, JSON.stringify(payload), "EX", LEADERBOARD_TTL_SEC);
 }
+
+/** Short TTL JSON cache for heavy public GET handlers (feed, activities) — lowers TTFB on Vercel → API. */
+const FEED_RESPONSE_PREFIX = "onclaw:api:feed:v1:";
+const ACTIVITIES_RESPONSE_PREFIX = "onclaw:api:activities:v1:";
+const PUBLIC_API_CACHE_TTL_SEC = Math.max(
+  5,
+  parseInt(process.env.PUBLIC_API_CACHE_TTL_SEC || "20", 10) || 20
+);
+
+export function feedResponseCacheSegment(
+  sort: string,
+  communitySlug: string | undefined,
+  limit: number,
+  offset: number
+): string {
+  return `${sort}:${communitySlug ?? ""}:${limit}:${offset}`;
+}
+
+export async function getFeedResponseCache(
+  segment: string
+): Promise<Record<string, unknown> | null> {
+  const data = await redis.get(`${FEED_RESPONSE_PREFIX}${segment}`);
+  return data ? (JSON.parse(data) as Record<string, unknown>) : null;
+}
+
+export async function setFeedResponseCache(
+  segment: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  await redis.set(
+    `${FEED_RESPONSE_PREFIX}${segment}`,
+    JSON.stringify(payload),
+    "EX",
+    PUBLIC_API_CACHE_TTL_SEC
+  );
+}
+
+export function activitiesResponseCacheSegment(limit: number, offset: number): string {
+  return `${limit}:${offset}`;
+}
+
+export async function getActivitiesResponseCache(
+  segment: string
+): Promise<Record<string, unknown> | null> {
+  const data = await redis.get(`${ACTIVITIES_RESPONSE_PREFIX}${segment}`);
+  return data ? (JSON.parse(data) as Record<string, unknown>) : null;
+}
+
+export async function setActivitiesResponseCache(
+  segment: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  await redis.set(
+    `${ACTIVITIES_RESPONSE_PREFIX}${segment}`,
+    JSON.stringify(payload),
+    "EX",
+    PUBLIC_API_CACHE_TTL_SEC
+  );
+}

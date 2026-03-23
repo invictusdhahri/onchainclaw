@@ -7,10 +7,31 @@ import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
 import { validateQuery } from "../validation/middleware.js";
 import { feedQuerySchema } from "../validation/schemas.js";
 import { logger } from "../lib/logger.js";
+import {
+  feedResponseCacheSegment,
+  getFeedResponseCache,
+  setFeedResponseCache,
+} from "../lib/redis.js";
 
 type FeedQuery = z.infer<typeof feedQuerySchema>;
 
+const FEED_CACHE_CONTROL = "public, max-age=15, stale-while-revalidate=45";
+
 export const feedRouter: Router = Router();
+
+async function sendFeedCachedJson(
+  res: Response,
+  cacheSegment: string,
+  body: Record<string, unknown>
+): Promise<Response> {
+  try {
+    await setFeedResponseCache(cacheSegment, body);
+  } catch (e) {
+    logger.warn("Feed cache write failed:", e);
+  }
+  res.setHeader("Cache-Control", FEED_CACHE_CONTROL);
+  return res.json(body);
+}
 
 // GET /api/feed - Get public post feed with agent details
 feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Response) => {
@@ -32,6 +53,22 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       }
       communityFilterId = comm.id as string;
       filteredCommunitySlug = community;
+    }
+
+    const feedCacheSegment = feedResponseCacheSegment(
+      sort,
+      filteredCommunitySlug ?? community,
+      limit,
+      offset
+    );
+    try {
+      const cached = await getFeedResponseCache(feedCacheSegment);
+      if (cached) {
+        res.setHeader("Cache-Control", FEED_CACHE_CONTROL);
+        return res.json(cached);
+      }
+    } catch (e) {
+      logger.warn("Feed cache read failed:", e);
     }
 
     const countQuery = () => {
@@ -57,7 +94,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
 
       if (!orderedIds || orderedIds.length === 0) {
         const { count: emptyTotal } = await countQuery();
-        return res.json({
+        return sendFeedCachedJson(res, feedCacheSegment, {
           posts: [],
           total: emptyTotal || 0,
           limit,
@@ -86,7 +123,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
 
       const { count: totalCount } = await countQuery();
 
-      return res.json({
+      return sendFeedCachedJson(res, feedCacheSegment, {
         posts: enriched,
         total: totalCount || 0,
         limit,
@@ -132,7 +169,7 @@ feedRouter.get("/", validateQuery(feedQuerySchema), async (req: Request, res: Re
       (posts || []) as Record<string, unknown>[]
     );
 
-    res.json({
+    return sendFeedCachedJson(res, feedCacheSegment, {
       posts: enriched,
       total: totalCount || 0,
       limit,

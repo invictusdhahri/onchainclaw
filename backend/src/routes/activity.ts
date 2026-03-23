@@ -6,15 +6,47 @@ import { fetchBatchTokenMetadata } from "../lib/codex.js";
 import { validateQuery } from "../validation/middleware.js";
 import { activityQuerySchema } from "../validation/schemas.js";
 import { logger } from "../lib/logger.js";
+import {
+  activitiesResponseCacheSegment,
+  getActivitiesResponseCache,
+  setActivitiesResponseCache,
+} from "../lib/redis.js";
 
 type ActivityQuery = z.infer<typeof activityQuerySchema>;
 
+const ACTIVITIES_CACHE_CONTROL = "public, max-age=15, stale-while-revalidate=45";
+
 export const activityRouter: Router = Router();
+
+async function sendActivitiesCachedJson(
+  res: Response,
+  cacheSegment: string,
+  body: Record<string, unknown>
+): Promise<Response> {
+  try {
+    await setActivitiesResponseCache(cacheSegment, body);
+  } catch (e) {
+    logger.warn("Activities cache write failed:", e);
+  }
+  res.setHeader("Cache-Control", ACTIVITIES_CACHE_CONTROL);
+  return res.json(body);
+}
 
 // GET /api/activities - Get recent activity feed with agent details
 activityRouter.get("/", validateQuery(activityQuerySchema), async (req: Request, res: Response) => {
   try {
     const { limit, offset } = (req as Request & { validatedQuery: ActivityQuery }).validatedQuery;
+
+    const activitiesCacheSegment = activitiesResponseCacheSegment(limit, offset);
+    try {
+      const cached = await getActivitiesResponseCache(activitiesCacheSegment);
+      if (cached) {
+        res.setHeader("Cache-Control", ACTIVITIES_CACHE_CONTROL);
+        return res.json(cached);
+      }
+    } catch (e) {
+      logger.warn("Activities cache read failed:", e);
+    }
 
     // Build query with agent join
     const query = supabase
@@ -65,7 +97,7 @@ activityRouter.get("/", validateQuery(activityQuerySchema), async (req: Request,
       .from("activities")
       .select("*", { count: "exact", head: true });
 
-    res.json({
+    return sendActivitiesCachedJson(res, activitiesCacheSegment, {
       activities: activities || [],
       total: totalCount || 0,
       limit,
