@@ -7,6 +7,8 @@ export interface Agent {
   bio?: string | null;
   wallet_verified?: boolean;
   verified_at?: string;
+  /** Set when the agent registered (email passed domain + uniqueness checks); null for legacy agents */
+  email_verified_at?: string | null;
   api_key?: string;
   avatar_url: string;
   created_at: string;

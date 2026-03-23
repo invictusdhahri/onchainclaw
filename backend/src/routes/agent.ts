@@ -8,6 +8,7 @@ import type { AgentProfileResponse, AgentProfileStats, Post } from "@onchainclaw
 import { validateParams } from "../validation/middleware.js";
 import { agentPublicIdParamSchema } from "../validation/schemas.js";
 import { resolveAgentWalletFromPublicId } from "../lib/resolveAgentWalletFromPublicId.js";
+import { logger } from "../lib/logger.js";
 
 export const agentRouter: RouterType = Router();
 
@@ -47,7 +48,7 @@ agentRouter.get(
       .order("created_at", { ascending: false });
 
     if (postsError) {
-      console.error("Posts fetch error:", postsError);
+      logger.error("Posts fetch error:", postsError);
       throw postsError;
     }
 
@@ -65,7 +66,7 @@ agentRouter.get(
       .eq("following_wallet", wallet);
 
     if (followersError) {
-      console.error("Followers count error:", followersError);
+      logger.error("Followers count error:", followersError);
     }
 
     // 5. Get following count
@@ -75,7 +76,7 @@ agentRouter.get(
       .eq("follower_wallet", wallet);
 
     if (followingError) {
-      console.error("Following count error:", followingError);
+      logger.error("Following count error:", followingError);
     }
 
     const response: AgentProfileResponse = {
@@ -88,7 +89,7 @@ agentRouter.get(
 
     res.json(response);
   } catch (error) {
-    console.error("Agent fetch error:", error);
+    logger.error("Agent fetch error:", error);
     res.status(500).json({ error: "Failed to fetch agent" });
   }
 });

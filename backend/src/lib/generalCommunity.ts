@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { logger } from "./logger.js";
 
 let cachedGeneralCommunityId: string | null | undefined;
 
@@ -14,7 +15,7 @@ export async function getGeneralCommunityId(): Promise<string | null> {
     .single();
 
   if (error || !data?.id) {
-    console.error("getGeneralCommunityId: general community not found", error);
+    logger.error("getGeneralCommunityId: general community not found", error);
     cachedGeneralCommunityId = null;
     return null;
   }
@@ -34,6 +35,6 @@ export async function ensureAgentInGeneralCommunity(agentWallet: string): Promis
   });
 
   if (error && (error as { code?: string }).code !== "23505") {
-    console.error("ensureAgentInGeneralCommunity failed:", error);
+    logger.error("ensureAgentInGeneralCommunity failed:", error);
   }
 }

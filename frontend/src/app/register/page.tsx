@@ -7,9 +7,11 @@ import bs58 from "bs58";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Copy, Download, Loader2, AlertCircle } from "lucide-react";
+import { CheckCircle, Copy, Download, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   checkRegisterName,
+  checkRegisterEmail,
   requestChallenge,
   verifyWallet,
   OC_AGENT_API_KEY_STORAGE_KEY,
@@ -24,7 +26,6 @@ export default function RegisterPage() {
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>("form");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Wallet UI must only render on the client. useLayoutEffect runs before paint so the real
   // WalletMultiButton is shown on first paint (avoids a dead "loading" placeholder click).
@@ -47,23 +48,32 @@ export default function RegisterPage() {
   const handleNext = async () => {
     const trimmedName = name.trim();
     if (!trimmedName || !email || !connected || !publicKey) {
-      setError("Please fill all fields and connect your wallet");
+      toast.error("Please fill all fields and connect your wallet");
       return;
     }
     if (/\s/.test(trimmedName)) {
-      setError("Agent name cannot contain spaces");
+      toast.error("Agent name cannot contain spaces");
       return;
     }
 
     setLoading(true);
-    setError(null);
 
     try {
       const check = await checkRegisterName(trimmedName);
       if (!check.available) {
-        setError(
+        toast.error(
           check.error ||
             "This name is already taken. Pick another before continuing."
+        );
+        return;
+      }
+
+      const emailCheck = await checkRegisterEmail(email.trim());
+      if (!emailCheck.ok) {
+        toast.error(
+          emailCheck.message ||
+            emailCheck.error ||
+            "This email cannot be used for registration."
         );
         return;
       }
@@ -73,7 +83,7 @@ export default function RegisterPage() {
       setChallenge(result.challenge);
       setStep("verify");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate challenge");
+      toast.error(err instanceof Error ? err.message : "Failed to generate challenge");
     } finally {
       setLoading(false);
     }
@@ -81,12 +91,11 @@ export default function RegisterPage() {
 
   const handleSign = async () => {
     if (!challenge || !signMessage || !publicKey) {
-      setError("Missing challenge or wallet not connected");
+      toast.error("Missing challenge or wallet not connected");
       return;
     }
 
     setLoading(true);
-    setError(null);
 
     try {
       const wallet = publicKey.toBase58();
@@ -109,9 +118,10 @@ export default function RegisterPage() {
         /* private mode / SSR */
       }
       analytics.agentRegistered();
+      toast.success("Registration complete — your API key is below.");
       setStep("success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to verify signature");
+      toast.error(err instanceof Error ? err.message : "Failed to verify signature");
     } finally {
       setLoading(false);
     }
@@ -130,7 +140,7 @@ export default function RegisterPage() {
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold mb-2">Register Your Agent</h1>
         <p className="text-muted-foreground">
-          Verify wallet ownership and get your API key
+          Verify your wallet, then get your API key
         </p>
       </div>
 
@@ -146,16 +156,6 @@ export default function RegisterPage() {
           3. Get API Key
         </Badge>
       </div>
-
-      {/* Error Display */}
-      {error && (
-        <Card className="p-4 mb-6 border-destructive/50 bg-destructive/10">
-          <div className="flex items-start gap-2 text-destructive">
-            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            <p className="text-sm">{error}</p>
-          </div>
-        </Card>
-      )}
 
       {/* Step 1: Form */}
       {step === "form" && (
@@ -196,7 +196,7 @@ export default function RegisterPage() {
               className="w-full px-3 py-2 border border-input rounded-lg bg-background dark:bg-white/[0.04] dark:border-white/[0.06] focus:outline-none focus:ring-2 focus:ring-ring/40 transition-all"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              We&apos;ll send your API key to this email
+              Must be a real address (we check the domain) and not already on file. Your API key is emailed here after you sign.
             </p>
           </div>
 

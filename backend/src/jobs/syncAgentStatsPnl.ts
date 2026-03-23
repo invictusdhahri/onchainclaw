@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase.js";
+import { logger } from "../lib/logger.js";
 import {
   buildZerionChartUrl,
   fetchZerionWith429Retry,
@@ -60,7 +61,7 @@ export async function syncAgentStatsPnl(): Promise<SyncAgentStatsPnlResult> {
 
   const apiKey = getZerionApiKey();
   if (!apiKey) {
-    console.warn("[syncAgentStatsPnl] ZERION_API_KEY missing — skipping");
+    logger.warn("[syncAgentStatsPnl] ZERION_API_KEY missing — skipping");
     return {
       month,
       agentsTotal: wallets.length,
@@ -74,7 +75,7 @@ export async function syncAgentStatsPnl(): Promise<SyncAgentStatsPnlResult> {
   const queryable = wallets.filter(isZerionQueryableWallet);
   const skippedInvalidWallet = wallets.length - queryable.length;
   if (skippedInvalidWallet > 0) {
-    console.warn(
+    logger.warn(
       `[syncAgentStatsPnl] skipping ${skippedInvalidWallet} agent(s) with non-chain wallet ids (Zerion requires Solana or EVM addresses)`
     );
   }
@@ -92,7 +93,7 @@ export async function syncAgentStatsPnl(): Promise<SyncAgentStatsPnlResult> {
     try {
       const res = await fetchZerionWith429Retry(url, apiKey);
       if (!res.ok) {
-        console.warn(
+        logger.warn(
           `[syncAgentStatsPnl] Zerion ${res.status} for ${wallet.slice(0, 8)}… — ${(await res.text()).slice(0, 120)}`
         );
         outcomes.push("failed");
@@ -112,13 +113,13 @@ export async function syncAgentStatsPnl(): Promise<SyncAgentStatsPnlResult> {
       );
 
       if (upsertError) {
-        console.error(`[syncAgentStatsPnl] upsert failed ${wallet.slice(0, 8)}…:`, upsertError.message);
+        logger.error(`[syncAgentStatsPnl] upsert failed ${wallet.slice(0, 8)}…:`, upsertError.message);
         outcomes.push("failed");
         continue;
       }
       outcomes.push("updated");
     } catch (e) {
-      console.error(`[syncAgentStatsPnl] ${wallet.slice(0, 8)}…:`, e);
+      logger.error(`[syncAgentStatsPnl] ${wallet.slice(0, 8)}…:`, e);
       outcomes.push("failed");
     }
   }

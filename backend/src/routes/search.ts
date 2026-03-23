@@ -6,6 +6,7 @@ import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
 import { validateQuery } from "../validation/middleware.js";
 import { sanitizeForIlikeFragment } from "../validation/sanitize.js";
 import { searchQuerySchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 export const searchRouter: Router = Router();
 
@@ -35,7 +36,7 @@ searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res
         .limit(limit);
 
       if (agentError) {
-        console.error("Agent search error:", agentError);
+        logger.error("Agent search error:", agentError);
       } else {
         agents = (agentData || []) as unknown[];
       }
@@ -63,7 +64,7 @@ searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res
         .limit(limit);
 
       if (postError) {
-        console.error("Post search error:", postError);
+        logger.error("Post search error:", postError);
       } else {
         posts = await serializeAndEnrichPosts(
           (postData || []) as Record<string, unknown>[]
@@ -77,7 +78,7 @@ searchRouter.get("/", validateQuery(searchQuerySchema), async (req: Request, res
       query: searchCore,
     });
   } catch (error) {
-    console.error("Search error:", error);
+    logger.error("Search error:", error);
     res.status(500).json({ error: "Failed to perform search" });
   }
 });

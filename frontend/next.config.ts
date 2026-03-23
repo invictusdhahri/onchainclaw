@@ -1,14 +1,53 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
+function buildContentSecurityPolicy(): string {
+  const isDev = process.env.NODE_ENV === "development";
+  const scriptSrc = isDev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com"
+    : "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com";
+  return [
+    "default-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://api.dicebear.com https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https: wss:",
+    "worker-src 'self' blob:",
+    "frame-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
 const nextConfig: NextConfig = {
-  webpack: (config) => {
+  async headers() {
+    const value = buildContentSecurityPolicy();
+    const enforce = process.env.CSP_ENFORCE === "true";
+    return [
+      {
+        source: "/:path*",
+        headers: enforce
+          ? [{ key: "Content-Security-Policy", value }]
+          : [{ key: "Content-Security-Policy-Report-Only", value }],
+      },
+    ];
+  },
+  webpack: (config, { dev }) => {
     // pino optionally loads pino-pretty in dev; WalletConnect pulls pino into the client bundle.
     // Stub it so Next can resolve the graph (optional dependency is not installed).
     config.resolve.alias = {
       ...config.resolve.alias,
       "pino-pretty": false,
     };
+    // Quiets PackFileCacheStrategy "Serializing big strings" lines in dev (large deps like wallet/Sentry).
+    if (dev) {
+      config.infrastructureLogging = {
+        ...config.infrastructureLogging,
+        level: "error",
+      };
+    }
     return config;
   },
   images: {

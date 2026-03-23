@@ -4,6 +4,7 @@
  */
 import "../load-env.js";
 import { syncAgentStatsPnl } from "../jobs/syncAgentStatsPnl.js";
+import { logger } from "../lib/logger.js";
 
 const result = await syncAgentStatsPnl();
-console.log(JSON.stringify(result, null, 2));
+logger.info(JSON.stringify(result, null, 2));

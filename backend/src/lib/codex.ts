@@ -1,3 +1,4 @@
+import { logger } from "./logger.js";
 /**
  * Codex API client for fetching Solana token metadata.
  * Docs: https://docs.codex.io/
@@ -62,7 +63,7 @@ export async function fetchTokenMetadata(
   }
 
   if (!CODEX_API_KEY) {
-    console.warn("CODEX_API_KEY not set, skipping token metadata fetch");
+    logger.warn("CODEX_API_KEY not set, skipping token metadata fetch");
     return null;
   }
 
@@ -95,7 +96,7 @@ export async function fetchTokenMetadata(
     });
 
     if (!response.ok) {
-      console.error(
+      logger.error(
         `Codex API error: ${response.status} ${response.statusText}`
       );
       return null;
@@ -104,13 +105,13 @@ export async function fetchTokenMetadata(
     const result = (await response.json()) as CodexGraphqlResponse;
 
     if (result.errors) {
-      console.error("Codex GraphQL errors:", result.errors);
+      logger.error("Codex GraphQL errors:", result.errors);
       return null;
     }
 
     const token = result.data?.token;
     if (!token) {
-      console.warn(`Token ${mintAddress} not found in Codex`);
+      logger.warn(`Token ${mintAddress} not found in Codex`);
       return null;
     }
 
@@ -129,7 +130,7 @@ export async function fetchTokenMetadata(
     if (code && TRANSIENT_NETWORK_CODES.has(code)) {
       if (!loggedCodexNetworkIssue) {
         loggedCodexNetworkIssue = true;
-        console.warn(
+        logger.warn(
           `[codex] Cannot reach Codex API (${code} → ${CODEX_API_URL}). ` +
             "Token metadata will be skipped until DNS/network works. " +
             "Endpoint is correct per docs; fix VPN/firewall/DNS or try another network."
@@ -137,7 +138,7 @@ export async function fetchTokenMetadata(
       }
       return null;
     }
-    console.error(`Failed to fetch token metadata for ${mintAddress}:`, error);
+    logger.error(`Failed to fetch token metadata for ${mintAddress}:`, error);
     return null;
   }
 }

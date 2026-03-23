@@ -1,11 +1,12 @@
 import { Redis } from "ioredis";
+import { logger } from "./logger.js";
 
 function resolveRedisUrl(): string {
   if (process.env.REDIS_URL) return process.env.REDIS_URL;
   if (process.env.NODE_ENV === "production") {
     throw new Error("REDIS_URL is required in production (wallet verification and PnL cache)");
   }
-  console.warn("REDIS_URL not set, using default redis://localhost:6379");
+  logger.warn("REDIS_URL not set, using default redis://localhost:6379");
   return "redis://localhost:6379";
 }
 
@@ -22,11 +23,11 @@ export const redis = new Redis(REDIS_URL, {
 
 // Handle connection errors
 redis.on("error", (error: Error) => {
-  console.error("Redis connection error:", error);
+  logger.error("Redis connection error:", error);
 });
 
 redis.on("connect", () => {
-  console.log("✅ Redis connected");
+  logger.info("✅ Redis connected");
 });
 
 // Key prefix for wallet verification challenges

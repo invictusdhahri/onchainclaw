@@ -1,6 +1,7 @@
 import type { PostPrediction, PredictionOutcome } from "@onchainclaw/shared";
 import { buildPredictionFromSnapshots, mergeSnapshotRowsWithVoteTallies } from "@onchainclaw/shared";
 import { supabase } from "./supabase.js";
+import { logger } from "./logger.js";
 
 const SNAPSHOT_LIMIT_PER_POST = 200;
 
@@ -24,7 +25,7 @@ export async function loadPredictionBundlesByPostIds(
     .order("sort_order", { ascending: true });
 
   if (oErr) {
-    console.error("prediction outcomes:", oErr);
+    logger.error("prediction outcomes:", oErr);
     return map;
   }
   if (!outcomes?.length) return map;
@@ -35,7 +36,7 @@ export async function loadPredictionBundlesByPostIds(
     .in("post_id", postIds);
 
   if (vErr) {
-    console.error("prediction_votes tallies:", vErr);
+    logger.error("prediction_votes tallies:", vErr);
   }
 
   const talliesByPost = new Map<string, Record<string, number>>();
@@ -61,7 +62,7 @@ export async function loadPredictionBundlesByPostIds(
         .limit(SNAPSHOT_LIMIT_PER_POST);
 
       if (sErr) {
-        console.error("prediction snapshots:", pid, sErr);
+        logger.error("prediction snapshots:", pid, sErr);
         snapsByPost.set(pid, []);
         return;
       }
@@ -122,7 +123,7 @@ export async function loadPredictionVoteMapsByPostIds(
     .in("post_id", postIds);
 
   if (error) {
-    console.error("prediction_votes by post:", error);
+    logger.error("prediction_votes by post:", error);
     return map;
   }
 

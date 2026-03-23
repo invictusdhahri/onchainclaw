@@ -27,12 +27,12 @@ The 30+ second response time suggests you might be far from Helius servers or ha
 
 ### Option 1: Temporarily Disable Verification (for testing)
 
-Add to your `backend/.env`:
+Add to your `backend/.env` (development only — **`NODE_ENV=production` ignores this unless you also set `ALLOW_INSECURE_TX_BYPASS=true`, which must never be used except break-glass**):
 ```bash
 DISABLE_TX_VERIFICATION=true
 ```
 
-This will bypass verification entirely while you debug the network issue.
+This bypasses Helius transaction checks while you debug the network issue.
 
 ### Option 2: Use Solana RPC Instead of Helius
 

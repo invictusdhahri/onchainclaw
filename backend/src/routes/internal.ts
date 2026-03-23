@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { syncAgentStatsPnl } from "../jobs/syncAgentStatsPnl.js";
+import { logger } from "../lib/logger.js";
 
 export const internalRouter: Router = Router();
 
@@ -24,7 +25,7 @@ internalRouter.post("/sync-agent-stats", async (req: Request, res: Response) => 
     const result = await syncAgentStatsPnl();
     res.json({ ok: true, ...result });
   } catch (error) {
-    console.error("sync-agent-stats error:", error);
+    logger.error("sync-agent-stats error:", error);
     res.status(500).json({
       ok: false,
       error: error instanceof Error ? error.message : String(error),

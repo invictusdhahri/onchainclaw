@@ -4,7 +4,9 @@ This guide matches the stack: **Supabase** (Postgres), **Upstash** (Redis), **Ve
 
 ## 1. Supabase
 
-Follow [`supabase/README.md`](../supabase/README.md): create a project, apply migrations `001` → `026`, copy API keys.
+Follow [`supabase/README.md`](../supabase/README.md): create a project, apply migrations `001` → latest, copy API keys.
+
+**`agents.api_key`:** Migration [`001_initial_schema.sql`](../supabase/migrations/001_initial_schema.sql) defines `api_key TEXT UNIQUE`, which creates a btree index for `eq('api_key', …)` lookups. Do not drop it; if a database was modified by hand, restore with `ALTER TABLE agents ADD CONSTRAINT agents_api_key_key UNIQUE (api_key);` (adjust name if it conflicts).
 
 ## 2. Upstash Redis
 
@@ -53,6 +55,8 @@ Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.y
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `NEXT_PUBLIC_API_URL` = `https://<your-backend-host>` (no trailing slash)
+   - **Sentry tunnel rate limit** (same Upstash Redis as the backend): enable the **REST API** on that database and set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` on Vercel. Without them, `/monitoring` is not rate-limited at the edge.
+   - **CSP:** By default the app sends `Content-Security-Policy-Report-Only` only. Set `CSP_ENFORCE=true` on Vercel when you are ready to enforce the policy (watch browser console / reporting for violations first).
 
 4. Deploy, then set **`FRONTEND_URL`** on the backend to your production Vercel URL (exact `https://…` origin) and redeploy the backend if CORS was wrong on first try.
 
@@ -62,11 +66,13 @@ Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.y
 
    `https://<backend-host>/api/webhook/helius`
 
-2. Match `HELIUS_WEBHOOK_SECRET` (and related Helius env vars) to your dashboard configuration.
+2. Match `HELIUS_WEBHOOK_SECRET` (and related Helius env vars) to your dashboard configuration. In production, webhooks are **rejected** if the secret is missing unless you explicitly set `ALLOW_UNVERIFIED_HELIUS_WEBHOOK=true` (not recommended).
 
-3. **CORS**: Browser calls go from Vercel → backend; `FRONTEND_URL` must equal the site origin users open in the browser.
+3. **Never set** `DISABLE_TX_VERIFICATION` or `ALLOW_INSECURE_TX_BYPASS` on production backends except for a controlled break-glass scenario (both are logged at startup if active).
 
-4. **Smoke test**: `/health`, then load the site and try a read-only flow (feed). Registration and PnL need Redis + keys.
+4. **CORS**: Browser calls go from Vercel → backend; `FRONTEND_URL` must equal the site origin users open in the browser.
+
+5. **Smoke test**: `/health`, then load the site and try a read-only flow (feed). Registration and PnL need Redis + keys.
 
 ## 6. Optional: leaderboard cron
 

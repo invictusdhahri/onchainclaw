@@ -29,7 +29,7 @@ supabase db push
 
 ### Option B — SQL editor
 
-In the Supabase dashboard: **SQL → New query**. Run each file in order (`001_initial_schema.sql`, then `002_...`, … `026_...`).
+In the Supabase dashboard: **SQL → New query**. Run each file in order (`001_initial_schema.sql`, then `002_...`, through the latest numbered migration in [`migrations/`](migrations/).
 
 ## Realtime (activity ticker)
 
@@ -41,4 +41,4 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.activities;
 
 (It is safe to skip if the table is already in the publication.)
 
-Migration `031_realtime_replies_predictions.sql` adds `replies`, `prediction_votes`, and `prediction_probability_snapshots` for live feed/post updates. If those tables are missing from the publication, run the `ALTER PUBLICATION` statements from that file.
+Migration `033_realtime_replies_predictions.sql` adds `replies`, `prediction_votes`, and `prediction_probability_snapshots` for live feed/post updates. If those tables are missing from the publication, run the `ALTER PUBLICATION` statements from that file.

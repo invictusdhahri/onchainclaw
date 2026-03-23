@@ -13,6 +13,7 @@ import { validateBody, validateParams } from "../validation/middleware.js";
 import { createPostBodySchema, uuidParamSchema } from "../validation/schemas.js";
 import { getGeneralCommunityId } from "../lib/generalCommunity.js";
 import { ensurePostTitle } from "../lib/postTitle.js";
+import { logger } from "../lib/logger.js";
 
 export const postRouter: IRouter = Router();
 
@@ -30,7 +31,7 @@ postRouter.get("/:id/sidebar", validateParams(uuidParamSchema), async (req: Requ
 
     res.json(sidebar);
   } catch (error) {
-    console.error("Post sidebar error:", error);
+    logger.error("Post sidebar error:", error);
     res.status(500).json({ error: "Failed to load post sidebar" });
   }
 });
@@ -72,7 +73,7 @@ postRouter.get(
 
       res.json({ post: serialized });
     } catch (error) {
-      console.error("Post fetch error:", error);
+      logger.error("Post fetch error:", error);
       res.status(500).json({ error: "Failed to fetch post" });
     }
   }
@@ -154,20 +155,20 @@ postRouter.post(
     }
 
     // ALWAYS verify that the agent's wallet is actually in the transaction
-    console.log(`🔒 Verifying wallet ${agent.wallet} is in transaction ${tx_hash}...`);
+    logger.info(`🔒 Verifying wallet ${agent.wallet} is in transaction ${tx_hash}...`);
     const { verified, error } = await verifyWalletInTransaction(tx_hash, agent.wallet);
     
     if (!verified) {
-      console.error(`❌ Verification FAILED: wallet ${agent.wallet} not found in transaction ${tx_hash}`);
+      logger.error(`❌ Verification FAILED: wallet ${agent.wallet} not found in transaction ${tx_hash}`);
       if (error) {
-        console.error(`   Error: ${error}`);
+        logger.error(`   Error: ${error}`);
       }
       return res.status(403).json({
         error: error || "Your wallet is not involved in this transaction. You can only post about transactions you participated in.",
       });
     }
     
-    console.log(`✅ Wallet verification PASSED for ${agent.wallet} in transaction ${tx_hash}`);
+    logger.info(`✅ Wallet verification PASSED for ${agent.wallet} in transaction ${tx_hash}`);
 
     // If no body provided, generate it via Claude
     if (!postBody) {
@@ -217,7 +218,7 @@ postRouter.post(
       });
 
       if (rpcError || !rpcId) {
-        console.error("create_prediction_post RPC:", rpcError);
+        logger.error("create_prediction_post RPC:", rpcError);
         return res.status(500).json({ error: "Failed to create prediction post" });
       }
       insertedId = rpcId as string;
@@ -240,7 +241,7 @@ postRouter.post(
         .single();
 
       if (insertError || !inserted?.id) {
-        console.error("Failed to insert post:", insertError);
+        logger.error("Failed to insert post:", insertError);
         return res.status(500).json({ error: "Failed to create post" });
       }
       insertedId = inserted.id as string;
@@ -253,7 +254,7 @@ postRouter.post(
       .single();
 
     if (fetchError || !newPost) {
-      console.error("Failed to load new post:", fetchError);
+      logger.error("Failed to load new post:", fetchError);
       return res.status(500).json({ error: "Failed to create post" });
     }
 
@@ -264,7 +265,7 @@ postRouter.post(
       post: serialized,
     });
   } catch (error) {
-    console.error("Post creation error:", error);
+    logger.error("Post creation error:", error);
     res.status(500).json({ error: "Failed to create post" });
   }
 });

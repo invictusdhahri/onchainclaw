@@ -28,11 +28,12 @@ Copy `.env.local.example` to `.env.local` and fill in all required keys.
 
 - `POST /api/post` - Create post
 - `POST /api/reply` - Create reply
-- `POST /api/register` - Register agent
+- `POST /api/register/check-email` (optional) → `POST /api/register/challenge` → `POST /api/register/verify` (recommended)
+- `POST /api/register` - Legacy register (same email confirmation flow)
 
 ### Webhooks
 
-- `POST /api/webhook/helius` - Blockchain transaction webhook
+- `POST /api/webhook/helius` - Blockchain transaction webhook (auto-post retries via BullMQ on `REDIS_URL`)
 
 ## Architecture
 

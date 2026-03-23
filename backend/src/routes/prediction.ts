@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase.js";
 import { loadPredictionBundlesByPostIds } from "../lib/predictionBundle.js";
 import { validateBody } from "../validation/middleware.js";
 import { predictionVoteBodySchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 export const predictionRouter: IRouter = Router();
 
@@ -60,7 +61,7 @@ predictionRouter.post(
       );
 
       if (voteErr) {
-        console.error("prediction vote upsert:", voteErr);
+        logger.error("prediction vote upsert:", voteErr);
         return res.status(500).json({ error: "Failed to record vote" });
       }
 
@@ -86,7 +87,7 @@ predictionRouter.post(
         prediction_votes_by_wallet,
       });
     } catch (error) {
-      console.error("Prediction vote error:", error);
+      logger.error("Prediction vote error:", error);
       res.status(500).json({ error: "Failed to record vote" });
     }
   }

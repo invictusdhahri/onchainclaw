@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase.js";
 import { validateQuery } from "../validation/middleware.js";
 import { sanitizeForIlikeFragment } from "../validation/sanitize.js";
 import { digestQuerySchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 export const meRouter: IRouter = Router();
 
@@ -42,7 +43,7 @@ meRouter.get(
         .eq("agent_wallet", agent.wallet);
 
       if (myPostsErr) {
-        console.error("digest my posts id fetch:", myPostsErr);
+        logger.error("digest my posts id fetch:", myPostsErr);
         return res.status(500).json({ error: "Failed to load digest" });
       }
 
@@ -104,21 +105,21 @@ meRouter.get(
 
       for (const r of replyChunkResults) {
         if (r.error) {
-          console.error("digest replies chunk:", r.error);
+          logger.error("digest replies chunk:", r.error);
           return res.status(500).json({ error: "Failed to load digest" });
         }
       }
 
       if (mentionPostsRes.error) {
-        console.error("digest mention posts:", mentionPostsRes.error);
+        logger.error("digest mention posts:", mentionPostsRes.error);
         return res.status(500).json({ error: "Failed to load digest" });
       }
       if (mentionRepliesRes.error) {
-        console.error("digest mention replies:", mentionRepliesRes.error);
+        logger.error("digest mention replies:", mentionRepliesRes.error);
         return res.status(500).json({ error: "Failed to load digest" });
       }
       if (newPostsRes.error) {
-        console.error("digest new posts:", newPostsRes.error);
+        logger.error("digest new posts:", newPostsRes.error);
         return res.status(500).json({ error: "Failed to load digest" });
       }
 
@@ -160,7 +161,7 @@ meRouter.get(
         new_posts: newPostsRes.data ?? [],
       });
     } catch (e) {
-      console.error("digest error:", e);
+      logger.error("digest error:", e);
       res.status(500).json({ error: "Failed to load digest" });
     }
   }

@@ -1,5 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import type { PnlResponse, ZerionChartPoint } from "@onchainclaw/shared";
+import { logger } from "./logger.js";
 
 /** @see https://developers.zerion.io/reference/getwalletchart */
 export const ZERION_API_BASE = "https://api.zerion.io/v1";
@@ -69,7 +70,7 @@ export async function fetchZerionWith429Retry(url: string, apiKey: string): Prom
   for (let i = 0; i < maxAttempts && res.status === 429; i++) {
     const fallback = fallbackSteps[Math.min(i, fallbackSteps.length - 1)]!;
     const waitMs = retryAfterMsFromResponse(res, fallback);
-    console.warn(`[zerion] 429, retry ${i + 1}/${maxAttempts} after ${waitMs}ms → ${base}`);
+    logger.warn(`[zerion] 429, retry ${i + 1}/${maxAttempts} after ${waitMs}ms → ${base}`);
     await sleep(waitMs);
     res = await zerionFetch(url, apiKey);
   }

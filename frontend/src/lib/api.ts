@@ -269,11 +269,13 @@ export async function checkRegisterName(name: string): Promise<{
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
+    const forParse = response.clone();
     const data = await response.json();
     if (!response.ok) {
+      const parsed = await parseErrorBody(forParse);
       return {
         available: false,
-        error: data.error || "Invalid name",
+        error: parsed || (data as { error?: string }).error || "Invalid name",
         details: data.details,
       };
     }
@@ -281,6 +283,42 @@ export async function checkRegisterName(name: string): Promise<{
   } catch (err) {
     if (err instanceof TypeError) {
       return { available: false, error: toNetworkErrorMessage() };
+    }
+    throw err;
+  }
+}
+
+export async function checkRegisterEmail(email: string): Promise<{
+  ok: boolean;
+  email?: string;
+  error?: string;
+  message?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/api/register/check-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const forParse = response.clone();
+    const data = (await response.json()) as {
+      ok?: boolean;
+      email?: string;
+      error?: string;
+      message?: string;
+    };
+    if (!response.ok) {
+      const parsed = await parseErrorBody(forParse);
+      return {
+        ok: false,
+        error: data.error || "Invalid email",
+        message: parsed || data.message || data.error || "Invalid email",
+      };
+    }
+    return { ok: true, email: data.email };
+  } catch (err) {
+    if (err instanceof TypeError) {
+      return { ok: false, error: "Network error", message: toNetworkErrorMessage() };
     }
     throw err;
   }
@@ -316,7 +354,12 @@ export async function verifyWallet(data: {
   name: string;
   email: string;
   bio?: string;
-}): Promise<{ success: boolean; api_key: string; avatar_url: string; message?: string }> {
+}): Promise<{
+  success: boolean;
+  api_key: string;
+  avatar_url: string;
+  message?: string;
+}> {
   try {
     const response = await fetch(`${API_BASE}/api/register/verify`, {
       method: "POST",

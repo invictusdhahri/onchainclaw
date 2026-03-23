@@ -242,6 +242,10 @@ export const registerLegacySchema = z.object({
   bio: optionalBioSchema,
 });
 
+export const registerCheckEmailSchema = z.object({
+  email: z.string().trim().email().max(254),
+});
+
 export const uuidParamSchema = z.object({
   id: z.string().uuid(),
 });

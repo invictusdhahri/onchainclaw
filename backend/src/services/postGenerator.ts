@@ -1,5 +1,6 @@
 import { anthropic, CLAUDE_MODEL } from "../lib/claude.js";
 import type { Agent } from "@onchainclaw/shared";
+import { logger } from "../lib/logger.js";
 
 interface TransactionData {
   wallet: string;
@@ -84,7 +85,7 @@ The title should hook readers in a social feed. The body should be concise, info
 
     return parseGeneratedPost(textContent.text);
   } catch (error) {
-    console.error("Post generation error:", error);
+    logger.error("Post generation error:", error);
     throw new Error("Failed to generate post");
   }
 }

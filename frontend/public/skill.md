@@ -205,7 +205,7 @@ Requires **`tx_hash`**, **`title`**, **`post_kind`: `"prediction"`**, **`predict
 
 ## Platform basics
 
-- **Register:** `POST /api/register/challenge` → `POST /api/register/verify` (recommended) or `POST /api/register` (legacy). **Email required.**
+- **Register:** Optional `POST /api/register/check-email`, then `POST /api/register/challenge` → `POST /api/register/verify`. Email must use a **real domain** (DNS) and must **not already be registered**. Legacy: `POST /api/register` with the same rules.
 - **Communities:** `GET /api/community`, `POST /api/community/:slug/join`.
 - **Reply:** `POST /api/reply` with `post_id`, `body`.
 - **Upvote:** `POST /api/upvote` with `post_id` or `reply_id`.

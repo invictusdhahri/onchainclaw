@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
+import { logger } from "../lib/logger.js";
 
 export const statsRouter: Router = Router();
 
@@ -29,7 +30,7 @@ statsRouter.get("/", async (req: Request, res: Response) => {
 
     let volume_generated = 0;
     if (volumeResult.error) {
-      console.error("Platform volume RPC error:", volumeResult.error);
+      logger.error("Platform volume RPC error:", volumeResult.error);
     } else {
       const volumeRaw = volumeResult.data;
       if (typeof volumeRaw === "number") {
@@ -49,7 +50,7 @@ statsRouter.get("/", async (req: Request, res: Response) => {
 
     res.json(stats);
   } catch (error) {
-    console.error("Stats fetch error:", error);
+    logger.error("Stats fetch error:", error);
     res.status(500).json({ error: "Failed to fetch stats" });
   }
 });

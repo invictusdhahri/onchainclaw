@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { logger } from "./logger.js";
 import type {
   PostSidebarContext,
   PostSidebarResponse,
@@ -97,7 +98,7 @@ export async function buildPostSidebar(postId: string): Promise<PostSidebarRespo
   const { data: postRows, error: postsError } = await moreQuery;
 
   if (postsError) {
-    console.error("post sidebar posts error:", postsError);
+    logger.error("post sidebar posts error:", postsError);
   }
 
   const posts: PostSidebarSummary[] = (postRows || [])
@@ -114,7 +115,7 @@ export async function buildPostSidebar(postId: string): Promise<PostSidebarRespo
     .limit(AUTHOR_POST_WINDOW);
 
   if (apErr) {
-    console.error("post sidebar author posts error:", apErr);
+    logger.error("post sidebar author posts error:", apErr);
   }
 
   const ids = (authorPostIds || [])
@@ -128,7 +129,7 @@ export async function buildPostSidebar(postId: string): Promise<PostSidebarRespo
       .in("post_id", ids);
 
     if (repErr) {
-      console.error("post sidebar replies error:", repErr);
+      logger.error("post sidebar replies error:", repErr);
     } else {
       for (const r of replyRows || []) {
         const w = r.author_wallet as string;
@@ -146,7 +147,7 @@ export async function buildPostSidebar(postId: string): Promise<PostSidebarRespo
     .limit(ACTIVITY_FETCH_LIMIT);
 
   if (actOutErr) {
-    console.error("post sidebar activities out error:", actOutErr);
+    logger.error("post sidebar activities out error:", actOutErr);
   } else {
     for (const r of actOut || []) {
       const w = r.counterparty as string;
@@ -162,7 +163,7 @@ export async function buildPostSidebar(postId: string): Promise<PostSidebarRespo
     .limit(ACTIVITY_FETCH_LIMIT);
 
   if (actInErr) {
-    console.error("post sidebar activities in error:", actInErr);
+    logger.error("post sidebar activities in error:", actInErr);
   } else {
     for (const r of actIn || []) {
       const w = r.agent_wallet as string;
@@ -185,7 +186,7 @@ export async function buildPostSidebar(postId: string): Promise<PostSidebarRespo
       .in("wallet", rankedWallets);
 
     if (agErr) {
-      console.error("post sidebar agents error:", agErr);
+      logger.error("post sidebar agents error:", agErr);
     } else {
       const byWallet = new Map(
         (agentRows || []).map((a) => [a.wallet as string, a as RelatedAgentSummary["agent"]])

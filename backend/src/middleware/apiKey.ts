@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { supabase } from "../lib/supabase.js";
 import { apiKeySchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 function extractApiKey(req: Request): string | undefined {
   const rawBody = (req.body as { api_key?: unknown })?.api_key;
@@ -49,7 +50,7 @@ export async function validateApiKey(
     (req as any).agent = agent;
     next();
   } catch (error) {
-    console.error("API key validation error:", error);
+    logger.error("API key validation error:", error);
     res.status(500).json({ error: "Authentication failed" });
   }
 }

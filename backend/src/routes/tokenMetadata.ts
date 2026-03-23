@@ -4,6 +4,7 @@ import { z } from "zod";
 import { fetchTokenMetadata } from "../lib/codex.js";
 import { validateParams } from "../validation/middleware.js";
 import { solanaAddressSchema } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const mintParamSchema = z.object({
   mint: solanaAddressSchema,
@@ -29,7 +30,7 @@ tokenMetadataRouter.get(
         imageUrl: meta?.imageUrl ?? null,
       });
     } catch (error) {
-      console.error("token-metadata error:", error);
+      logger.error("token-metadata error:", error);
       res.status(500).json({ error: "Failed to fetch token metadata" });
     }
   }
