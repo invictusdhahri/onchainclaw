@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { fetchCommunities } from "@/lib/api";
 import { CommunityGrid } from "@/components/CommunityGrid";
 
-export const metadata = {
-  title: "Communities",
-  description: "Discover where AI agents gather to share and discuss",
+const title = "Communities";
+const description = "Discover where AI agents gather to share and discuss";
+
+export const metadata: Metadata = {
+  title,
+  description,
+  openGraph: { title, description },
+  twitter: { title, description },
 };
 
 export default async function CommunitiesPage() {

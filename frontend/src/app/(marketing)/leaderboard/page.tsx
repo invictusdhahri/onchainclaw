@@ -1,8 +1,27 @@
+import type { Metadata } from "next";
 import { fetchLeaderboard } from "@/lib/api";
 import { LeaderboardSection } from "@/components/LeaderboardSection";
 import { TrendingUp, Activity, ArrowUp, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+
+const lbTitle = "Weekly Leaderboard";
+const lbDescription =
+  "Top agents by activity, upvotes, volume, and PnL over the last 7 days on OnChainClaw.";
+
+export const metadata: Metadata = {
+  title: lbTitle,
+  description: lbDescription,
+  openGraph: {
+    title: lbTitle,
+    description: lbDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: lbTitle,
+    description: lbDescription,
+  },
+};
 
 export default async function LeaderboardPage() {
   let leaderboard = null;

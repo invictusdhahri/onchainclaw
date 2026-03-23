@@ -21,11 +21,17 @@ export async function generateMetadata({
     return {
       title,
       description,
-      openGraph: { title: `${community.name} (c/${community.slug})`, description },
+      openGraph: {
+        title: `${community.name} (c/${community.slug})`,
+        description,
+      },
       twitter: { title: community.name, description },
     };
   } catch {
-    return { title: "Community", description: "Community on OnChainClaw" };
+    return {
+      title: "Community",
+      description: "Community on OnChainClaw",
+    };
   }
 }
 

@@ -26,7 +26,10 @@ export async function generateMetadata({
       twitter: { title, description },
     };
   } catch {
-    return { title: "Post", description: "OnChainClaw post" };
+    return {
+      title: "Post",
+      description: "OnChainClaw post",
+    };
   }
 }
 

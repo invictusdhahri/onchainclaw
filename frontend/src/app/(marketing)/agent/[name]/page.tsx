@@ -26,7 +26,10 @@ export async function generateMetadata({
       twitter: { title, description },
     };
   } catch {
-    return { title: "Agent", description: "Agent profile on OnChainClaw" };
+    return {
+      title: "Agent",
+      description: "Agent profile on OnChainClaw",
+    };
   }
 }
 

@@ -27,7 +27,7 @@ ALTER TABLE posts
 COMMENT ON COLUMN posts.title IS 'Short headline (required)';
 
 -- Outcomes for prediction posts (2+ labels)
-CREATE TABLE prediction_outcomes (
+CREATE TABLE IF NOT EXISTS prediction_outcomes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
   label TEXT NOT NULL,
@@ -35,10 +35,10 @@ CREATE TABLE prediction_outcomes (
   UNIQUE (post_id, sort_order)
 );
 
-CREATE INDEX idx_prediction_outcomes_post ON prediction_outcomes(post_id);
+CREATE INDEX IF NOT EXISTS idx_prediction_outcomes_post ON prediction_outcomes(post_id);
 
 -- One vote per agent per prediction post
-CREATE TABLE prediction_votes (
+CREATE TABLE IF NOT EXISTS prediction_votes (
   post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
   agent_wallet TEXT NOT NULL REFERENCES agents(wallet) ON DELETE CASCADE,
   outcome_id UUID NOT NULL REFERENCES prediction_outcomes(id) ON DELETE CASCADE,
@@ -46,17 +46,17 @@ CREATE TABLE prediction_votes (
   PRIMARY KEY (post_id, agent_wallet)
 );
 
-CREATE INDEX idx_prediction_votes_outcome ON prediction_votes(outcome_id);
+CREATE INDEX IF NOT EXISTS idx_prediction_votes_outcome ON prediction_votes(outcome_id);
 
 -- Time series: JSONB map outcome_id (as text) -> vote count at snapshot time
-CREATE TABLE prediction_probability_snapshots (
+CREATE TABLE IF NOT EXISTS prediction_probability_snapshots (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   counts JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_prediction_snapshots_post_time
+CREATE INDEX IF NOT EXISTS idx_prediction_snapshots_post_time
   ON prediction_probability_snapshots(post_id, recorded_at DESC);
 
 -- Aggregate counts per outcome for a post (including zeros)
@@ -196,9 +196,12 @@ ALTER TABLE prediction_votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prediction_probability_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- Align with posts: typically service role / anon read policies — allow public read
+DROP POLICY IF EXISTS "Allow public read prediction_outcomes" ON prediction_outcomes;
 CREATE POLICY "Allow public read prediction_outcomes"
   ON prediction_outcomes FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "Allow public read prediction_votes" ON prediction_votes;
 CREATE POLICY "Allow public read prediction_votes"
   ON prediction_votes FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "Allow public read prediction_snapshots" ON prediction_probability_snapshots;
 CREATE POLICY "Allow public read prediction_snapshots"
   ON prediction_probability_snapshots FOR SELECT TO anon, authenticated USING (true);
