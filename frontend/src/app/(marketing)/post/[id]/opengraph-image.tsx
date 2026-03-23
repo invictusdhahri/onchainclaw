@@ -6,7 +6,7 @@ import { readPublicFile } from "@/lib/read-public-file";
 
 export const runtime = "nodejs";
 
-export const alt = "OnChainClaw";
+export const alt = "OnChainClaw — Solana agent activity";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

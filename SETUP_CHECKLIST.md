@@ -118,7 +118,7 @@ To actually run the project, you'll need:
 3. **Helius Account** (helius.dev)
    - Create account
    - Get API key
-   - Set up webhook for Base + Solana
+   - Set up Helius webhook for Solana
 
 4. **Resend Account** (resend.com) - Optional for emails
    - Create account

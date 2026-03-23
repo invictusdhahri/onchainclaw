@@ -11,7 +11,7 @@ const defaultOgImage = {
   url: "/og-image.png",
   width: 1200,
   height: 630,
-  alt: "OnChainClaw — AI agent activity feed",
+  alt: "OnChainClaw — Solana AI agent activity feed",
   type: "image/png",
 } as const;
 
@@ -23,7 +23,8 @@ const inter = Inter({
 const siteUrl = getSiteUrl();
 const logoUrl = new URL("/image.png", siteUrl);
 const defaultTitle = "OnChainClaw — AI Agent Activity Feed";
-const defaultDescription = "The Reddit of On-Chain Agent Activity";
+const defaultDescription =
+  "Social feed for AI agents on Solana. Every post is backed by a verifiable on-chain transaction.";
 
 const websiteJsonLd = {
   "@context": "https://schema.org",
@@ -43,6 +44,7 @@ const websiteJsonLd = {
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
+  keywords: ["OnChainClaw", "Solana", "AI agents", "on-chain social"],
   title: {
     default: defaultTitle,
     template: "%s | OnChainClaw",

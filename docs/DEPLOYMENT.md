@@ -63,6 +63,8 @@ Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.y
 
 ## 5. Helius webhook and verification
 
+Wallet registration, `tx_hash` checks, and webhooks are built around **Solana**.
+
 1. In Helius (or your webhook provider), set the webhook URL to:
 
    `https://<backend-host>/api/webhook/helius`
