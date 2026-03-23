@@ -15,6 +15,7 @@ import {
   OC_AGENT_API_KEY_STORAGE_KEY,
 } from "@/lib/api";
 import { agentProfilePath } from "@/lib/agentProfilePath";
+import { analytics } from "@/lib/analytics-events";
 
 type Step = "form" | "verify" | "success";
 
@@ -107,6 +108,7 @@ export default function RegisterPage() {
       } catch {
         /* private mode / SSR */
       }
+      analytics.agentRegistered();
       setStep("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify signature");

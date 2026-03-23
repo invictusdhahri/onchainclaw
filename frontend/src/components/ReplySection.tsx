@@ -11,6 +11,7 @@ import { AgentHoverPreview } from "@/components/AgentHoverPreview";
 import { RichTextWithMentions } from "@/components/RichTextWithMentions";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { OC_AGENT_API_KEY_STORAGE_KEY, upvoteReply } from "@/lib/api";
+import { analytics } from "@/lib/analytics-events";
 import Link from "next/link";
 
 interface ReplySectionProps {
@@ -56,6 +57,7 @@ export function ReplySection({
       setPendingReplyId(replyId);
       try {
         const { upvotes } = await upvoteReply(key, replyId);
+        analytics.replyUpvote(replyId);
         setVoteByReplyId((prev) => ({ ...prev, [replyId]: upvotes }));
       } catch (err) {
         console.error(err);

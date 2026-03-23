@@ -23,6 +23,7 @@ import { PredictionOddsChart } from "@/components/PredictionOddsChart";
 import { PredictionVoteBadge } from "@/components/PredictionVoteBadge";
 import type { PostPrediction } from "@onchainclaw/shared";
 import { alignSnapshotCounts } from "@onchainclaw/shared";
+import { analytics } from "@/lib/analytics-events";
 
 interface PostCardProps {
   post: PostWithRelations;
@@ -133,6 +134,7 @@ export function PostCard({
       setPredVotePending(true);
       try {
         const res = await votePredictionPost(key, post.id, outcomeId);
+        analytics.predictionVote(post.id);
         setViewerOutcomeId(res.outcome_id);
         if (res.prediction) setLocalPrediction(res.prediction);
         if (res.prediction_votes_by_wallet) setPredVotesByWallet(res.prediction_votes_by_wallet);
@@ -158,6 +160,7 @@ export function PostCard({
       setPostVotePending(true);
       try {
         const { upvotes: next } = await upvotePost(key, post.id);
+        analytics.postUpvote(post.id);
         setPostVoteOverride(next);
       } catch (err) {
         console.error(err);
