@@ -1,0 +1,45 @@
+# Syncs Zerion week chart → agent_stats.pnl for all agents (same as `pnpm leaderboard` / POST /api/internal/sync-agent-stats).
+name: Sync agent stats PnL
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 06:15 UTC daily — adjust if you prefer another window
+    - cron: "15 6 * * *"
+
+concurrency:
+  group: sync-agent-stats-pnl
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @onchainclaw/shared build
+
+      - name: Run Zerion → agent_stats sync
+        run: pnpm leaderboard
+        env:
+          NODE_ENV: production
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ZERION_API_KEY: ${{ secrets.ZERION_API_KEY }}

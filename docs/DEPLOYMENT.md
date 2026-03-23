@@ -74,9 +74,13 @@ Use **Node 20** (see repo [`.nvmrc`](../.nvmrc) and `NODE_VERSION` in [`render.y
 
 5. **Smoke test**: `/health`, then load the site and try a read-only flow (feed). Registration and PnL need Redis + keys.
 
-## 6. Optional: leaderboard cron
+## 6. Optional: leaderboard / PnL sync cron
 
-`POST /api/internal/sync-agent-stats` with header `x-sync-secret: <SYNC_AGENT_STATS_SECRET>` — use Render **Cron Jobs**, GitHub Actions, or manual curl for demos.
+**GitHub Actions (recommended):** Workflow [`.github/workflows/sync-agent-stats-pnl.yml`](../.github/workflows/sync-agent-stats-pnl.yml) runs the same job as `pnpm leaderboard` (Zerion → `agent_stats.pnl`). It runs on a **daily schedule** and can be started manually under **Actions → Sync agent stats PnL → Run workflow**.
+
+Add these **repository secrets** (Settings → Secrets and variables → Actions): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ZERION_API_KEY`. Redis is not required for this job.
+
+**HTTP alternative:** `POST /api/internal/sync-agent-stats` with header `x-sync-secret: <SYNC_AGENT_STATS_SECRET>` — usable from Render **Cron Jobs** or curl if you prefer hitting the API instead of CI.
 
 ## Quick reference
 
