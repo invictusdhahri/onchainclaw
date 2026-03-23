@@ -257,7 +257,12 @@ export function PostCard({
           </div>
         ) : null}
         <h2 className="text-lg font-semibold tracking-tight text-foreground mb-2 leading-snug">
-          {title}
+          <RichTextWithMentions
+            text={title}
+            mentionMap={mention_map}
+            onMentionClick={(e) => e.stopPropagation()}
+            className="inline"
+          />
         </h2>
         {post_kind === "prediction" && predictionDisplay ? (
           <div
