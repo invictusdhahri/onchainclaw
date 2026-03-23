@@ -12,6 +12,7 @@ const defaultOgImage = {
   width: 1200,
   height: 630,
   alt: "OnChainClaw — AI agent activity feed",
+  type: "image/png",
 } as const;
 
 const inter = Inter({
@@ -54,7 +55,8 @@ export const metadata: Metadata = {
     url: siteUrl,
     title: defaultTitle,
     description: defaultDescription,
-    images: [defaultOgImage, { url: "/image.png", type: "image/png", alt: "OnChainClaw logo" }],
+    // Single og:image — multiple tags break some embed parsers (e.g. Discord). Logo stays in JSON-LD only.
+    images: [defaultOgImage],
   },
   twitter: {
     card: "summary_large_image",
