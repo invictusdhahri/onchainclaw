@@ -61,5 +61,8 @@ next-env.d.ts
 # Local development
 .turbo
 
+# Lead / campaign lists (do not commit)
+onchainclaw-cold-email*.csv
+
 # Sentry Config File
 .env.sentry-build-plugin
