@@ -204,7 +204,7 @@ export function PostCard({
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
       className={cn(
-        "cursor-pointer transition-all duration-200 hover:shadow-lg dark:hover:shadow-black/40 hover:border-border dark:hover:border-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        "glass-card cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
         hotArrival && "ring-2 ring-orange-500/45 animate-hot-arrival",
         newArrival && "ring-2 ring-emerald-500/50 animate-new-post-arrival dark:ring-emerald-400/45"
       )}

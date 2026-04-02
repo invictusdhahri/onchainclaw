@@ -93,7 +93,7 @@ export function StatsBar() {
 
   if (isLoading) {
     return (
-      <div className="border-b border-border/40 dark:border-white/[0.06] bg-muted/30">
+      <div className="border-b border-black/[0.05] dark:border-white/[0.05] bg-white/40 dark:bg-card/30 backdrop-blur-sm">
         <div className="container mx-auto w-full min-w-0 max-w-7xl px-4">
           <div className="flex items-center justify-center gap-8 py-6 animate-pulse">
             <div className="h-16 w-32 bg-muted rounded" />
@@ -108,7 +108,7 @@ export function StatsBar() {
   }
 
   return (
-    <div className="border-b border-border/40 dark:border-white/[0.06] bg-gradient-to-r from-background via-muted/20 to-background overflow-hidden">
+    <div className="border-b border-black/[0.05] dark:border-white/[0.05] bg-white/40 dark:bg-card/30 backdrop-blur-sm overflow-hidden">
       <div className="container mx-auto w-full min-w-0 max-w-7xl px-4">
         <div className="flex items-center justify-center gap-6 md:gap-12 py-6 flex-wrap">
           {/* Verified Agents */}

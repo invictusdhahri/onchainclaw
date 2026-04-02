@@ -4,48 +4,48 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 224 30% 18%;
+    --background: 210 20% 98%;
+    --foreground: 220 25% 16%;
     --card: 0 0% 100%;
-    --card-foreground: 224 30% 18%;
+    --card-foreground: 220 25% 16%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 30% 18%;
-    --primary: 224 65% 48%;
+    --popover-foreground: 220 25% 16%;
+    --primary: 211 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 93%;
-    --secondary-foreground: 224 30% 18%;
-    --muted: 220 14% 93%;
-    --muted-foreground: 220 10% 46%;
-    --accent: 220 14% 93%;
-    --accent-foreground: 224 30% 18%;
+    --secondary: 210 20% 94%;
+    --secondary-foreground: 220 25% 16%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 218 12% 48%;
+    --accent: 210 20% 93%;
+    --accent-foreground: 220 25% 16%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 89%;
-    --input: 220 13% 89%;
-    --ring: 224 65% 48%;
-    --radius: 0.75rem;
+    --border: 214 16% 90%;
+    --input: 214 16% 90%;
+    --ring: 211 100% 50%;
+    --radius: 0.875rem;
   }
 
   .dark {
-    --background: 230 21% 11%;
-    --foreground: 220 15% 85%;
-    --card: 228 22% 14%;
-    --card-foreground: 220 15% 90%;
-    --popover: 228 24% 16%;
-    --popover-foreground: 220 15% 90%;
-    --primary: 224 70% 56%;
+    --background: 220 22% 7%;
+    --foreground: 210 18% 88%;
+    --card: 220 20% 10%;
+    --card-foreground: 210 18% 92%;
+    --popover: 220 22% 12%;
+    --popover-foreground: 210 18% 92%;
+    --primary: 211 100% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 228 18% 18%;
-    --secondary-foreground: 220 15% 85%;
-    --muted: 228 18% 18%;
-    --muted-foreground: 220 10% 55%;
-    --accent: 228 18% 20%;
-    --accent-foreground: 220 15% 90%;
-    --destructive: 0 62% 55%;
+    --secondary: 220 18% 14%;
+    --secondary-foreground: 210 18% 88%;
+    --muted: 220 18% 14%;
+    --muted-foreground: 216 12% 54%;
+    --accent: 220 18% 16%;
+    --accent-foreground: 210 18% 92%;
+    --destructive: 0 62% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 228 16% 22%;
-    --input: 228 18% 18%;
-    --ring: 224 70% 56%;
+    --border: 220 16% 17%;
+    --input: 220 18% 14%;
+    --ring: 211 100% 58%;
   }
 
   * {
@@ -70,19 +70,93 @@
   }
 }
 
-/* Glass panel utility (use hsl(.../a) so space-separated --card tokens parse correctly) */
+/* ─── Apple-style glass system ───────────────────────────────────────────── */
+
+/* Base glass — medium frost, for hero cards and panels */
 .glass {
-  background: hsl(var(--card) / 0.92);
-  backdrop-filter: blur(20px) saturate(1.35);
-  -webkit-backdrop-filter: blur(20px) saturate(1.35);
-  box-shadow: 0 1px 2px hsl(220 20% 18% / 0.04);
+  background: hsl(0 0% 100% / 0.72);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  border: 1px solid hsl(0 0% 100% / 0.55);
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.6) inset,
+    0 4px 24px hsl(211 30% 20% / 0.08),
+    0 1px 4px hsl(211 30% 20% / 0.05);
 }
 
 .dark .glass {
-  background: hsl(var(--card) / 0.55);
+  background: hsl(var(--card) / 0.5);
+  backdrop-filter: blur(40px) saturate(1.9);
+  -webkit-backdrop-filter: blur(40px) saturate(1.9);
+  border: 1px solid hsl(0 0% 100% / 0.07);
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.06) inset,
+    0 4px 32px hsl(0 0% 0% / 0.35);
+}
+
+/* Navbar glass — ultra-frosted, Apple menu-bar style */
+.glass-nav {
+  background: hsl(0 0% 100% / 0.78);
+  backdrop-filter: blur(60px) saturate(2.0);
+  -webkit-backdrop-filter: blur(60px) saturate(2.0);
+  box-shadow:
+    0 0 0 0.5px hsl(0 0% 0% / 0.06),
+    0 1px 12px hsl(211 30% 20% / 0.06);
+}
+
+.dark .glass-nav {
+  background: hsl(220 22% 7% / 0.7);
+  backdrop-filter: blur(60px) saturate(2.0);
+  -webkit-backdrop-filter: blur(60px) saturate(2.0);
+  box-shadow:
+    0 0 0 0.5px hsl(0 0% 100% / 0.06),
+    0 1px 16px hsl(0 0% 0% / 0.4);
+}
+
+/* Elevated glass — for post cards with hover depth */
+.glass-card {
+  background: hsl(0 0% 100% / 0.85);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  box-shadow: none;
+  border: 1px solid hsl(0 0% 100% / 0.7);
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.8) inset,
+    0 2px 12px hsl(211 25% 20% / 0.07),
+    0 1px 3px hsl(211 25% 20% / 0.05);
+  transition: box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s ease;
+}
+
+.glass-card:hover {
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.9) inset,
+    0 8px 32px hsl(211 25% 20% / 0.12),
+    0 2px 8px hsl(211 25% 20% / 0.08);
+  transform: translateY(-1px);
+  border-color: hsl(211 100% 50% / 0.18);
+}
+
+.dark .glass-card {
+  background: hsl(var(--card) / 0.6);
+  backdrop-filter: blur(24px) saturate(1.7);
+  -webkit-backdrop-filter: blur(24px) saturate(1.7);
+  border: 1px solid hsl(0 0% 100% / 0.06);
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.05) inset,
+    0 2px 16px hsl(0 0% 0% / 0.3);
+  transition: box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s ease;
+}
+
+.dark .glass-card:hover {
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.08) inset,
+    0 8px 40px hsl(0 0% 0% / 0.45),
+    0 0 0 1px hsl(211 100% 58% / 0.12);
+  transform: translateY(-1px);
+  border-color: hsl(211 100% 58% / 0.15);
 }
 
 /* Subtle noise overlay for depth */
@@ -277,7 +351,9 @@
 @media (prefers-reduced-motion: reduce) {
   .hot-flame-icon,
   .animate-hot-arrival,
-  .animate-new-post-arrival {
+  .animate-new-post-arrival,
+  .floating-square,
+  .hero-grid::before {
     animation: none !important;
   }
 
@@ -317,15 +393,15 @@
 
 /* Animated grid pattern for hero background */
 @keyframes gridFlow {
-  0% { 
+  0% {
     background-position: 0 0, 0 0;
     opacity: 0.5;
   }
-  50% { 
+  50% {
     background-position: 32px 32px, 32px 32px;
-    opacity: 0.8;
+    opacity: 0.85;
   }
-  100% { 
+  100% {
     background-position: 64px 64px, 64px 64px;
     opacity: 0.5;
   }
@@ -335,9 +411,9 @@
   content: "";
   position: absolute;
   inset: 0;
-  background-image: 
-    linear-gradient(to right, hsl(var(--primary) / 0.1) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--primary) / 0.1) 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, hsl(var(--primary) / 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--primary) / 0.12) 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: linear-gradient(to bottom, black 20%, transparent 90%);
   -webkit-mask-image: linear-gradient(to bottom, black 20%, transparent 90%);
@@ -346,9 +422,9 @@
 }
 
 .dark .hero-grid::before {
-  background-image: 
-    linear-gradient(to right, hsl(var(--primary) / 0.12) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--primary) / 0.12) 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, hsl(var(--primary) / 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--primary) / 0.15) 1px, transparent 1px);
 }
 
 /* Hero: fade grid out earlier on phones so it stays behind the headline */
@@ -359,37 +435,83 @@
   }
 }
 
-/* Floating grid squares */
+/* Floating grid squares — more dynamic spin + drift */
 @keyframes floatSquare {
-  0%, 100% {
+  0% {
     transform: translate(0, 0) rotate(0deg) scale(1);
-    opacity: 0.3;
+    opacity: 0.25;
+  }
+  20% {
+    transform: translate(12px, -14px) rotate(18deg) scale(1.08);
+    opacity: 0.55;
+  }
+  45% {
+    transform: translate(6px, -28px) rotate(-12deg) scale(0.92);
+    opacity: 0.35;
+  }
+  65% {
+    transform: translate(-8px, -16px) rotate(24deg) scale(1.06);
+    opacity: 0.6;
+  }
+  80% {
+    transform: translate(4px, -8px) rotate(-6deg) scale(1.02);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 0.25;
+  }
+}
+
+@keyframes floatSquareSpin {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 0.2;
   }
   25% {
-    transform: translate(10px, -10px) rotate(5deg) scale(1.05);
+    transform: translate(-10px, -18px) rotate(45deg) scale(1.1);
     opacity: 0.5;
   }
   50% {
-    transform: translate(5px, -20px) rotate(-5deg) scale(0.95);
-    opacity: 0.4;
+    transform: translate(8px, -30px) rotate(90deg) scale(0.9);
+    opacity: 0.3;
   }
   75% {
-    transform: translate(-5px, -10px) rotate(3deg) scale(1.02);
-    opacity: 0.6;
+    transform: translate(-4px, -12px) rotate(135deg) scale(1.05);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(0, 0) rotate(180deg) scale(1);
+    opacity: 0.2;
   }
 }
 
 .floating-square {
   position: absolute;
   border: 1px solid hsl(var(--primary) / 0.35);
-  background: hsl(var(--primary) / 0.08);
+  background: hsl(var(--primary) / 0.06);
+  backdrop-filter: blur(2px);
   animation: floatSquare 12s ease-in-out infinite;
   pointer-events: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.floating-square:nth-child(odd) {
+  animation-name: floatSquareSpin;
+}
+
+.floating-square:nth-child(3n) {
+  border-color: hsl(270 80% 65% / 0.25);
+  background: hsl(270 80% 65% / 0.04);
 }
 
 .dark .floating-square {
-  border-color: hsl(var(--primary) / 0.3);
-  background: hsl(var(--primary) / 0.05);
+  border-color: hsl(var(--primary) / 0.28);
+  background: hsl(var(--primary) / 0.04);
+}
+
+.dark .floating-square:nth-child(3n) {
+  border-color: hsl(270 80% 65% / 0.2);
 }
 
 /* Staggered fade-in */

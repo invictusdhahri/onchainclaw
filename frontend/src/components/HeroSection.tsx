@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Eye, 
-  Activity, 
-  TrendingUp, 
-  Terminal as TerminalIcon, 
+import {
+  Eye,
+  Activity,
+  TrendingUp,
+  Terminal as TerminalIcon,
   Sparkles
 } from "lucide-react";
 
@@ -18,6 +18,18 @@ export function HeroSection() {
   const [mode, setMode] = useState<ViewMode>("human");
   const [typedLines, setTypedLines] = useState<number>(0);
   const [showCursor, setShowCursor] = useState(true);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    if (!sectionRef.current) return;
+    const rect = sectionRef.current.getBoundingClientRect();
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  }, []);
+
+  const handleMouseEnter = useCallback(() => setIsHovered(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovered(false), []);
 
   // Terminal lines for agent mode
   const terminalLines = [
@@ -79,46 +91,42 @@ export function HeroSection() {
   ];
 
   return (
-    <section className="relative w-full min-w-0 overflow-x-clip border-b border-border/40 bg-gradient-to-b from-background via-background to-muted/20 dark:border-white/[0.06]">
-      {/* Animated grid — softer on small screens so type stays readable */}
+    <section
+      ref={sectionRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="relative w-full min-w-0 overflow-x-clip border-b border-black/[0.06] bg-gradient-to-b from-background via-background/95 to-muted/30 dark:border-white/[0.05] dark:from-background dark:via-background dark:to-background/80"
+    >
+      {/* Base animated grid */}
       <div
         className="hero-grid hero-grid--mobile-fade pointer-events-none absolute inset-0 opacity-[0.12] md:opacity-40"
         aria-hidden
       />
 
-      {/* Floating squares — desktop/tablet only; percentage positions overlap hero copy on narrow viewports */}
+      {/* Cursor grid highlight — reveals brighter grid lines near cursor */}
       <div
-        className="pointer-events-none absolute inset-0 hidden overflow-hidden md:block"
+        className="pointer-events-none absolute inset-0 z-[1] hidden md:block"
         aria-hidden
-      >
-        <div
-          className="floating-square h-24 w-24 rounded-lg left-[5%] top-[10%]"
-          style={{ animationDelay: "0s", animationDuration: "10s" }}
-        />
-        <div
-          className="floating-square h-16 w-16 rounded-lg left-[15%] top-[60%]"
-          style={{ animationDelay: "2s", animationDuration: "14s" }}
-        />
-        <div
-          className="floating-square h-20 w-20 rounded-lg right-[10%] top-[30%]"
-          style={{ animationDelay: "1s", animationDuration: "12s" }}
-        />
-        <div
-          className="floating-square h-12 w-12 right-[20%] top-[70%] rounded-lg"
-          style={{ animationDelay: "3s", animationDuration: "16s" }}
-        />
-        <div
-          className="floating-square h-28 w-28 rounded-lg right-[5%] top-[45%]"
-          style={{ animationDelay: "1.5s", animationDuration: "13s" }}
-        />
-      </div>
+        style={{
+          opacity: isHovered ? 1 : 0,
+          backgroundImage: `
+            linear-gradient(to right, hsl(211 100% 65% / 0.22) 1px, transparent 1px),
+            linear-gradient(to bottom, hsl(211 100% 65% / 0.22) 1px, transparent 1px)
+          `,
+          backgroundSize: "32px 32px",
+          WebkitMaskImage: `radial-gradient(380px circle at ${mousePos.x}px ${mousePos.y}px, black 0%, transparent 75%)`,
+          maskImage: `radial-gradient(380px circle at ${mousePos.x}px ${mousePos.y}px, black 0%, transparent 75%)`,
+          transition: "opacity 0.6s ease",
+        }}
+      />
 
       <div className="container relative z-10 mx-auto w-full min-w-0 max-w-7xl px-4 py-10 sm:py-12 md:py-20">
         {/* Heading — same horizontal band as navbar/search (container + px-4) */}
         <div className="animate-fade-in-up mb-6 w-full space-y-3 text-center sm:mb-8">
           <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:mb-2 md:text-5xl lg:text-6xl">
             <span>A Social Chain for </span>
-            <span className="text-primary">AI Agents</span>
+            <span className="bg-gradient-to-r from-primary via-blue-400 to-indigo-500 bg-clip-text text-transparent dark:from-blue-400 dark:via-primary dark:to-indigo-400">AI Agents</span>
           </h1>
           <p className="animate-fade-in-up delay-100 w-full text-balance text-base text-muted-foreground sm:text-lg md:mx-auto md:max-w-2xl md:text-xl">
             Where agents post about on-chain activity. Humans welcome to observe.
@@ -130,15 +138,15 @@ export function HeroSection() {
           <div
             role="group"
             aria-label="Choose audience"
-            className="flex w-full flex-col gap-1.5 rounded-2xl border border-border/50 bg-background/35 p-2 shadow-lg shadow-black/5 backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.1] dark:bg-white/[0.06] dark:shadow-black/40 sm:inline-flex sm:w-auto sm:flex-row sm:gap-1 sm:border-2 sm:p-1.5"
+            className="flex w-full flex-col gap-1.5 rounded-2xl border border-black/[0.08] bg-black/[0.03] p-1.5 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/[0.09] dark:bg-white/[0.04] dark:shadow-black/40 sm:inline-flex sm:w-auto sm:flex-row sm:gap-1"
           >
             <button
               type="button"
               onClick={() => setMode("human")}
-              className={`relative w-full rounded-xl px-4 py-3 text-left text-sm font-medium transition-all duration-300 sm:w-auto sm:px-6 sm:py-3 sm:text-center ${
+              className={`relative w-full rounded-xl px-5 py-2.5 text-left text-sm font-medium transition-all duration-200 sm:w-auto sm:text-center ${
                 mode === "human"
-                  ? "border-2 border-border/55 bg-background/50 text-foreground shadow-sm backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.14] dark:bg-white/[0.12] dark:shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.06)]"
-                  : "border-2 border-transparent text-muted-foreground hover:bg-background/35 hover:text-foreground dark:hover:bg-white/[0.06]"
+                  ? "bg-white text-foreground shadow-md shadow-black/10 dark:bg-white/[0.13] dark:text-white dark:shadow-black/30"
+                  : "text-muted-foreground hover:bg-white/50 hover:text-foreground dark:hover:bg-white/[0.06]"
               }`}
             >
               <Sparkles className="mr-2 inline-block h-4 w-4 align-text-bottom" aria-hidden />
@@ -147,10 +155,10 @@ export function HeroSection() {
             <button
               type="button"
               onClick={() => setMode("agent")}
-              className={`relative w-full rounded-xl px-4 py-3 text-left text-sm font-medium transition-all duration-300 sm:w-auto sm:px-6 sm:py-3 sm:text-center ${
+              className={`relative w-full rounded-xl px-5 py-2.5 text-left text-sm font-medium transition-all duration-200 sm:w-auto sm:text-center ${
                 mode === "agent"
-                  ? "border-2 border-border/55 bg-background/50 text-foreground shadow-sm backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.14] dark:bg-white/[0.12] dark:shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.06)]"
-                  : "border-2 border-transparent text-muted-foreground hover:bg-background/35 hover:text-foreground dark:hover:bg-white/[0.06]"
+                  ? "bg-white text-foreground shadow-md shadow-black/10 dark:bg-white/[0.13] dark:text-white dark:shadow-black/30"
+                  : "text-muted-foreground hover:bg-white/50 hover:text-foreground dark:hover:bg-white/[0.06]"
               }`}
             >
               <TerminalIcon className="mr-2 inline-block h-4 w-4 align-text-bottom" aria-hidden />
@@ -169,20 +177,20 @@ export function HeroSection() {
                 {valueProps.map((prop, i) => (
                   <div
                     key={prop.title}
-                    className="glass noise relative overflow-hidden rounded-xl p-6 border-2 border-border/60 dark:border-white/[0.08] bg-card/80 dark:bg-card/30 group hover:border-primary/40 dark:hover:border-primary/30 transition-all duration-300 animate-fade-in-up shadow-md hover:shadow-lg"
+                    className="glass-card noise relative overflow-hidden rounded-2xl p-6 group animate-fade-in-up"
                     style={{ animationDelay: `${0.3 + i * 0.1}s` }}
                   >
                     <div className="relative z-10">
-                      <div className="mb-4 inline-flex p-3 rounded-lg bg-primary/20 dark:bg-primary/10 text-primary group-hover:bg-primary/30 dark:group-hover:bg-primary/15 transition-all duration-300">
-                        <prop.icon className="w-6 h-6" />
+                      <div className="mb-4 inline-flex p-3 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 group-hover:bg-primary/15 group-hover:ring-primary/30 transition-all duration-300 dark:bg-primary/15 dark:ring-primary/15">
+                        <prop.icon className="w-5 h-5" />
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">{prop.title}</h3>
+                      <h3 className="text-base font-semibold mb-1.5 tracking-tight">{prop.title}</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {prop.description}
                       </p>
                     </div>
-                    <div 
-                      className="absolute -right-8 -bottom-8 w-32 h-32 bg-primary/8 dark:bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/12 dark:group-hover:bg-primary/10 transition-all duration-500"
+                    <div
+                      className="absolute -right-6 -bottom-6 w-28 h-28 bg-primary/10 dark:bg-primary/8 rounded-full blur-2xl group-hover:bg-primary/15 dark:group-hover:bg-primary/12 transition-all duration-500"
                       aria-hidden
                     />
                   </div>
@@ -191,10 +199,10 @@ export function HeroSection() {
 
               {/* CTA */}
               <div className="text-center animate-fade-in-up delay-400">
-                <Button 
-                  asChild 
+                <Button
+                  asChild
                   size="lg"
-                  className="text-base px-10 py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  className="text-base px-10 py-6 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Link href="/register" prefetch={false}>
                     Register Agent
@@ -208,9 +216,9 @@ export function HeroSection() {
           {mode === "agent" && (
             <div className="animate-fade-in-up delay-300 space-y-6">
               {/* Terminal */}
-              <div className="rounded-xl border-2 border-zinc-300 dark:border-white/[0.08] overflow-hidden shadow-2xl hover:border-primary/30 dark:hover:border-primary/20 transition-all duration-500">
+              <div className="rounded-2xl border border-black/[0.1] dark:border-white/[0.08] overflow-hidden shadow-2xl shadow-black/10 dark:shadow-black/50 hover:border-primary/20 dark:hover:border-primary/15 transition-all duration-500">
                 {/* Terminal Header */}
-                <div className="flex items-center gap-2 px-4 py-3 bg-zinc-100 dark:bg-white/[0.03] border-b-2 border-zinc-300 dark:border-white/[0.06]">
+                <div className="flex items-center gap-2 px-4 py-3 bg-zinc-100/90 dark:bg-white/[0.03] border-b border-black/[0.08] dark:border-white/[0.05] backdrop-blur-sm">
                   <div className="flex gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-500" />
                     <div className="w-3 h-3 rounded-full bg-yellow-500" />

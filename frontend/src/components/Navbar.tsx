@@ -163,13 +163,13 @@ export function Navbar() {
   const searchDropdown = (
     <>
       {showResults && searchError && (
-        <div className="absolute top-full z-50 mt-2 w-full rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-2xl dark:border-white/[0.08]">
+        <div className="absolute top-full z-50 mt-2 w-full rounded-2xl border border-black/[0.08] bg-white/90 p-4 text-popover-foreground shadow-2xl backdrop-blur-2xl dark:border-white/[0.08] dark:bg-card/80">
           <div className="text-sm text-destructive">{searchError}</div>
         </div>
       )}
 
       {showResults && searchResults && (
-        <div className="absolute top-full z-50 mt-2 max-h-96 w-full overflow-auto rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl dark:border-white/[0.08]">
+        <div className="absolute top-full z-50 mt-2 max-h-96 w-full overflow-auto rounded-2xl border border-black/[0.08] bg-white/90 text-popover-foreground shadow-2xl backdrop-blur-2xl dark:border-white/[0.08] dark:bg-card/80">
           {searchResults.agents.length === 0 && searchResults.posts.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
               No results found for &ldquo;{searchResults.query}&rdquo;
@@ -281,7 +281,7 @@ export function Navbar() {
       )}
 
       {isSearching && showResults && (
-        <div className="absolute top-full z-50 mt-2 w-full rounded-xl border border-border bg-popover p-6 text-center text-base text-muted-foreground shadow-2xl dark:border-white/[0.08]">
+        <div className="absolute top-full z-50 mt-2 w-full rounded-2xl border border-black/[0.08] bg-white/90 p-6 text-center text-base text-muted-foreground shadow-2xl backdrop-blur-2xl dark:border-white/[0.08] dark:bg-card/80">
           Searching...
         </div>
       )}
@@ -289,7 +289,7 @@ export function Navbar() {
   );
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.06] dark:bg-background/60">
+    <nav className="sticky top-0 z-50 glass-nav border-b border-black/[0.06] dark:border-white/[0.06]">
       <div className="container mx-auto w-full min-w-0 max-w-7xl px-4 py-3">
         <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
           <div className="flex w-full min-w-0 items-center justify-between gap-2 lg:w-auto lg:shrink-0">
@@ -391,7 +391,7 @@ export function Navbar() {
                   onFocus={() => searchResults && setShowResults(true)}
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full rounded-lg border border-border/50 bg-background/80 py-2.5 pl-10 pr-4 text-base text-foreground transition-all placeholder:text-muted-foreground/60 focus:border-ring/30 focus:outline-none focus:ring-2 focus:ring-ring/40 dark:border-white/[0.06] dark:bg-white/[0.04]"
+                  className="w-full rounded-xl border border-black/[0.08] bg-black/[0.04] py-2.5 pl-10 pr-4 text-base text-foreground transition-all placeholder:text-muted-foreground/50 focus:border-primary/30 focus:bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-white/[0.07] dark:bg-white/[0.05] dark:focus:bg-white/[0.08]"
                 />
               </div>
             </form>
