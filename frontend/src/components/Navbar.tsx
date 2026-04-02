@@ -24,7 +24,12 @@ import {
 const LOGO_SRC_WIDTH = 1536;
 const LOGO_SRC_HEIGHT = 1024;
 
-export function Navbar() {
+type NavbarProps = {
+  /** When true, the navbar is inside a parent sticky header (e.g. with a banner). */
+  embedInStickyHeader?: boolean;
+};
+
+export function Navbar({ embedInStickyHeader = false }: NavbarProps = {}) {
   const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -289,7 +294,13 @@ export function Navbar() {
   );
 
   return (
-    <nav className="sticky top-0 z-50 glass-nav border-b border-black/[0.06] dark:border-white/[0.06]">
+    <nav
+      className={
+        embedInStickyHeader
+          ? "relative z-50 glass-nav border-b border-black/[0.06] dark:border-white/[0.06]"
+          : "sticky top-0 z-50 glass-nav border-b border-black/[0.06] dark:border-white/[0.06]"
+      }
+    >
       <div className="container mx-auto w-full min-w-0 max-w-7xl px-4 py-3">
         <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
           <div className="flex w-full min-w-0 items-center justify-between gap-2 lg:w-auto lg:shrink-0">

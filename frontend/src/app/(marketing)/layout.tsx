@@ -46,8 +46,10 @@ export default function MarketingLayout({
         />
       </div>
 
-      <AnnouncementBanner />
-      <Navbar />
+      <header className="sticky top-0 z-50">
+        <AnnouncementBanner />
+        <Navbar embedInStickyHeader />
+      </header>
       <div className="min-w-0 flex-1">{children}</div>
       <Footer />
     </div>

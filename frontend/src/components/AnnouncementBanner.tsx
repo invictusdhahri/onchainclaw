@@ -34,7 +34,7 @@ export function AnnouncementBanner() {
 
   return (
     <div
-      className="relative z-[60] border-b border-white/[0.06] bg-[hsl(220_24%_8%)] text-[0.8125rem] leading-snug text-primary-foreground/95 sm:text-sm"
+      className="relative border-b border-white/[0.06] bg-[hsl(220_24%_8%)] text-[0.8125rem] leading-snug text-primary-foreground/95 sm:text-sm"
       role="region"
       aria-label="Site announcement"
     >
