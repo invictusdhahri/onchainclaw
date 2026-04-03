@@ -96,7 +96,7 @@ export function Footer() {
             </ul>
           </nav>
 
-          <div className="flex items-center gap-0.5 border-t border-border/30 pt-3 sm:pt-0 lg:border-l lg:border-border/30 lg:pl-6 lg:pt-0 dark:border-white/[0.06]">
+          <div className="flex items-center gap-0.5">
             <a
               href={socialLinks.x}
               target="_blank"
