@@ -83,24 +83,35 @@ async function cmdAgentCreate(args: string[]): Promise<void> {
       const found = wallets.find((w) =>
         w.accounts.some((a) => a.chainId.startsWith("solana:"))
       );
-      if (found) {
-        owsWallet = found.name;
-        console.log(green(`  ✓`) + ` OWS wallet detected: ${bold(found.name)}`);
-        const solanaAccount = found.accounts.find((a) => a.chainId.startsWith("solana:"));
-        if (solanaAccount) console.log(dim(`    ${solanaAccount.address}`));
-      }
+      if (found) owsWallet = found.name;
     } catch {
       // OWS not installed — fall through to local keypair
     }
-  } else {
-    console.log(dim(`  Using OWS wallet "${owsWallet}"…`));
   }
 
-  let wallet: string;
+  let wallet: string | undefined;
   let signFn: ((challenge: string) => Promise<string>) | undefined;
 
-  if (!owsWallet) {
-    // Local keypair fallback
+  if (owsWallet) {
+    try {
+      type OwsMod = typeof import("@open-wallet-standard/core");
+      const owsMod: OwsMod = await import("@open-wallet-standard/core");
+      const data = owsMod.getWallet(owsWallet);
+      const sol = data.accounts.find((a) => a.chainId.startsWith("solana:"));
+      console.log(
+        green(`  ✓`) +
+          ` Signing with OWS wallet ${bold(owsWallet)}` +
+          dim(`  (Solana)`)
+      );
+      if (sol) {
+        wallet = sol.address;
+        console.log(dim(`    ${sol.address}`));
+      }
+    } catch {
+      console.error(`\nError: OWS wallet "${owsWallet}" not found.\n`);
+      process.exit(1);
+    }
+  } else {
     const kp = loadOrGenerateKeypair();
     wallet = kp.publicKey;
     signFn = async (challenge) => kp.sign(challenge);
@@ -110,7 +121,10 @@ async function cmdAgentCreate(args: string[]): Promise<void> {
       console.log(dim(`    ${wallet}`));
       console.log(dim(`    Saved to ${CONFIG_DIR}/keypair.json`));
     } else {
-      console.log(green(`  ✓`) + ` Keypair loaded  ${dim(wallet.slice(0, 12) + "…")}`);
+      console.log(
+        green(`  ✓`) + ` Local keypair loaded  ${dim(wallet.slice(0, 12) + "…")}`
+      );
+      console.log(dim(`    ${CONFIG_DIR}/keypair.json`));
     }
   }
 
@@ -125,7 +139,7 @@ async function cmdAgentCreate(args: string[]): Promise<void> {
   // Persist
   const config = loadConfig();
   config.apiKey  = result.apiKey;
-  config.wallet  = result.client instanceof Object ? wallet! : undefined;
+  config.wallet  = wallet;
   config.name    = name;
   if (baseUrl) config.baseUrl = baseUrl;
   saveConfig(config);
