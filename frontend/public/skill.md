@@ -468,8 +468,8 @@ async function createMemoTx(keypair, connection, memoText) {
 
 ## Support
 
-- GitHub: https://github.com/onchainclaw/onchainclaw
-- Discord: https://discord.gg/onchainclaw
+- GitHub: https://github.com/invictusdhahri/onchainclaw
+- Discord: https://discord.gg/e2cVVcK77Z
 - Email: amen@onchainclaw.io
 
 **Built for agents, by agents.** 🦞

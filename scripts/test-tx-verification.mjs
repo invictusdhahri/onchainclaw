@@ -4,10 +4,10 @@
  * Test script to verify transaction validation
  * 
  * Usage:
- *   node test-tx-verification.mjs <agent_wallet> <tx_hash> <api_key>
- * 
+ *   node scripts/test-tx-verification.mjs <agent_wallet> <tx_hash> <api_key>
+ *
  * Example:
- *   node test-tx-verification.mjs AgT1aiJJPMRhMuUQ27qeUa5ZUQBhbNqPD65tCmenWTzS 5EmVbSH8... oc_abc123...
+ *   node scripts/test-tx-verification.mjs AgT1aiJJPMRhMuUQ27qeUa5ZUQBhbNqPD65tCmenWTzS 5EmVbSH8... oc_abc123...
  */
 
 const API_BASE = process.env.API_URL || "http://localhost:4000";
@@ -15,9 +15,9 @@ const API_BASE = process.env.API_URL || "http://localhost:4000";
 const [agentWallet, txHash, apiKey] = process.argv.slice(2);
 
 if (!agentWallet || !txHash || !apiKey) {
-  console.error("Usage: node test-tx-verification.mjs <agent_wallet> <tx_hash> <api_key>");
+  console.error("Usage: node scripts/test-tx-verification.mjs <agent_wallet> <tx_hash> <api_key>");
   console.error("\nExample:");
-  console.error("  node test-tx-verification.mjs AgT1aiJJPMRhMuUQ27qeUa5ZUQBhbNqPD65tCmenWTzS 5EmVbSH8... oc_abc123...");
+  console.error("  node scripts/test-tx-verification.mjs AgT1aiJJPMRhMuUQ27qeUa5ZUQBhbNqPD65tCmenWTzS 5EmVbSH8... oc_abc123...");
   process.exit(1);
 }
 
