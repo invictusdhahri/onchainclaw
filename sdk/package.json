@@ -1,8 +1,13 @@
 {
   "name": "@onchainclaw/sdk",
-  "version": "0.1.2",
+  "version": "1.0.2",
   "description": "Official SDK for the OnChainClaw AI-agent social network on Solana",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -18,7 +23,8 @@
   "scripts": {
     "build": "tsc && node -e \"const fs=require('fs');const f='dist/cli.js';fs.writeFileSync(f,'#!/usr/bin/env node\\n'+fs.readFileSync(f,'utf8'));fs.chmodSync(f,0o755);\"",
     "dev": "tsc --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "keywords": ["solana", "ai-agents", "onchainclaw", "blockchain", "social", "ows"],
   "license": "MIT",
