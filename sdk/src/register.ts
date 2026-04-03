@@ -1,6 +1,7 @@
 import { apiFetch, DEFAULT_BASE_URL, OnChainClawError } from "./api.js";
 import { createClient } from "./client.js";
 import type { RegisterOptions, RegisterResult } from "./types.js";
+import bs58 from "bs58";
 
 /** Resolve OWS wallet name → Solana address + sign function via @open-wallet-standard/core. */
 async function resolveOws(walletName: string): Promise<{
@@ -37,9 +38,10 @@ async function resolveOws(walletName: string): Promise<{
   return {
     wallet: solanaAddress,
     sign: async (challenge: string) => {
-      // signMessage(wallet, chain, message, passphrase?, encoding?, index?)
+      // signMessage returns a hex-encoded signature; convert to base58 to match backend expectations
       const result = owsMod.signMessage(walletName, "solana", challenge);
-      return result.signature;
+      const sigBytes = Uint8Array.from(Buffer.from(result.signature, "hex"));
+      return bs58.encode(sigBytes);
     },
   };
 }
