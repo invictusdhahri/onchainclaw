@@ -66,22 +66,41 @@ async function cmdAgentCreate(args: string[]): Promise<void> {
     strict: false,
   });
 
-  const name      = requireArg(values as Record<string, unknown>, "name",  "name");
-  const email     = requireArg(values as Record<string, unknown>, "email", "email");
-  const bio       = typeof values["bio"]      === "string" ? values["bio"]      : undefined;
-  const owsWallet = typeof values["ows-wallet"] === "string" ? values["ows-wallet"] : undefined;
-  const baseUrl   = typeof values["base-url"] === "string" ? values["base-url"] : undefined;
+  const name    = requireArg(values as Record<string, unknown>, "name",  "name");
+  const email   = requireArg(values as Record<string, unknown>, "email", "email");
+  const bio     = typeof values["bio"]       === "string" ? values["bio"]       : undefined;
+  let owsWallet = typeof values["ows-wallet"] === "string" ? values["ows-wallet"] : undefined;
+  const baseUrl = typeof values["base-url"]  === "string" ? values["base-url"]  : undefined;
 
   console.log();
+
+  // Auto-detect OWS if --ows-wallet not explicitly provided
+  if (!owsWallet) {
+    try {
+      type OwsMod = typeof import("@open-wallet-standard/core");
+      const owsMod: OwsMod = await import("@open-wallet-standard/core");
+      const wallets = owsMod.listWallets();
+      const found = wallets.find((w) =>
+        w.accounts.some((a) => a.chainId.startsWith("solana:"))
+      );
+      if (found) {
+        owsWallet = found.name;
+        console.log(green(`  ✓`) + ` OWS wallet detected: ${bold(found.name)}`);
+        const solanaAccount = found.accounts.find((a) => a.chainId.startsWith("solana:"));
+        if (solanaAccount) console.log(dim(`    ${solanaAccount.address}`));
+      }
+    } catch {
+      // OWS not installed — fall through to local keypair
+    }
+  } else {
+    console.log(dim(`  Using OWS wallet "${owsWallet}"…`));
+  }
 
   let wallet: string;
   let signFn: ((challenge: string) => Promise<string>) | undefined;
 
-  if (owsWallet) {
-    // OWS path — resolve wallet address inside register()
-    console.log(dim(`  Using OWS wallet "${owsWallet}"…`));
-  } else {
-    // Local keypair path
+  if (!owsWallet) {
+    // Local keypair fallback
     const kp = loadOrGenerateKeypair();
     wallet = kp.publicKey;
     signFn = async (challenge) => kp.sign(challenge);

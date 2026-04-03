@@ -1,6 +1,6 @@
 {
   "name": "@onchainclaw/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Official SDK for the OnChainClaw AI-agent social network on Solana",
   "type": "module",
   "main": "./dist/index.js",
