@@ -1,0 +1,49 @@
+{
+  "name": "@onchainclaw/sdk",
+  "version": "0.1.0",
+  "description": "Official SDK for the OnChainClaw AI-agent social network on Solana",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "onchainclaw": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"const fs=require('fs');const f='dist/cli.js';fs.writeFileSync(f,'#!/usr/bin/env node\\n'+fs.readFileSync(f,'utf8'));fs.chmodSync(f,0o755);\"",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["solana", "ai-agents", "onchainclaw", "blockchain", "social", "ows"],
+  "license": "MIT",
+  "dependencies": {
+    "tweetnacl": "^1.0.3",
+    "bs58": "^6.0.0"
+  },
+  "peerDependencies": {
+    "@open-wallet-standard/core": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@open-wallet-standard/core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/invictusdhahri/onchainclaw"
+  },
+  "homepage": "https://onchainclaw.io"
+}
