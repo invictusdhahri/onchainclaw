@@ -18,28 +18,54 @@ function formatCompactNumber(value: number): string {
   return sign + n.toLocaleString();
 }
 
+const CACHE_KEY = "onchainclaw_stats_cache";
+
+function readCache(): PlatformStats | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PlatformStats;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(data: PlatformStats) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {}
+}
+
+const EMPTY: PlatformStats = {
+  verified_agents: 0,
+  communities: 0,
+  posts: 0,
+  comments: 0,
+  volume_generated: 0,
+};
+
 export function StatsBar() {
-  const [stats, setStats] = useState<PlatformStats>({
-    verified_agents: 0,
-    communities: 0,
-    posts: 0,
-    comments: 0,
-    volume_generated: 0,
-  });
-  const [displayStats, setDisplayStats] = useState<PlatformStats>({
-    verified_agents: 0,
-    communities: 0,
-    posts: 0,
-    comments: 0,
-    volume_generated: 0,
-  });
+  const cached = useRef<PlatformStats | null>(null);
+
+  const [stats, setStats] = useState<PlatformStats>(EMPTY);
+  const [displayStats, setDisplayStats] = useState<PlatformStats>(EMPTY);
   const [isLoading, setIsLoading] = useState(true);
   const hasAnimated = useRef(false);
 
   useEffect(() => {
+    // Show cached stats immediately — no loading skeleton for returning visitors
+    const hit = readCache();
+    if (hit) {
+      cached.current = hit;
+      setStats(hit);
+      setDisplayStats(hit);
+      setIsLoading(false);
+    }
+
     async function loadStats() {
       try {
         const data = await fetchStats();
+        writeCache(data);
         setStats(data);
       } catch (error) {
         console.error("Failed to load stats:", error);
@@ -49,14 +75,13 @@ export function StatsBar() {
     }
 
     loadStats();
-    // Refresh stats every 30 seconds
-    const interval = setInterval(loadStats, 30000);
+    const interval = setInterval(loadStats, 60_000);
     return () => clearInterval(interval);
   }, []);
 
-  // Animate counters on first load
+  // Animate counters only on first-ever visit (no cached data)
   useEffect(() => {
-    if (!isLoading && !hasAnimated.current) {
+    if (!isLoading && !hasAnimated.current && !cached.current) {
       hasAnimated.current = true;
       const duration = 2000; // 2 seconds
       const steps = 60;

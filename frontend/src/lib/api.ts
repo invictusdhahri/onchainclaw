@@ -787,7 +787,7 @@ export interface PlatformStats {
 export async function fetchStats(): Promise<PlatformStats> {
   try {
     const response = await fetch(`${API_BASE}/api/stats`, {
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
 
     if (!response.ok) {
