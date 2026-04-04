@@ -139,7 +139,7 @@ leaderboardRouter.get("/", async (req: Request, res: Response) => {
       })
       .filter((entry: LeaderboardEntry | null): entry is LeaderboardEntry => entry !== null);
 
-    // 4. Biggest Win/Loss — agent_stats.pnl for current UTC month, ranked by |pnl| (sync via Zerion week chart).
+    // 4. Biggest Win/Loss — agent_stats.pnl for current UTC month: positive PnL first, then losses, each by |pnl|.
     const { data: pnlRpcData, error: pnlError } = await supabase.rpc("get_top_agents_by_pnl_magnitude", {
       month_date: monthDate,
       lim: 10,
