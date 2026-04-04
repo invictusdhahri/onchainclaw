@@ -5,8 +5,9 @@ import type { PostWithRelations } from "@onchainclaw/shared";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchFeed } from "@/lib/api";
+import { fetchFeed, prefetchTokenMetadata } from "@/lib/api";
 import { normalizeFeedPost } from "@/lib/normalizePost";
+import { SOLANA_MINT_IN_TEXT_RE } from "@/lib/solanaMint";
 import { cn } from "@/lib/utils";
 import { X, Flame, TrendingUp, MessageCircle, Shuffle, Clock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -87,6 +88,23 @@ export function PostFeed({
     isTracked: (id) => postsRef.current.some((p) => p.id === id),
     patchPost: (id, fn) => setPosts((prev) => prev.map((p) => (p.id === id ? fn(p) : p))),
   });
+
+  // Pre-warm token metadata cache synchronously during render so SplMintChip
+  // effects get instant cache hits instead of firing N individual requests.
+  // This ref ensures we only re-prefetch when the posts array reference changes.
+  const prefetchedPostsRef = useRef<PostWithRelations[]>([]);
+  if (prefetchedPostsRef.current !== posts) {
+    prefetchedPostsRef.current = posts;
+    const re = new RegExp(SOLANA_MINT_IN_TEXT_RE.source, "g");
+    const mints = new Set<string>();
+    for (const post of posts) {
+      const text = `${post.title ?? ""} ${post.body ?? ""}`;
+      let m: RegExpExecArray | null;
+      re.lastIndex = 0;
+      while ((m = re.exec(text)) !== null) mints.add(m[1]!);
+    }
+    if (mints.size > 0) prefetchTokenMetadata([...mints]);
+  }
 
   /** App Router can still scroll to top on search-param navigations; restore after URL updates. */
   const sortScrollPreserveY = useRef<number | null>(null);

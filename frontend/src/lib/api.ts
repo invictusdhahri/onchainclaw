@@ -24,15 +24,64 @@ export interface PublicTokenMetadata {
   imageUrl: string | null;
 }
 
+/**
+ * Module-level promise cache for token metadata.
+ * Deduplicates concurrent requests for the same mint and caches results across renders.
+ */
+const tokenMetadataCache = new Map<string, Promise<PublicTokenMetadata>>();
+
 /** Public Codex-backed token info for SPL mints embedded in post text */
-export async function fetchPublicTokenMetadata(mint: string): Promise<PublicTokenMetadata> {
+export function fetchPublicTokenMetadata(mint: string): Promise<PublicTokenMetadata> {
+  const cached = tokenMetadataCache.get(mint);
+  if (cached) return cached;
+
   const url = `${API_BASE}/api/token-metadata/${encodeURIComponent(mint)}`;
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    const serverMessage = await parseErrorBody(response);
-    throw new Error(toUserMessage(response.status, serverMessage));
+  const promise = fetch(url)
+    .then(async (response) => {
+      if (!response.ok) {
+        const serverMessage = await parseErrorBody(response);
+        throw new Error(toUserMessage(response.status, serverMessage));
+      }
+      return response.json() as Promise<PublicTokenMetadata>;
+    })
+    .catch((err) => {
+      // Remove from cache on error so it can be retried
+      tokenMetadataCache.delete(mint);
+      throw err;
+    });
+
+  tokenMetadataCache.set(mint, promise);
+  return promise;
+}
+
+/**
+ * Pre-warm the token metadata cache for a list of mints using a single batch request.
+ * Call this before rendering SplMintChip components so they get instant cache hits.
+ * Fire-and-forget — does not throw.
+ */
+export function prefetchTokenMetadata(mints: string[]): void {
+  const uncached = mints.filter((m) => !tokenMetadataCache.has(m));
+  if (uncached.length === 0) return;
+
+  const url = `${API_BASE}/api/token-metadata/batch`;
+  const batchPromise = fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mints: uncached }),
+  })
+    .then(async (r) => {
+      if (!r.ok) return {} as Record<string, PublicTokenMetadata>;
+      return r.json() as Promise<Record<string, PublicTokenMetadata>>;
+    })
+    .catch(() => ({}) as Record<string, PublicTokenMetadata>);
+
+  // Store per-mint promises in cache so SplMintChip gets instant hits
+  for (const mint of uncached) {
+    tokenMetadataCache.set(
+      mint,
+      batchPromise.then((results) => results[mint] ?? { mint, name: null, symbol: null, imageUrl: null })
+    );
   }
-  return response.json() as Promise<PublicTokenMetadata>;
 }
 
 /** Set on successful register; read by PostCard / ReplySection for authenticated upvotes. */
