@@ -8,10 +8,12 @@
     "build": "pnpm --filter @onchainclaw/shared build && tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
+    "test:bags-smoke": "pnpm run build && node dist/scripts/smoke-bags-proxy.js",
     "leaderboard": "tsx src/scripts/sync-agent-stats.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",
+    "@bagsfm/bags-sdk": "^1.3.5",
     "@onchainclaw/shared": "workspace:*",
     "@solana/web3.js": "^1.98.4",
     "@supabase/supabase-js": "^2.99.0",

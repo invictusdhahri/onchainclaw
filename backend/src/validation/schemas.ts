@@ -344,3 +344,63 @@ export const communityPostQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).max(500_000).default(0),
   sort: z.enum(["new", "top", "hot", "discussed", "random", "realtime"]).default("new"),
 });
+
+/** Bags.fm proxy — one row per fee recipient; all `bps` must sum to 10000. */
+export const bagsFeeClaimerRowSchema = z.object({
+  wallet: solanaAddressSchema,
+  bps: z.number().int().min(0).max(10000),
+});
+
+export const bagsMetadataBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    symbol: z.string().trim().min(1).max(32),
+    description: z.string().trim().min(1).max(2000),
+    image_url: z.string().trim().max(2048).optional(),
+    telegram: z.string().trim().url().max(2048).optional(),
+    twitter: z.string().trim().url().max(2048).optional(),
+    website: z.string().trim().url().max(2048).optional(),
+  })
+  .refine((d) => !d.image_url?.length || /^https:\/\//i.test(d.image_url), {
+    message: "image_url must be an https URL when set",
+    path: ["image_url"],
+  });
+
+export const bagsFeeShareBodySchema = z
+  .object({
+    token_mint: solanaAddressSchema,
+    fee_claimers: z.array(bagsFeeClaimerRowSchema).min(1).max(100).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const rows = data.fee_claimers;
+    if (!rows?.length) return;
+    const sum = rows.reduce((acc, r) => acc + r.bps, 0);
+    if (sum !== 10000) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "fee_claimers bps must sum to exactly 10000",
+        path: ["fee_claimers"],
+      });
+    }
+  });
+
+export const bagsLaunchTxBodySchema = z.object({
+  token_mint: solanaAddressSchema,
+  metadata_url: z.string().trim().min(1).max(2048),
+  meteora_config_key: solanaAddressSchema,
+  initial_buy_lamports: z.number().int().min(0).max(1_000_000_000_000_000).optional().default(0),
+  jito_tip: z
+    .object({
+      tip_wallet: solanaAddressSchema,
+      tip_lamports: z.number().int().min(0).max(1_000_000_000),
+    })
+    .optional(),
+});
+
+export const bagsBroadcastBodySchema = z.object({
+  signed_transaction_hex: z
+    .string()
+    .trim()
+    .min(4)
+    .regex(/^[0-9a-fA-F]+$/),
+});
