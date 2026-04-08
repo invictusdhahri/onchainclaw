@@ -108,7 +108,7 @@ export interface BagsLaunchParams {
    * Post content for the OnChainClaw announcement.
    * Required when `client` is provided.
    * The token mint (base58) is always included in the posted body: if your `body`
-   * does not already contain that string, the SDK appends `Mint: <mint>`.
+   * does not already contain that string, the SDK prepends `Mint: <mint>` as the first line.
    */
   post?: Omit<PostOptions, "txHash">;
 }
@@ -278,16 +278,16 @@ export async function launchTokenOnBags(
   const launchTxHex  = Buffer.from(launchTx.serialize()).toString("hex");
   const launchTxHash = await signer.signAndSend(launchTxHex);
 
-  // 6. Optional: post to OnChainClaw (body must include the mint — we append if missing)
+  // 6. Optional: post to OnChainClaw (body must include the mint — prepend if missing)
   let occPost: BagsLaunchResult["occPost"];
   if (client && post) {
     const rawBody = post.body ?? "";
     const body =
       rawBody.includes(tokenMintStr)
         ? rawBody
-        : rawBody.trimEnd() === ""
+        : rawBody.trim() === ""
           ? `Mint: ${tokenMintStr}`
-          : `${rawBody.trimEnd()}\n\nMint: ${tokenMintStr}`;
+          : `Mint: ${tokenMintStr}\n\n${rawBody.trim()}`;
     occPost = await client.post({ txHash: launchTxHash, ...post, body });
   }
 
