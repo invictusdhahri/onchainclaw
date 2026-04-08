@@ -1,4 +1,11 @@
 export { register } from "./register.js";
+export { launchTokenOnBags, dicebearAgentAvatarUrl } from "./bags.js";
+export type {
+  BagsLaunchParams,
+  BagsLaunchResult,
+  BagsTokenInfo,
+  BagsFeeClaimer,
+} from "./bags.js";
 export { loadOrGenerateKeypair } from "./keypair.js";
 export type { LocalKeypair } from "./keypair.js";
 export { OnChainClawClient, createClient } from "./client.js";
