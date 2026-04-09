@@ -11,7 +11,15 @@ import {
   bagsLaunchTxBodySchema,
   bagsBroadcastBodySchema,
 } from "../validation/schemas.js";
-import { createBagsSdkContext, dicebearAgentAvatarUrl } from "../lib/bagsClient.js";
+import {
+  checkBagsLaunchWalletBalance,
+  createBagsSdkContext,
+  dicebearAgentAvatarUrl,
+} from "../lib/bagsClient.js";
+import {
+  BAGS_MIN_LAMPORTS_FOR_LAUNCH,
+  BAGS_MIN_SOL_FOR_LAUNCH,
+} from "@onchainclaw/shared";
 import { logger } from "../lib/logger.js";
 
 type AgentRow = { wallet: string; name: string };
@@ -20,6 +28,16 @@ function bagsDisabled(res: Response) {
   return res.status(503).json({
     error: "Bags proxy is not configured",
     message: "Set BAGS_API_KEY on the server (e.g. Render environment variables).",
+  });
+}
+
+function bagsLowFunds(res: Response, balanceLamports: number) {
+  return res.status(400).json({
+    error: "low_funds",
+    message: `At least ${BAGS_MIN_SOL_FOR_LAUNCH} SOL is required for Bags memecoin launch. Fund the wallet and retry.`,
+    min_sol: BAGS_MIN_SOL_FOR_LAUNCH,
+    min_lamports: BAGS_MIN_LAMPORTS_FOR_LAUNCH,
+    balance_lamports: balanceLamports,
   });
 }
 
@@ -35,6 +53,10 @@ bagsRouter.post(
     if (!ctx) return bagsDisabled(res);
 
     const agent = (req as Request & { agent: AgentRow }).agent;
+    const launchWalletPk = new PublicKey(agent.wallet);
+    const bal = await checkBagsLaunchWalletBalance(ctx.connection, launchWalletPk);
+    if (!bal.ok) return bagsLowFunds(res, bal.lamports);
+
     const body = req.body as z.infer<typeof bagsMetadataBodySchema>;
 
     const imageUrlRaw = body.image_url?.trim();
@@ -76,9 +98,11 @@ bagsRouter.post(
     if (!ctx) return bagsDisabled(res);
 
     const agent = (req as Request & { agent: AgentRow }).agent;
-    const body = req.body as z.infer<typeof bagsFeeShareBodySchema>;
-
     const launchWallet = new PublicKey(agent.wallet);
+    const bal = await checkBagsLaunchWalletBalance(ctx.connection, launchWallet);
+    if (!bal.ok) return bagsLowFunds(res, bal.lamports);
+
+    const body = req.body as z.infer<typeof bagsFeeShareBodySchema>;
     const tokenMint = new PublicKey(body.token_mint);
 
     const feeClaimers =
@@ -130,6 +154,9 @@ bagsRouter.post(
     const body = req.body as z.infer<typeof bagsLaunchTxBodySchema>;
 
     const launchWallet = new PublicKey(agent.wallet);
+    const bal = await checkBagsLaunchWalletBalance(ctx.connection, launchWallet);
+    if (!bal.ok) return bagsLowFunds(res, bal.lamports);
+
     const tokenMint = new PublicKey(body.token_mint);
     const configKey = new PublicKey(body.meteora_config_key);
 
@@ -171,6 +198,13 @@ bagsRouter.post(
     try {
       const raw = Buffer.from(body.signed_transaction_hex, "hex");
       const tx = VersionedTransaction.deserialize(raw);
+      const feePayer = tx.message.staticAccountKeys[0];
+      if (!feePayer) {
+        return res.status(400).json({ error: "Invalid transaction: missing fee payer" });
+      }
+      const bal = await checkBagsLaunchWalletBalance(ctx.connection, feePayer);
+      if (!bal.ok) return bagsLowFunds(res, bal.lamports);
+
       const sig = await ctx.connection.sendRawTransaction(tx.serialize(), {
         skipPreflight: false,
         maxRetries: 3,

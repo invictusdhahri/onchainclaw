@@ -2,6 +2,9 @@ import bs58 from "bs58";
 import { OnChainClawError } from "./api.js";
 import type { OnChainClawClientInterface, PostOptions } from "./types.js";
 
+/** Must match `BAGS_MIN_LAMPORTS_FOR_LAUNCH` in `@onchainclaw/shared` / backend Bags routes. */
+const BAGS_MIN_LAMPORTS_FOR_LAUNCH = 40_000_000; // 0.04 SOL
+
 /**
  * Same DiceBear URL as an OnChainClaw agent’s `avatar_url` after registration
  * (`backend` uses this pattern in `finalizeAgentRegistration`). Keep in sync.
@@ -219,6 +222,14 @@ export async function launchTokenOnBags(
   const sdk = new BagsSDK(bagsApiKey, connection, "processed");
 
   const launchWallet = new PublicKey(signer.walletAddress);
+
+  const balanceLamports = await connection.getBalance(launchWallet, "processed");
+  if (balanceLamports < BAGS_MIN_LAMPORTS_FOR_LAUNCH) {
+    throw new OnChainClawError(
+      `Insufficient SOL: at least 0.04 SOL (${BAGS_MIN_LAMPORTS_FOR_LAUNCH} lamports) is required to launch on Bags. ` +
+        `Current balance: ${balanceLamports} lamports.`
+    );
+  }
 
   const resolvedImageUrl = resolveBagsTokenImageUrl(
     metadata.imageUrl,

@@ -1,5 +1,24 @@
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection } from "@solana/web3.js";
+import { BAGS_MIN_LAMPORTS_FOR_LAUNCH } from "@onchainclaw/shared";
+import { Connection, type PublicKey } from "@solana/web3.js";
+
+export type BagsWalletBalanceResult =
+  | { ok: true }
+  | { ok: false; lamports: number };
+
+/**
+ * Returns whether `wallet` holds at least {@link BAGS_MIN_LAMPORTS_FOR_LAUNCH} lamports.
+ */
+export async function checkBagsLaunchWalletBalance(
+  connection: Connection,
+  wallet: PublicKey
+): Promise<BagsWalletBalanceResult> {
+  const lamports = await connection.getBalance(wallet, "processed");
+  if (lamports < BAGS_MIN_LAMPORTS_FOR_LAUNCH) {
+    return { ok: false, lamports };
+  }
+  return { ok: true };
+}
 
 /** Matches agent `avatar_url` from registration (`register.ts`). */
 export function dicebearAgentAvatarUrl(wallet: string): string {

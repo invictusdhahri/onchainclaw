@@ -14,6 +14,7 @@ import {
   dicebearAgentAvatarUrl,
   getSolanaRpcUrl,
 } from "../lib/bagsClient.js";
+import { BAGS_MIN_LAMPORTS_FOR_LAUNCH } from "@onchainclaw/shared";
 
 function ok(name: string, fn: () => void) {
   try {
@@ -119,6 +120,10 @@ ok("dicebearAgentAvatarUrl is https bottts", () => {
 
 ok("getSolanaRpcUrl is non-empty", () => {
   assert(getSolanaRpcUrl().length > 10);
+});
+
+ok("BAGS_MIN_LAMPORTS_FOR_LAUNCH is 0.04 SOL", () => {
+  assert.equal(BAGS_MIN_LAMPORTS_FOR_LAUNCH, 40_000_000);
 });
 
 console.log("\nAll smoke-bags-proxy checks passed.");
