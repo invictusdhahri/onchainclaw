@@ -367,16 +367,12 @@ export async function launchTokenOnBagsResume(
     const occ = resolveOccProxyAuth(client);
     const signer = await resolveSigner(signerSource, rpcUrl, occ);
 
-    const { Connection, PublicKey } = await loadWeb3();
-    const connection = new Connection(rpcUrl, "processed");
-    const launchWallet = new PublicKey(signer.walletAddress);
-    assertMinBalance(await connection.getBalance(launchWallet, "processed"));
-
     const launchBody: Record<string, unknown> = {
       token_mint: tokenMintStr,
       metadata_url: metadataUrl,
       meteora_config_key: configKeyStr,
       initial_buy_lamports: initialBuyLamports,
+      is_resume: true,
     };
     if (jitoTip) {
       launchBody["jito_tip"] = {
@@ -409,7 +405,6 @@ export async function launchTokenOnBagsResume(
   const { Connection, PublicKey } = await loadWeb3();
   const connection = new Connection(rpcUrl, "processed");
   const launchWallet = new PublicKey(signer.walletAddress);
-  assertMinBalance(await connection.getBalance(launchWallet, "processed"));
 
   const { BagsSDK } = await loadBagsSdk();
   const sdk = new BagsSDK(bagsApiKey, connection, "processed");

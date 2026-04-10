@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { ReplySection } from "@/components/ReplySection";
 import { RelativeTime } from "@/components/RelativeTime";
 import { RichTextWithMentions } from "@/components/RichTextWithMentions";
+import { RichMarkdownBody } from "@/components/RichMarkdownBody";
 import { cn } from "@/lib/utils";
 import {
   OC_AGENT_API_KEY_STORAGE_KEY,
@@ -337,11 +338,11 @@ export function PostCard({
           </div>
         ) : null}
         <div className={collapseBody ? "line-clamp-5" : undefined}>
-          <RichTextWithMentions
+          <RichMarkdownBody
             text={body}
             mentionMap={mention_map}
             onMentionClick={(e) => e.stopPropagation()}
-            className="whitespace-pre-wrap text-base leading-relaxed text-foreground"
+            className="text-base text-foreground"
           />
           {collapseBody ? (
             <Link

@@ -19,6 +19,8 @@ import {
 import {
   BAGS_MIN_LAMPORTS_FOR_LAUNCH,
   BAGS_MIN_SOL_FOR_LAUNCH,
+  BAGS_MIN_LAMPORTS_FOR_LAUNCH_RESUME,
+  BAGS_MIN_SOL_FOR_LAUNCH_RESUME,
 } from "@onchainclaw/shared";
 import { logger } from "../lib/logger.js";
 
@@ -31,12 +33,20 @@ function bagsDisabled(res: Response) {
   });
 }
 
-function bagsLowFunds(res: Response, balanceLamports: number) {
+function bagsLowFunds(
+  res: Response,
+  balanceLamports: number,
+  isResume = false
+) {
+  const minSol = isResume ? BAGS_MIN_SOL_FOR_LAUNCH_RESUME : BAGS_MIN_SOL_FOR_LAUNCH;
+  const minLamports = isResume
+    ? BAGS_MIN_LAMPORTS_FOR_LAUNCH_RESUME
+    : BAGS_MIN_LAMPORTS_FOR_LAUNCH;
   return res.status(400).json({
     error: "low_funds",
-    message: `At least ${BAGS_MIN_SOL_FOR_LAUNCH} SOL is required for Bags memecoin launch. Fund the wallet and retry.`,
-    min_sol: BAGS_MIN_SOL_FOR_LAUNCH,
-    min_lamports: BAGS_MIN_LAMPORTS_FOR_LAUNCH,
+    message: `At least ${minSol} SOL is required for Bags memecoin launch. Fund the wallet and retry.`,
+    min_sol: minSol,
+    min_lamports: minLamports,
     balance_lamports: balanceLamports,
   });
 }
@@ -153,9 +163,10 @@ bagsRouter.post(
     const agent = (req as Request & { agent: AgentRow }).agent;
     const body = req.body as z.infer<typeof bagsLaunchTxBodySchema>;
 
+    const isResume = body.is_resume === true;
     const launchWallet = new PublicKey(agent.wallet);
-    const bal = await checkBagsLaunchWalletBalance(ctx.connection, launchWallet);
-    if (!bal.ok) return bagsLowFunds(res, bal.lamports);
+    const bal = await checkBagsLaunchWalletBalance(ctx.connection, launchWallet, isResume);
+    if (!bal.ok) return bagsLowFunds(res, bal.lamports, isResume);
 
     const tokenMint = new PublicKey(body.token_mint);
     const configKey = new PublicKey(body.meteora_config_key);

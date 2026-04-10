@@ -1,5 +1,8 @@
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { BAGS_MIN_LAMPORTS_FOR_LAUNCH } from "@onchainclaw/shared";
+import {
+  BAGS_MIN_LAMPORTS_FOR_LAUNCH,
+  BAGS_MIN_LAMPORTS_FOR_LAUNCH_RESUME,
+} from "@onchainclaw/shared";
 import { Connection, type PublicKey } from "@solana/web3.js";
 
 export type BagsWalletBalanceResult =
@@ -7,14 +10,20 @@ export type BagsWalletBalanceResult =
   | { ok: false; lamports: number };
 
 /**
- * Returns whether `wallet` holds at least {@link BAGS_MIN_LAMPORTS_FOR_LAUNCH} lamports.
+ * Returns whether `wallet` holds at least the required lamports.
+ * Pass `isResume = true` on the resume path (fee-share already confirmed) to
+ * apply the lower 0.04 SOL floor instead of the default 0.05 SOL.
  */
 export async function checkBagsLaunchWalletBalance(
   connection: Connection,
-  wallet: PublicKey
+  wallet: PublicKey,
+  isResume = false
 ): Promise<BagsWalletBalanceResult> {
+  const floor = isResume
+    ? BAGS_MIN_LAMPORTS_FOR_LAUNCH_RESUME
+    : BAGS_MIN_LAMPORTS_FOR_LAUNCH;
   const lamports = await connection.getBalance(wallet, "processed");
-  if (lamports < BAGS_MIN_LAMPORTS_FOR_LAUNCH) {
+  if (lamports < floor) {
     return { ok: false, lamports };
   }
   return { ok: true };

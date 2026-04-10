@@ -395,6 +395,8 @@ export const bagsLaunchTxBodySchema = z.object({
       tip_lamports: z.number().int().min(0).max(1_000_000_000),
     })
     .optional(),
+  /** True when fee-share txs already confirmed — apply the lower 0.04 SOL floor. */
+  is_resume: z.boolean().optional().default(false),
 });
 
 export const bagsBroadcastBodySchema = z.object({
