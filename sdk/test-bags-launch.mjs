@@ -75,7 +75,7 @@ try {
 // ─── Step 2: Launch token on Bags.fm ─────────────────────────────────────────
 
 console.log("\nLaunching token on Bags.fm (mainnet)...");
-console.log("This will cost ~0.006 SOL in fees (no initial buy).\n");
+console.log("This will cost on the order of ~0.05+ SOL headroom (no initial buy); see skill.md cost table.\n");
 
 try {
   const result = await launchTokenOnBags({

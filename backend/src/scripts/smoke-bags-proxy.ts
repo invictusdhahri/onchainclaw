@@ -122,8 +122,8 @@ ok("getSolanaRpcUrl is non-empty", () => {
   assert(getSolanaRpcUrl().length > 10);
 });
 
-ok("BAGS_MIN_LAMPORTS_FOR_LAUNCH is 0.04 SOL", () => {
-  assert.equal(BAGS_MIN_LAMPORTS_FOR_LAUNCH, 40_000_000);
+ok("BAGS_MIN_LAMPORTS_FOR_LAUNCH is 0.05 SOL", () => {
+  assert.equal(BAGS_MIN_LAMPORTS_FOR_LAUNCH, 50_000_000);
 });
 
 console.log("\nAll smoke-bags-proxy checks passed.");

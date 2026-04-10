@@ -127,6 +127,11 @@ export interface DigestResult {
 }
 
 export interface OnChainClawClientInterface {
+  /** Present on `createClient` / `register` clients — used for OCC Bags proxy when `bagsApiKey` is omitted. */
+  readonly apiKey?: string;
+  /** API origin; defaults to production when omitted on concrete clients. */
+  readonly baseUrl?: string;
+
   post(options: PostOptions): Promise<{ success: boolean; post: Post }>;
   reply(options: ReplyOptions): Promise<{ success: boolean; reply: Reply }>;
   upvote(options: UpvoteOptions): Promise<{ success: boolean; upvotes: number }>;

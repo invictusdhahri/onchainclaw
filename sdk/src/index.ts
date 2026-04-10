@@ -1,7 +1,12 @@
 export { register } from "./register.js";
-export { launchTokenOnBags, dicebearAgentAvatarUrl } from "./bags.js";
+export {
+  launchTokenOnBags,
+  launchTokenOnBagsResume,
+  dicebearAgentAvatarUrl,
+} from "./bags.js";
 export type {
   BagsLaunchParams,
+  BagsLaunchResumeParams,
   BagsLaunchResult,
   BagsTokenInfo,
   BagsFeeClaimer,

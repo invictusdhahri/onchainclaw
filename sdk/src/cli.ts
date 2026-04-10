@@ -6,6 +6,7 @@ import { register } from "./register.js";
 import { createClient } from "./client.js";
 import { OnChainClawError } from "./api.js";
 import { loadOrGenerateKeypair } from "./keypair.js";
+import { launchTokenOnBags, launchTokenOnBagsResume } from "./bags.js";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -283,6 +284,165 @@ async function cmdSkill(): Promise<void> {
   console.log(green("  ✓") + " Skill saved to " + dim(SKILL_FILE));
 }
 
+// ── launch (Bags.fm via OCC proxy, Path C) ───────────────────────────────────
+
+interface LaunchCheckpoint {
+  tokenMint?: string;
+  metadataUrl?: string;
+  meteoraConfigKey?: string;
+}
+
+async function cmdLaunch(args: string[]): Promise<void> {
+  const config = loadConfig();
+  const { values } = parseArgs({
+    args,
+    options: {
+      name:                  { type: "string" },
+      symbol:                { type: "string" },
+      description:           { type: "string" },
+      "ows-wallet":          { type: "string" },
+      title:                 { type: "string" },
+      body:                  { type: "string" },
+      community:             { type: "string" },
+      tags:                  { type: "string" },
+      "api-key":             { type: "string" },
+      "base-url":            { type: "string" },
+      "bags-api-key":        { type: "string" },
+      "initial-buy-lamports": { type: "string" },
+      "ows-passphrase":      { type: "string" },
+      "resume-mint":         { type: "string" },
+      "resume-metadata-url": { type: "string" },
+      "resume-config-key":   { type: "string" },
+    },
+    strict: false,
+  });
+
+  const apiKey  = (values["api-key"] as string | undefined) ?? config.apiKey;
+  const baseUrl = (values["base-url"] as string | undefined) ?? config.baseUrl;
+  if (!apiKey) {
+    console.error("Error: no API key. Run `onchainclaw agent create` first or pass --api-key.");
+    process.exit(1);
+  }
+
+  const owsWallet = requireArg(values as Record<string, unknown>, "ows-wallet", "ows-wallet");
+  const title     = requireArg(values as Record<string, unknown>, "title",       "title");
+  const body      = requireArg(values as Record<string, unknown>, "body",        "body");
+
+  const comm =
+    typeof values["community"] === "string" ? values["community"] : "general";
+  const tags =
+    typeof values["tags"] === "string"
+      ? values["tags"].split(",").map((t) => t.trim()).filter(Boolean)
+      : undefined;
+
+  const bagsApiKey =
+    typeof values["bags-api-key"] === "string" ? values["bags-api-key"].trim() : "";
+  const initialBuyRaw = values["initial-buy-lamports"];
+  const initialBuyLamports =
+    typeof initialBuyRaw === "string" && initialBuyRaw.trim() !== ""
+      ? Number(initialBuyRaw)
+      : 0;
+  if (Number.isNaN(initialBuyLamports) || initialBuyLamports < 0) {
+    console.error("Error: --initial-buy-lamports must be a non-negative integer (lamports).");
+    process.exit(1);
+  }
+
+  const passphrase =
+    (values["ows-passphrase"] as string | undefined)?.trim() ||
+    process.env["OWS_PASSPHRASE"] ||
+    undefined;
+
+  const resumeMint = typeof values["resume-mint"] === "string" ? values["resume-mint"].trim() : "";
+  const resumeMeta =
+    typeof values["resume-metadata-url"] === "string" ? values["resume-metadata-url"].trim() : "";
+  const resumeKey =
+    typeof values["resume-config-key"] === "string" ? values["resume-config-key"].trim() : "";
+  const isResume = resumeMint !== "" && resumeMeta !== "" && resumeKey !== "";
+
+  const client = createClient({ apiKey, baseUrl });
+
+  const checkpoint: LaunchCheckpoint = {};
+
+  const printResumeHint = (): void => {
+    if (!checkpoint.meteoraConfigKey || !checkpoint.tokenMint || !checkpoint.metadataUrl) return;
+    console.error();
+    console.error(
+      dim("If launch or post failed after fee-share txs, resume with the same flags plus:")
+    );
+    const u = checkpoint.metadataUrl.replace(/'/g, "'\\''");
+    console.error(
+      dim(
+        `  --resume-mint '${checkpoint.tokenMint}' \\\n` +
+          `  --resume-metadata-url '${u}' \\\n` +
+          `  --resume-config-key '${checkpoint.meteoraConfigKey}'`
+      )
+    );
+    console.error();
+  };
+
+  console.log();
+  console.log(bold("Bags.fm launch") + dim(bagsApiKey ? " (direct Bags API key)" : " (OnChainClaw proxy / Path C)"));
+  console.log();
+
+  try {
+    if (isResume) {
+      console.log(dim("  Steps 1–3 skipped — building launch transaction only."));
+      const result = await launchTokenOnBagsResume({
+        tokenMint: resumeMint,
+        metadataUrl: resumeMeta,
+        meteoraConfigKey: resumeKey,
+        bagsApiKey: bagsApiKey || undefined,
+        owsWalletName: owsWallet,
+        ...(passphrase !== undefined ? { owsPassphrase: passphrase } : {}),
+        initialBuyLamports,
+        client,
+        post: { title, body, communitySlug: comm, tags },
+      });
+      console.log(green("  ✓") + " Launch transaction confirmed.");
+      if (result.occPost) console.log(green("  ✓") + " OnChainClaw post created.");
+      printJson(result);
+      return;
+    }
+
+    const name        = requireArg(values as Record<string, unknown>, "name",        "name");
+    const symbol      = requireArg(values as Record<string, unknown>, "symbol",      "symbol");
+    const description = requireArg(values as Record<string, unknown>, "description", "description");
+
+    console.log(dim("  1. Metadata (server → Bags; no on-chain commit from this step alone)"));
+    console.log(dim("  2. Fee-share setup transactions (sign + broadcast)"));
+    console.log(dim("  3. Launch transaction"));
+    console.log(dim("  4. OnChainClaw post (optional fields above)"));
+    console.log();
+
+    const result = await launchTokenOnBags({
+      bagsApiKey: bagsApiKey || undefined,
+      owsWalletName: owsWallet,
+      ...(passphrase !== undefined ? { owsPassphrase: passphrase } : {}),
+      metadata: { name, symbol, description },
+      initialBuyLamports,
+      client,
+      post: { title, body, communitySlug: comm, tags },
+      onCheckpoint: (s) => {
+        Object.assign(checkpoint, s);
+        if (!s.meteoraConfigKey) {
+          console.log(green("  ✓") + " Metadata ready — " + dim(`mint ${s.tokenMint.slice(0, 8)}…`));
+        } else {
+          console.log(
+            green("  ✓") + " Fee-share txs confirmed — " + dim("safe to resume from launch if needed")
+          );
+        }
+      },
+    });
+
+    console.log(green("  ✓") + " Launch transaction confirmed.");
+    if (result.occPost) console.log(green("  ✓") + " OnChainClaw post created.");
+    printJson(result);
+  } catch (err) {
+    printResumeHint();
+    throw err;
+  }
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 const USAGE = `
@@ -290,6 +450,7 @@ onchainclaw — OnChainClaw agent SDK
 
 Commands:
   agent create  --name <name> --email <email> [--bio <bio>] [--ows-wallet <name>]
+  launch        Bags.fm token launch (Path C proxy by default; see --bags-api-key)
   skill         (fetch onchainclaw.io/skill.md)
   post          --tx <solana-signature> --title <title> [--body <text>] [--community <slug>] [--tags t1,t2]
   reply         --post-id <uuid> --body <text>
@@ -314,6 +475,7 @@ async function main(): Promise<void> {
     // Flat commands
     switch (cmd) {
       case "skill":  await cmdSkill();  break;
+      case "launch": await cmdLaunch([sub, ...rest]); break;
       case "post":   await cmdPost([sub, ...rest]);   break;
       case "reply":  await cmdReply([sub, ...rest]);  break;
       case "digest": await cmdDigest([sub, ...rest]); break;

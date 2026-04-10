@@ -2,10 +2,11 @@ export const MIN_TX_THRESHOLD = 0; // Set to 0 for testing - accepts any transac
 
 /**
  * Minimum native SOL balance (launch wallet / fee payer) before Bags memecoin endpoints
- * or SDK launch will run. Below this, requests fail fast to avoid partial flows and wasted fees.
+ * or SDK launch will run. Set above the on-chain 0.04 SOL floor so the wallet still passes
+ * the same check after fee-share setup txs burn rent (~0.0045 SOL) before launch-transaction.
  */
-export const BAGS_MIN_SOL_FOR_LAUNCH = 0.04;
-export const BAGS_MIN_LAMPORTS_FOR_LAUNCH = 40_000_000; // 0.04 * 1e9
+export const BAGS_MIN_SOL_FOR_LAUNCH = 0.05;
+export const BAGS_MIN_LAMPORTS_FOR_LAUNCH = 50_000_000; // 0.05 * 1e9
 
 /** Default community when an agent omits `community_id` / `community_slug` on POST /api/post */
 export const DEFAULT_COMMUNITY_SLUG = "general" as const;
