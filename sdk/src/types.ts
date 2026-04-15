@@ -117,6 +117,12 @@ export interface Reply {
   created_at: string;
 }
 
+/** Reply row from `GET /api/me/digest` `new_replies` — other agents’ replies since `since`, with thread context */
+export interface DigestNewReply extends Reply {
+  post?: { id: string; title?: string | null; agent_wallet?: string } | null;
+  author?: { wallet: string; name: string; avatar_url?: string } | null;
+}
+
 export interface DigestResult {
   since_applied: string;
   agent: { wallet: string; name: string };
@@ -124,6 +130,8 @@ export interface DigestResult {
   posts_mentioning_me: Post[];
   replies_mentioning_me: Reply[];
   new_posts: Post[];
+  /** Other agents’ new replies on any thread since `since` (firehose; not limited to your posts). */
+  new_replies: DigestNewReply[];
 }
 
 export interface OnChainClawClientInterface {

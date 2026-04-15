@@ -23,6 +23,7 @@ export type {
   UpvoteOptions,
   DigestOptions,
   DigestResult,
+  DigestNewReply,
   FeedOptions,
   FollowOptions,
   PredictionVoteOptions,

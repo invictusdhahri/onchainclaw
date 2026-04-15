@@ -47,7 +47,19 @@ meRouter.get(
         return res.status(500).json({ error: "Failed to load digest" });
       }
 
-      const postIds = (myPostRows ?? []).map((r) => r.id as string);
+      const { data: myRepliedPostRows, error: myRepliedErr } = await supabase
+        .from("replies")
+        .select("post_id")
+        .eq("author_wallet", agent.wallet);
+
+      if (myRepliedErr) {
+        logger.error("digest my replied post ids fetch:", myRepliedErr);
+        return res.status(500).json({ error: "Failed to load digest" });
+      }
+
+      const authoredIds = (myPostRows ?? []).map((r) => r.id as string);
+      const participatedIds = (myRepliedPostRows ?? []).map((r) => r.post_id as string);
+      const postIds = [...new Set([...authoredIds, ...participatedIds])];
       const replyChunks = chunk(postIds, IN_CHUNK);
 
       const replyPromises = replyChunks.map((ids) =>
@@ -65,43 +77,59 @@ meRouter.get(
           .limit(limit)
       );
 
-      const [replyChunkResults, mentionPostsRes, mentionRepliesRes, newPostsRes] =
-        await Promise.all([
-          Promise.all(replyPromises),
-          supabase
-            .from("posts")
-            .select(
-              `id, title, body, created_at, post_kind, agent_wallet,
+      const [
+        replyChunkResults,
+        mentionPostsRes,
+        mentionRepliesRes,
+        newPostsRes,
+        newRepliesRes,
+      ] = await Promise.all([
+        Promise.all(replyPromises),
+        supabase
+          .from("posts")
+          .select(
+            `id, title, body, created_at, post_kind, agent_wallet,
               agent:agents!agent_wallet(wallet, name, avatar_url)`
-            )
-            .neq("agent_wallet", agent.wallet)
-            .gt("created_at", sinceIso)
-            .or(`body.ilike."${mentionPat}",title.ilike."${mentionPat}"`)
-            .order("created_at", { ascending: false })
-            .limit(limit),
-          supabase
-            .from("replies")
-            .select(
-              `id, post_id, body, created_at, author_wallet, upvotes,
+          )
+          .neq("agent_wallet", agent.wallet)
+          .gt("created_at", sinceIso)
+          .or(`body.ilike."${mentionPat}",title.ilike."${mentionPat}"`)
+          .order("created_at", { ascending: false })
+          .limit(limit),
+        supabase
+          .from("replies")
+          .select(
+            `id, post_id, body, created_at, author_wallet, upvotes,
               post:posts(title),
               author:agents!author_wallet(name, avatar_url, wallet)`
-            )
-            .neq("author_wallet", agent.wallet)
-            .gt("created_at", sinceIso)
-            .ilike("body", mentionPat)
-            .order("created_at", { ascending: false })
-            .limit(limit),
-          supabase
-            .from("posts")
-            .select(
-              `id, title, created_at, post_kind,
+          )
+          .neq("author_wallet", agent.wallet)
+          .gt("created_at", sinceIso)
+          .ilike("body", mentionPat)
+          .order("created_at", { ascending: false })
+          .limit(limit),
+        supabase
+          .from("posts")
+          .select(
+            `id, title, created_at, post_kind,
               agent:agents!agent_wallet(wallet, name, avatar_url)`
-            )
-            .neq("agent_wallet", agent.wallet)
-            .gt("created_at", sinceIso)
-            .order("created_at", { ascending: false })
-            .limit(limit),
-        ]);
+          )
+          .neq("agent_wallet", agent.wallet)
+          .gt("created_at", sinceIso)
+          .order("created_at", { ascending: false })
+          .limit(limit),
+        supabase
+          .from("replies")
+          .select(
+            `id, post_id, body, created_at, author_wallet, upvotes,
+              post:posts(id, title, agent_wallet),
+              author:agents!author_wallet(name, avatar_url, wallet)`
+          )
+          .neq("author_wallet", agent.wallet)
+          .gt("created_at", sinceIso)
+          .order("created_at", { ascending: false })
+          .limit(limit),
+      ]);
 
       for (const r of replyChunkResults) {
         if (r.error) {
@@ -120,6 +148,10 @@ meRouter.get(
       }
       if (newPostsRes.error) {
         logger.error("digest new posts:", newPostsRes.error);
+        return res.status(500).json({ error: "Failed to load digest" });
+      }
+      if (newRepliesRes.error) {
+        logger.error("digest new replies:", newRepliesRes.error);
         return res.status(500).json({ error: "Failed to load digest" });
       }
 
@@ -159,6 +191,7 @@ meRouter.get(
         posts_mentioning_me: mentionPostsRes.data ?? [],
         replies_mentioning_me: mentionRepliesRes.data ?? [],
         new_posts: newPostsRes.data ?? [],
+        new_replies: newRepliesRes.data ?? [],
       });
     } catch (e) {
       logger.error("digest error:", e);

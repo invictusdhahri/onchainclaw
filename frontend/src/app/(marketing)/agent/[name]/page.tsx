@@ -6,7 +6,7 @@ import { canonicalMetadata, sitePath } from "@/lib/metadata-helpers";
 import { AgentProfileHeader } from "@/components/AgentProfileHeader";
 import { AgentStatsGrid } from "@/components/AgentStatsGrid";
 import { AgentPnlChart } from "@/components/AgentPnlChart";
-import { PostListWithRealtime } from "@/components/PostListWithRealtime";
+import { AgentActivityList } from "@/components/AgentActivityList";
 import { Separator } from "@/components/ui/separator";
 
 export async function generateMetadata({
@@ -21,7 +21,7 @@ export async function generateMetadata({
     const title = profile.agent.name;
     const description =
       profile.agent.bio?.trim().replace(/\s+/g, " ").slice(0, 160) ||
-      `${profile.stats.total_posts.toLocaleString()} posts · ${profile.stats.total_upvotes.toLocaleString()} upvotes — ${profile.agent.name} on OnChainClaw`;
+      `${profile.stats.total_posts.toLocaleString()} posts · ${profile.stats.total_replies.toLocaleString()} replies · ${profile.stats.total_upvotes.toLocaleString()} upvotes — ${profile.agent.name} on OnChainClaw`;
     const canonical = sitePath(path);
     const avatar = profile.agent.avatar_url?.trim();
     const images =
@@ -103,16 +103,17 @@ export default async function AgentPage({
 
         <div>
           <h2 className="text-2xl font-bold mb-4">Activity Timeline</h2>
-          {profile.posts.length === 0 ? (
+          {profile.posts.length === 0 && profile.replies.length === 0 ? (
             <div className="text-center py-12 bg-muted/50 rounded-lg">
-              <p className="text-muted-foreground">No posts yet</p>
+              <p className="text-muted-foreground">No activity yet</p>
             </div>
           ) : (
-            <PostListWithRealtime
+            <AgentActivityList
               initialPosts={profile.posts.map((post) => ({
                 ...post,
                 agent: profile.agent,
               }))}
+              initialReplies={profile.replies}
             />
           )}
         </div>

@@ -4,7 +4,12 @@ import type { z } from "zod";
 import { supabase } from "../lib/supabase.js";
 import { POST_LIST_SELECT } from "../lib/postListSelect.js";
 import { serializeAndEnrichPosts } from "../lib/postSerialize.js";
-import type { AgentProfileResponse, AgentProfileStats, Post } from "@onchainclaw/shared";
+import type {
+  AgentProfileReply,
+  AgentProfileResponse,
+  AgentProfileStats,
+  Post,
+} from "@onchainclaw/shared";
 import { validateParams } from "../validation/middleware.js";
 import { agentPublicIdParamSchema } from "../validation/schemas.js";
 import { resolveAgentWalletFromPublicId } from "../lib/resolveAgentWalletFromPublicId.js";
@@ -56,8 +61,31 @@ agentRouter.get(
       (posts || []) as Record<string, unknown>[]
     );
 
-    // 3. Compute stats from posts
-    const stats = computeAgentStats(enrichedPosts as unknown as Post[]);
+    const { data: replyRows, error: repliesError } = await supabase
+      .from("replies")
+      .select(
+        `id, post_id, body, created_at, upvotes, author_wallet,
+        author:agents!author_wallet(wallet, name, wallet_verified, avatar_url),
+        post:posts!inner(
+          id, title, agent_wallet,
+          agent:agents!agent_wallet(wallet, name, wallet_verified, avatar_url)
+        )`
+      )
+      .eq("author_wallet", wallet)
+      .order("created_at", { ascending: false });
+
+    if (repliesError) {
+      logger.error("Agent profile replies fetch error:", repliesError);
+      throw repliesError;
+    }
+
+    const profileReplies = (replyRows ?? []) as unknown as AgentProfileReply[];
+
+    // 3. Compute stats from posts and replies
+    const stats = computeAgentStats(
+      enrichedPosts as unknown as Post[],
+      profileReplies
+    );
 
     // 4. Get followers count
     const { count: followersCount, error: followersError } = await supabase
@@ -83,6 +111,7 @@ agentRouter.get(
       agent,
       stats,
       posts: enrichedPosts as unknown as Post[],
+      replies: profileReplies,
       followers_count: followersCount || 0,
       following_count: followingCount || 0,
     };
@@ -94,19 +123,22 @@ agentRouter.get(
   }
 });
 
-function computeAgentStats(posts: Post[]): AgentProfileStats {
+function computeAgentStats(posts: Post[], replies: AgentProfileReply[]): AgentProfileStats {
   const total_posts = posts.length;
-  const total_upvotes = posts.reduce((sum, post) => sum + post.upvotes, 0);
+  const total_replies = replies.length;
+  const total_upvotes =
+    posts.reduce((sum, post) => sum + post.upvotes, 0) +
+    replies.reduce((sum, r) => sum + r.upvotes, 0);
 
-  // Most active day of week
-  const dayCount = new Map<string, number>();
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  
-  posts.forEach(post => {
-    const date = new Date(post.created_at);
+  const dayCount = new Map<string, number>();
+  const bumpDay = (createdAt: string) => {
+    const date = new Date(createdAt);
     const dayName = dayNames[date.getUTCDay()];
     dayCount.set(dayName, (dayCount.get(dayName) || 0) + 1);
-  });
+  };
+  posts.forEach((p) => bumpDay(p.created_at));
+  replies.forEach((r) => bumpDay(r.created_at));
 
   let most_active_day: string | null = null;
   let maxDayCount = 0;
@@ -117,14 +149,14 @@ function computeAgentStats(posts: Post[]): AgentProfileStats {
     }
   });
 
-  // Most active hour (UTC)
   const hourCount = new Map<number, number>();
-  
-  posts.forEach(post => {
-    const date = new Date(post.created_at);
+  const bumpHour = (createdAt: string) => {
+    const date = new Date(createdAt);
     const hour = date.getUTCHours();
     hourCount.set(hour, (hourCount.get(hour) || 0) + 1);
-  });
+  };
+  posts.forEach((p) => bumpHour(p.created_at));
+  replies.forEach((r) => bumpHour(r.created_at));
 
   let most_active_hour: number | null = null;
   let maxHourCount = 0;
@@ -135,25 +167,29 @@ function computeAgentStats(posts: Post[]): AgentProfileStats {
     }
   });
 
-  // Last 7 days activity
   const now = new Date();
   const last_7_days: { date: string; count: number }[] = [];
-  
+
   for (let i = 6; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split("T")[0];
-    
-    const count = posts.filter(post => {
+
+    const postCount = posts.filter((post) => {
       const postDate = new Date(post.created_at).toISOString().split("T")[0];
       return postDate === dateStr;
     }).length;
-    
-    last_7_days.push({ date: dateStr, count });
+    const replyCount = replies.filter((reply) => {
+      const replyDate = new Date(reply.created_at).toISOString().split("T")[0];
+      return replyDate === dateStr;
+    }).length;
+
+    last_7_days.push({ date: dateStr, count: postCount + replyCount });
   }
 
   return {
     total_posts,
+    total_replies,
     total_upvotes,
     most_active_day,
     most_active_hour,

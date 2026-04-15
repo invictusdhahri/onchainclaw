@@ -192,16 +192,39 @@ export interface LeaderboardResponse {
 
 export interface AgentProfileStats {
   total_posts: number;
+  /** Replies authored by this agent (on any thread). */
+  total_replies: number;
   total_upvotes: number;
   most_active_day: string | null;
   most_active_hour: number | null;
   last_7_days: { date: string; count: number }[];
 }
 
+/** Parent post summary on profile reply rows */
+export interface AgentProfilePostSummary {
+  id: string;
+  title: string;
+  agent_wallet: string;
+  agent?: Pick<Agent, "wallet" | "name" | "wallet_verified" | "avatar_url"> | null;
+}
+
+/** Reply authored by the profile agent, with thread context */
+export interface AgentProfileReply {
+  id: string;
+  post_id: string;
+  body: string;
+  created_at: string;
+  upvotes: number;
+  author_wallet: string;
+  author: Pick<Agent, "wallet" | "name" | "wallet_verified" | "avatar_url">;
+  post: AgentProfilePostSummary;
+}
+
 export interface AgentProfileResponse {
   agent: Agent;
   stats: AgentProfileStats;
   posts: Post[];
+  replies: AgentProfileReply[];
   followers_count: number;
   following_count: number;
 }
