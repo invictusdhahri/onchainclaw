@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { register } from "./register.js";
@@ -7,6 +7,7 @@ import { createClient } from "./client.js";
 import { OnChainClawError } from "./api.js";
 import { loadOrGenerateKeypair } from "./keypair.js";
 import { launchTokenOnBags, launchTokenOnBagsResume } from "./bags.js";
+import { sendMemoTransaction } from "./memo.js";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -443,6 +444,94 @@ async function cmdLaunch(args: string[]): Promise<void> {
   }
 }
 
+// ── memo ──────────────────────────────────────────────────────────────────────
+
+async function cmdMemo(args: string[]): Promise<void> {
+  const config = loadConfig();
+  const { values } = parseArgs({
+    args,
+    options: {
+      "api-key":        { type: "string" },
+      text:             { type: "string" },
+      title:            { type: "string", short: "t" },
+      body:             { type: "string", short: "b" },
+      community:        { type: "string", short: "c" },
+      tags:             { type: "string" },
+      "ows-wallet":     { type: "string" },
+      "ows-passphrase": { type: "string" },
+      "secret-key":     { type: "string" },
+      "rpc-url":        { type: "string" },
+      "base-url":       { type: "string" },
+      "no-post":        { type: "boolean" },
+    },
+    strict: false,
+  });
+
+  const text = requireArg(values as Record<string, unknown>, "text", "text");
+  const apiKey  = (values["api-key"] as string | undefined) ?? config.apiKey;
+  const baseUrl = (values["base-url"] as string | undefined) ?? config.baseUrl;
+  const rpcUrl  = typeof values["rpc-url"]        === "string" ? values["rpc-url"]        : undefined;
+  const title   = typeof values["title"]           === "string" ? values["title"]           : undefined;
+  const body    = typeof values["body"]            === "string" ? values["body"]            : undefined;
+  const comm    = typeof values["community"]       === "string" ? values["community"]       : undefined;
+  const tags    = typeof values["tags"]            === "string" ? values["tags"].split(",").map((t) => t.trim()) : undefined;
+  const noPost  = values["no-post"] === true;
+
+  let owsWallet  = typeof values["ows-wallet"]     === "string" ? values["ows-wallet"]     : undefined;
+  const passphrase = (typeof values["ows-passphrase"] === "string" ? values["ows-passphrase"] : undefined)
+    ?? process.env["OWS_PASSPHRASE"];
+  let secretKey  = typeof values["secret-key"]     === "string" ? values["secret-key"]     : undefined;
+
+  // Auto-load local OCC keypair if no signing method was provided
+  if (!owsWallet && !secretKey) {
+    const keypairFile = join(CONFIG_DIR, "keypair.json");
+    if (existsSync(keypairFile)) {
+      try {
+        const stored = JSON.parse(readFileSync(keypairFile, "utf8")) as { secretKey: number[] };
+        const { default: bs58 } = await import("bs58");
+        secretKey = bs58.encode(new Uint8Array(stored.secretKey));
+      } catch {
+        // will propagate a clear error from sendMemoTransaction
+      }
+    }
+  }
+
+  console.log();
+  console.log(dim("  Broadcasting Solana Memo transaction…"));
+
+  const { txHash, wallet } = await sendMemoTransaction({
+    text,
+    rpcUrl,
+    owsWalletName: owsWallet,
+    ...(passphrase !== undefined ? { owsPassphrase: passphrase } : {}),
+    secretKey,
+  });
+
+  console.log(green("  ✓") + " Memo tx confirmed");
+  console.log(dim(`    ${txHash}`));
+  console.log(dim(`    wallet: ${wallet}`));
+
+  if (noPost || !title) {
+    console.log();
+    console.log(`  tx_hash  ` + bold(txHash));
+    if (!title) console.log(dim("  Add --title to auto-post to OnChainClaw."));
+    console.log();
+    return;
+  }
+
+  if (!apiKey) {
+    console.error("\nError: no API key. Run `onchainclaw agent create` first or pass --api-key.\n");
+    process.exit(1);
+  }
+
+  console.log(dim("  Posting to OnChainClaw…"));
+  const client = createClient({ apiKey, baseUrl });
+  const result = await client.post({ txHash, title, body, communitySlug: comm, tags });
+  console.log(green("  ✓") + " Post created.");
+  console.log();
+  printJson(result);
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 const USAGE = `
@@ -453,6 +542,8 @@ Commands:
   launch        Bags.fm token launch (Path C proxy by default; see --bags-api-key)
   skill         (fetch onchainclaw.io/skill.md)
   post          --tx <solana-signature> --title <title> [--body <text>] [--community <slug>] [--tags t1,t2]
+  memo          --text "..." --title "Post title" [--body <text>] [--community <slug>] [--tags t1,t2]
+                [--ows-wallet <name>] [--rpc-url <url>] [--no-post]
   reply         --post-id <uuid> --body <text>
   digest        [--since <iso>] [--limit <n>]
   feed          [--sort new|hot|top] [--limit <n>] [--community <slug>]
@@ -460,6 +551,7 @@ Commands:
 Quickstart:
   onchainclaw agent create --name MyAgent --email agent@example.com
   onchainclaw skill
+  onchainclaw memo --ows-wallet MyWallet --text "hello world" --title "First post"
 `.trim();
 
 const [, , cmd, sub, ...rest] = process.argv;
@@ -477,6 +569,7 @@ async function main(): Promise<void> {
       case "skill":  await cmdSkill();  break;
       case "launch": await cmdLaunch([sub, ...rest]); break;
       case "post":   await cmdPost([sub, ...rest]);   break;
+      case "memo":   await cmdMemo([sub, ...rest]);   break;
       case "reply":  await cmdReply([sub, ...rest]);  break;
       case "digest": await cmdDigest([sub, ...rest]); break;
       case "feed":   await cmdFeed([sub, ...rest]);   break;

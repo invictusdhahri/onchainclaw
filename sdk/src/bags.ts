@@ -1,6 +1,14 @@
-import bs58 from "bs58";
 import { OnChainClawError, apiFetch, DEFAULT_BASE_URL } from "./api.js";
 import type { OnChainClawClientInterface, PostOptions } from "./types.js";
+import {
+  resolveSigner,
+  broadcastAfterSign,
+  loadWeb3,
+  loadOws,
+  type ResolvedSigner,
+  type OccBroadcast,
+  type SignerSourceParams,
+} from "./signer.js";
 
 /** Must match `BAGS_MIN_LAMPORTS_FOR_LAUNCH` in `@onchainclaw/shared` / backend Bags routes. */
 const BAGS_MIN_LAMPORTS_FOR_LAUNCH = 50_000_000; // 0.05 SOL
@@ -595,174 +603,7 @@ async function finalizeOccPost(
   return client.post({ txHash: launchTxHash, ...post, body });
 }
 
-// ─── Signer resolution ────────────────────────────────────────────────────────
-
-interface ResolvedSigner {
-  walletAddress: string;
-  signAndSend: (txHex: string) => Promise<string>;
-}
-
-/** When set, signed txs are sent via `POST /api/bags/broadcast` instead of raw RPC. */
-type OccBroadcast = { apiKey: string; baseUrl: string };
-
-type SignerSourceParams = Pick<
-  BagsLaunchParams,
-  "owsWalletName" | "owsPassphrase" | "secretKey" | "wallet" | "signAndSendFn"
->;
-
-async function resolveSigner(
-  params: SignerSourceParams,
-  rpcUrl: string,
-  occBroadcast: OccBroadcast | undefined
-): Promise<ResolvedSigner> {
-  if (params.owsWalletName) {
-    return resolveOwsSigner(
-      params.owsWalletName,
-      params.owsPassphrase ?? null,
-      rpcUrl,
-      occBroadcast
-    );
-  }
-
-  if (params.secretKey) {
-    return resolveKeypairSigner(params.secretKey, rpcUrl, occBroadcast);
-  }
-
-  if (params.signAndSendFn && params.wallet) {
-    return {
-      walletAddress: params.wallet,
-      signAndSend: params.signAndSendFn,
-    };
-  }
-
-  throw new OnChainClawError(
-    "No signing method provided.\n" +
-      "Supply one of:\n" +
-      "  • owsWalletName (+ optional owsPassphrase)\n" +
-      "  • secretKey (base58-encoded 64-byte Solana key)\n" +
-      "  • wallet + signAndSendFn"
-  );
-}
-
-async function broadcastAfterSign(
-  signedTxBytes: Uint8Array,
-  rpcUrl: string,
-  occBroadcast: OccBroadcast | undefined
-): Promise<string> {
-  const hex = Buffer.from(signedTxBytes).toString("hex");
-  if (occBroadcast) {
-    const { signature } = await apiFetch<{ signature: string }>(
-      occBroadcast.baseUrl,
-      "/api/bags/broadcast",
-      {
-        method: "POST",
-        apiKey: occBroadcast.apiKey,
-        body: { signed_transaction_hex: hex },
-      }
-    );
-    return signature;
-  }
-
-  const { Connection } = await loadWeb3();
-  const connection = new Connection(rpcUrl, "processed");
-  const txHash = await connection.sendRawTransaction(signedTxBytes, {
-    skipPreflight: false,
-  });
-  const { blockhash, lastValidBlockHeight } =
-    await connection.getLatestBlockhash("processed");
-  await connection.confirmTransaction(
-    { signature: txHash, blockhash, lastValidBlockHeight },
-    "processed"
-  );
-  return txHash;
-}
-
-async function resolveOwsSigner(
-  walletName: string,
-  passphrase: string | null,
-  rpcUrl: string,
-  occBroadcast: OccBroadcast | undefined
-): Promise<ResolvedSigner> {
-  const ows = await loadOws();
-
-  const walletData = ows.getWallet(walletName);
-  const solanaAccount = walletData.accounts.find(
-    (a: { chainId: string; address: string }) => a.chainId.startsWith("solana:")
-  );
-  if (!solanaAccount) {
-    throw new OnChainClawError(
-      `OWS wallet "${walletName}" has no Solana account. ` +
-        "Make sure it was created with Solana support."
-    );
-  }
-
-  return {
-    walletAddress: solanaAccount.address,
-    signAndSend: async (txHex: string): Promise<string> => {
-      const { VersionedTransaction, PublicKey: PK } = await loadWeb3();
-
-      const txBytes = Buffer.from(txHex, "hex");
-      const tx = VersionedTransaction.deserialize(txBytes);
-      const messageHex = Buffer.from(tx.message.serialize()).toString("hex");
-
-      const { signature: sigHex } = ows.signMessage(
-        walletName,
-        "solana",
-        messageHex,
-        passphrase,
-        "hex"
-      );
-      const sigBytes = Buffer.from(sigHex, "hex");
-
-      const walletPubkey = new PK(solanaAccount.address);
-      const signerIndex = tx.message.staticAccountKeys.findIndex((k) =>
-        k.equals(walletPubkey)
-      );
-      if (signerIndex < 0 || signerIndex >= tx.signatures.length) {
-        throw new OnChainClawError(
-          `Wallet ${solanaAccount.address} is not a signer in this transaction.`
-        );
-      }
-      tx.signatures[signerIndex] = sigBytes;
-
-      return broadcastAfterSign(tx.serialize(), rpcUrl, occBroadcast);
-    },
-  };
-}
-
-async function resolveKeypairSigner(
-  secretKeyBase58: string,
-  rpcUrl: string,
-  occBroadcast: OccBroadcast | undefined
-): Promise<ResolvedSigner> {
-  const { Keypair, VersionedTransaction } = await loadWeb3();
-
-  const keypair = Keypair.fromSecretKey(bs58.decode(secretKeyBase58));
-  const walletAddress = keypair.publicKey.toBase58();
-
-  return {
-    walletAddress,
-    signAndSend: async (txHex: string): Promise<string> => {
-      const txBytes = Buffer.from(txHex, "hex");
-      const tx = VersionedTransaction.deserialize(txBytes);
-      tx.sign([keypair]);
-      return broadcastAfterSign(tx.serialize(), rpcUrl, occBroadcast);
-    },
-  };
-}
-
 // ─── Dynamic loaders — keeps peer deps truly optional at runtime ──────────────
-
-async function loadOws(): Promise<typeof import("@open-wallet-standard/core")> {
-  try {
-    return await import("@open-wallet-standard/core");
-  } catch {
-    throw new OnChainClawError(
-      "@open-wallet-standard/core not found.\n" +
-        "Install it: npm install @open-wallet-standard/core"
-    );
-  }
-}
 
 async function loadBagsSdk(): Promise<typeof import("@bagsfm/bags-sdk")> {
   try {
@@ -771,17 +612,6 @@ async function loadBagsSdk(): Promise<typeof import("@bagsfm/bags-sdk")> {
     throw new OnChainClawError(
       "@bagsfm/bags-sdk not found.\n" +
         "Install it: npm install @bagsfm/bags-sdk"
-    );
-  }
-}
-
-async function loadWeb3(): Promise<typeof import("@solana/web3.js")> {
-  try {
-    return await import("@solana/web3.js");
-  } catch {
-    throw new OnChainClawError(
-      "@solana/web3.js not found.\n" +
-        "Install it: npm install @solana/web3.js"
     );
   }
 }

@@ -1,4 +1,6 @@
 export { register } from "./register.js";
+export { sendMemoTransaction } from "./memo.js";
+export type { MemoParams, MemoResult } from "./memo.js";
 export {
   launchTokenOnBags,
   launchTokenOnBagsResume,
