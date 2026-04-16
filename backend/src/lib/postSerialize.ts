@@ -3,6 +3,13 @@ import {
   loadPredictionBundlesByPostIds,
   loadPredictionVoteMapsByPostIds,
 } from "./predictionBundle.js";
+import {
+  getActivityTxCache,
+  mgetActivityTxCache,
+  setActivityTxCache,
+  type CachedActivityPayload,
+} from "./redis.js";
+import { fetchBatchTokenMetadata } from "./codex.js";
 
 /** @mentions: @AgentName — no spaces in registered names; match up to next whitespace or @ */
 const MENTION_RE = /@([^\s@]{1,120})/g;
@@ -80,6 +87,82 @@ export function sortPostRepliesByUpvotes(post: Record<string, unknown>): Record<
   return { ...post, replies: sorted };
 }
 
+/**
+ * Batch-load activity summaries for a list of tx_hashes.
+ * Redis MGET → DB fallback for misses → Codex token symbol enrichment → Redis backfill.
+ */
+async function loadActivityMap(
+  txHashes: string[]
+): Promise<Map<string, CachedActivityPayload>> {
+  const map = new Map<string, CachedActivityPayload>();
+  if (txHashes.length === 0) return map;
+
+  // 1. Single Redis MGET round-trip
+  const cached = await mgetActivityTxCache(txHashes);
+  const misses: string[] = [];
+
+  for (let i = 0; i < txHashes.length; i++) {
+    const hit = cached[i];
+    if (hit) {
+      map.set(txHashes[i]!, hit);
+    } else {
+      misses.push(txHashes[i]!);
+    }
+  }
+
+  if (misses.length === 0) return map;
+
+  // 2. DB query only for misses (include counterparty for memo text)
+  try {
+    const { data } = await supabase
+      .from("activities")
+      .select("tx_hash, action, amount, token, counterparty")
+      .in("tx_hash", misses);
+
+    if (data && data.length > 0) {
+      // 3. Batch Codex token symbol enrichment for unique non-null mints
+      const uniqueMints = [
+        ...new Set(
+          data
+            .map((r) => r.token as string | null)
+            .filter((t): t is string => !!t)
+        ),
+      ];
+      const symbolMap =
+        uniqueMints.length > 0
+          ? await fetchBatchTokenMetadata(uniqueMints)
+          : new Map();
+
+      const backfills: Promise<void>[] = [];
+      for (const row of data) {
+        const action = row.action as string;
+        const token = row.token as string | null;
+        const counterparty = row.counterparty as string | null;
+
+        const tokenSymbol = token ? (symbolMap.get(token)?.symbol ?? null) : null;
+        // For memo actions, counterparty stores the memo text (not a wallet address)
+        const memoText = action === "memo" ? counterparty : null;
+
+        const payload: CachedActivityPayload = {
+          action,
+          amount: row.amount as number,
+          token,
+          ...(tokenSymbol ? { token_symbol: tokenSymbol } : {}),
+          ...(memoText ? { memo_text: memoText } : {}),
+        };
+        map.set(row.tx_hash as string, payload);
+        // 4. Backfill Redis so next request is a cache hit
+        backfills.push(setActivityTxCache(row.tx_hash as string, payload));
+      }
+      await Promise.allSettled(backfills);
+    }
+  } catch {
+    // Non-fatal: activity data is optional on posts
+  }
+
+  return map;
+}
+
 export async function serializeAndEnrichPosts(
   rawPosts: Record<string, unknown>[]
 ): Promise<Array<Record<string, unknown> & { mention_map: Record<string, string> }>> {
@@ -90,12 +173,27 @@ export async function serializeAndEnrichPosts(
       ...((p.replies as Array<{ body: string }> | undefined)?.map((r) => r.body) || [])
     ).forEach((t) => allTokens.add(t));
   }
-  const globalMap = await loadMentionMap([...allTokens]);
-  const predictionPostIds = rawPosts
-    .filter((p) => p.post_kind === "prediction" && typeof p.id === "string")
-    .map((p) => p.id as string);
-  const predictionBundles = await loadPredictionBundlesByPostIds(predictionPostIds);
-  const predictionVoteMaps = await loadPredictionVoteMapsByPostIds(predictionPostIds);
+
+  // Collect non-null tx_hashes for activity batch lookup
+  const txHashes = rawPosts
+    .map((p) => p.tx_hash as string | undefined)
+    .filter((h): h is string => typeof h === "string" && h.length > 0);
+
+  const [globalMap, predictionBundles, predictionVoteMaps, activityMap] =
+    await Promise.all([
+      loadMentionMap([...allTokens]),
+      loadPredictionBundlesByPostIds(
+        rawPosts
+          .filter((p) => p.post_kind === "prediction" && typeof p.id === "string")
+          .map((p) => p.id as string)
+      ),
+      loadPredictionVoteMapsByPostIds(
+        rawPosts
+          .filter((p) => p.post_kind === "prediction" && typeof p.id === "string")
+          .map((p) => p.id as string)
+      ),
+      loadActivityMap(txHashes),
+    ]);
 
   return rawPosts.map((p) => {
     const ordered = sortPostRepliesByUpvotes(p);
@@ -106,18 +204,24 @@ export async function serializeAndEnrichPosts(
         globalMap
       )
     );
+
+    const txHash = p.tx_hash as string | undefined;
+    const activity = txHash ? (activityMap.get(txHash) ?? null) : null;
+
+    const withActivity = activity ? { ...withMentions, activity } : withMentions;
+
     const pid = p.id as string | undefined;
     if (p.post_kind === "prediction" && pid && predictionBundles.has(pid)) {
       const voteMap = predictionVoteMaps.get(pid);
       return {
-        ...withMentions,
+        ...withActivity,
         prediction: predictionBundles.get(pid),
         ...(voteMap && Object.keys(voteMap).length > 0
           ? { prediction_votes_by_wallet: voteMap }
           : {}),
       };
     }
-    return withMentions;
+    return withActivity;
   });
 }
 
@@ -127,7 +231,54 @@ export async function serializeSinglePost(raw: Record<string, unknown>) {
     ordered.body as string,
     ...((ordered.replies as Array<{ body: string }> | undefined)?.map((r) => r.body) || [])
   );
-  const globalMap = await loadMentionMap(tokens);
+
+  const txHash = raw.tx_hash as string | undefined;
+
+  const [globalMap, activity] = await Promise.all([
+    loadMentionMap(tokens),
+    txHash ? getActivityTxCache(txHash) : Promise.resolve(null),
+  ]);
+
+  // DB fallback for single-post activity on a Redis miss
+  let resolvedActivity = activity;
+  if (!resolvedActivity && txHash) {
+    try {
+      const { data } = await supabase
+        .from("activities")
+        .select("tx_hash, action, amount, token, counterparty")
+        .eq("tx_hash", txHash)
+        .maybeSingle();
+      if (data) {
+        const action = data.action as string;
+        const token = data.token as string | null;
+        const counterparty = data.counterparty as string | null;
+        const memoText = action === "memo" ? counterparty : null;
+
+        // Single-mint Codex lookup for token symbol
+        let tokenSymbol: string | null = null;
+        if (token) {
+          try {
+            const symbolMap = await fetchBatchTokenMetadata([token]);
+            tokenSymbol = symbolMap.get(token)?.symbol ?? null;
+          } catch {
+            // Non-fatal
+          }
+        }
+
+        resolvedActivity = {
+          action,
+          amount: data.amount as number,
+          token,
+          ...(tokenSymbol ? { token_symbol: tokenSymbol } : {}),
+          ...(memoText ? { memo_text: memoText } : {}),
+        };
+        setActivityTxCache(txHash, resolvedActivity).catch(() => {});
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
   const withMentions = attachMentionMap(
     ordered,
     mentionMapForPost(
@@ -135,6 +286,11 @@ export async function serializeSinglePost(raw: Record<string, unknown>) {
       globalMap
     )
   );
+
+  const withActivity = resolvedActivity
+    ? { ...withMentions, activity: resolvedActivity }
+    : withMentions;
+
   const pid = raw.id as string | undefined;
   if (raw.post_kind === "prediction" && pid) {
     const bundles = await loadPredictionBundlesByPostIds([pid]);
@@ -143,7 +299,7 @@ export async function serializeSinglePost(raw: Record<string, unknown>) {
     const voteMap = voteMaps.get(pid);
     if (b) {
       return {
-        ...withMentions,
+        ...withActivity,
         prediction: b,
         ...(voteMap && Object.keys(voteMap).length > 0
           ? { prediction_votes_by_wallet: voteMap }
@@ -151,5 +307,5 @@ export async function serializeSinglePost(raw: Record<string, unknown>) {
       };
     }
   }
-  return withMentions;
+  return withActivity;
 }

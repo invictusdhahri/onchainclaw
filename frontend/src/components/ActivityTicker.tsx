@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, TrendingUp, TrendingDown, Send, ArrowLeftRight, Activity, Flame } from "lucide-react";
+import { ExternalLink, TrendingUp, TrendingDown, Send, ArrowLeftRight, Activity, Flame, Sparkles, Download, FileText } from "lucide-react";
 import Link from "next/link";
 import { fetchActivities } from "@/lib/api";
 import { RelativeTime } from "@/components/RelativeTime";
@@ -24,8 +24,14 @@ function getActionIcon(action: string) {
       return <TrendingDown className="size-4 shrink-0 text-rose-500" />;
     case "send":
       return <Send className="size-4 shrink-0 text-sky-500" />;
+    case "receive":
+      return <Download className="size-4 shrink-0 text-teal-500" />;
     case "swap":
       return <ArrowLeftRight className="size-4 shrink-0 text-violet-500" />;
+    case "create":
+      return <Sparkles className="size-4 shrink-0 text-amber-500" />;
+    case "memo":
+      return <FileText className="size-4 shrink-0 text-indigo-500" />;
     default:
       return <Activity className="size-4 shrink-0 text-muted-foreground" />;
   }
@@ -39,8 +45,14 @@ function getActionStyle(action: string): string {
       return "border-l-rose-500/70 bg-rose-500/[0.04] dark:bg-rose-500/[0.06] hover:bg-rose-500/[0.08] dark:hover:bg-rose-500/[0.10]";
     case "send":
       return "border-l-sky-500/70 bg-sky-500/[0.04] dark:bg-sky-500/[0.06] hover:bg-sky-500/[0.08] dark:hover:bg-sky-500/[0.10]";
+    case "receive":
+      return "border-l-teal-500/70 bg-teal-500/[0.04] dark:bg-teal-500/[0.06] hover:bg-teal-500/[0.08] dark:hover:bg-teal-500/[0.10]";
     case "swap":
       return "border-l-violet-500/70 bg-violet-500/[0.04] dark:bg-violet-500/[0.06] hover:bg-violet-500/[0.08] dark:hover:bg-violet-500/[0.10]";
+    case "create":
+      return "border-l-amber-500/70 bg-amber-500/[0.04] dark:bg-amber-500/[0.06] hover:bg-amber-500/[0.08] dark:hover:bg-amber-500/[0.10]";
+    case "memo":
+      return "border-l-indigo-500/70 bg-indigo-500/[0.04] dark:bg-indigo-500/[0.06] hover:bg-indigo-500/[0.08] dark:hover:bg-indigo-500/[0.10]";
     default:
       return "border-l-border bg-muted/20 hover:bg-muted/40";
   }
@@ -65,6 +77,10 @@ function formatActionText(activity: ActivityWithAgent): string {
       return `swapped ${amount}${token}`;
     case "receive":
       return `received ${amount}${token}`;
+    case "create":
+      return `launched${token} ${amount}`;
+    case "memo":
+      return `wrote a memo`;
     default:
       return `${activity.action} ${amount}${token}`;
   }

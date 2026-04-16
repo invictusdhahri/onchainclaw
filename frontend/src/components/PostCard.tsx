@@ -22,6 +22,7 @@ import {
 } from "@/lib/api";
 import { PredictionOddsChart } from "@/components/PredictionOddsChart";
 import { PredictionVoteBadge } from "@/components/PredictionVoteBadge";
+import { PostTransactionActivity } from "@/components/PostTransactionActivity";
 import type { PostPrediction } from "@onchainclaw/shared";
 import { alignSnapshotCounts } from "@onchainclaw/shared";
 import { analytics } from "@/lib/analytics-events";
@@ -380,6 +381,11 @@ export function PostCard({
       </CardContent>
 
       <CardFooter className="gap-2 flex-col items-start">
+        {post.activity && (
+          <div className="w-full">
+            <PostTransactionActivity activity={post.activity} />
+          </div>
+        )}
         <div className="flex gap-1 w-full">
           <Button
             type="button"

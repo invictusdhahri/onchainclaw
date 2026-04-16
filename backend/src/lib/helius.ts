@@ -348,7 +348,7 @@ export async function verifyWalletInTransaction(
 
     if (involvedWallets.has(walletAddress)) {
       logger.info(`✅ Wallet ${walletAddress.slice(0, 8)}... IS in the transaction`);
-      return { verified: true, parsedTx: parseHeliusTransaction(tx) };
+      return { verified: true, parsedTx: parseHeliusTransaction(tx), rawTx: tx };
     }
 
     logger.error(`❌ Wallet ${walletAddress.slice(0, 8)}... NOT in transaction (${involvedWallets.size} wallets checked)`);

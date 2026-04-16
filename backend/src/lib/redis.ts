@@ -192,8 +192,117 @@ export async function setFeedResponseCache(
   );
 }
 
+/**
+ * Bust the "new posts" feed cache for a community so the next request gets
+ * a fresh response (e.g. immediately after a new post is created).
+ * Only deletes the first-page keys for `sort=new` — the most impactful ones.
+ * Deletes at most 4 keys (community + global feed, limits 20 and 100).
+ * Non-blocking: errors are swallowed.
+ */
+export async function invalidateFeedCacheForCommunity(
+  communitySlug: string | null
+): Promise<void> {
+  try {
+    const slugPart = communitySlug ?? "";
+    // First-page keys for the two most common limits
+    const keysToDelete = [
+      `${FEED_RESPONSE_PREFIX}new:${slugPart}:20:0`,
+      `${FEED_RESPONSE_PREFIX}new:${slugPart}:100:0`,
+      // Also bust the global (no-community-filter) feed
+      ...(slugPart ? [
+        `${FEED_RESPONSE_PREFIX}new::20:0`,
+        `${FEED_RESPONSE_PREFIX}new::100:0`,
+      ] : []),
+    ];
+    if (keysToDelete.length > 0) {
+      await redis.del(...keysToDelete);
+    }
+  } catch {
+    // Non-fatal
+  }
+}
+
 export function activitiesResponseCacheSegment(limit: number, offset: number): string {
   return `${limit}:${offset}`;
+}
+
+// ---------------------------------------------------------------------------
+// Per-transaction activity cache
+// Activity rows are write-once (created by the webhook, never mutated), so we
+// cache them with a long TTL to avoid DB hits on every feed serialization.
+// ---------------------------------------------------------------------------
+
+const ACTIVITY_TX_PREFIX = "onclaw:activity:tx:v1:";
+/** 1 hour — activity records are immutable after insert */
+const ACTIVITY_TX_TTL = 3600;
+
+export type CachedActivityPayload = {
+  action: string;
+  amount: number;
+  token: string | null;
+  token_symbol?: string | null;
+  /** Decoded memo text — only set when action === "memo" */
+  memo_text?: string | null;
+};
+
+/**
+ * Retrieve a single activity payload from Redis by tx_hash.
+ * Returns null on cache miss or parse error.
+ */
+export async function getActivityTxCache(
+  txHash: string
+): Promise<CachedActivityPayload | null> {
+  try {
+    const data = await redis.get(`${ACTIVITY_TX_PREFIX}${txHash}`);
+    return data ? (JSON.parse(data) as CachedActivityPayload) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Retrieve multiple activity payloads from Redis in a single MGET round-trip.
+ * Returns an array aligned with the input `txHashes` array; null for each miss.
+ */
+export async function mgetActivityTxCache(
+  txHashes: string[]
+): Promise<(CachedActivityPayload | null)[]> {
+  if (txHashes.length === 0) return [];
+  try {
+    const keys = txHashes.map((h) => `${ACTIVITY_TX_PREFIX}${h}`);
+    const results = await redis.mget(...keys);
+    return results.map((r) => {
+      if (!r) return null;
+      try {
+        return JSON.parse(r) as CachedActivityPayload;
+      } catch {
+        return null;
+      }
+    });
+  } catch {
+    return txHashes.map(() => null);
+  }
+}
+
+/**
+ * Store an activity payload in Redis keyed by tx_hash (1-hour TTL).
+ * Call this immediately after a successful Supabase activities INSERT
+ * so the cache is warm for the next feed request.
+ */
+export async function setActivityTxCache(
+  txHash: string,
+  payload: CachedActivityPayload
+): Promise<void> {
+  try {
+    await redis.set(
+      `${ACTIVITY_TX_PREFIX}${txHash}`,
+      JSON.stringify(payload),
+      "EX",
+      ACTIVITY_TX_TTL
+    );
+  } catch {
+    // Non-fatal: cache miss will fall back to DB
+  }
 }
 
 export async function getActivitiesResponseCache(

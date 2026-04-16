@@ -4,6 +4,7 @@ import { generatePost } from "./postGenerator.js";
 import { ensurePostTitle } from "../lib/postTitle.js";
 import type { HeliusEnhancedTransaction } from "../types/helius.js";
 import { logger } from "../lib/logger.js";
+import { setActivityTxCache } from "../lib/redis.js";
 
 /** Minimum parsed USD amount to auto-generate a post (Helius webhook). Set via AUTO_POST_MIN_USD (default 0). */
 function getAutoPostMinUsd(): number {
@@ -15,13 +16,63 @@ function getAutoPostMinUsd(): number {
 const WSOL_MINT = "So11111111111111111111111111111111111111112";
 const NATIVE_SOL = "11111111111111111111111111111111";
 
+/**
+ * Extract the human-readable memo text from a Helius transaction description.
+ * Helius formats memo descriptions as:
+ *   "GCAk... wrote 'hello world' as a memo."
+ *   "GCAk... submitted a memo: hello world"
+ * Returns the extracted text, or the full description as a last resort.
+ */
+function extractMemoText(description: string): string {
+  // Format: "... wrote 'TEXT' as a memo"
+  const m1 = description.match(/wrote\s+'([^']+)'\s+as\s+a\s+memo/i);
+  if (m1?.[1]) return m1[1].trim();
+  // Format: "... memo: TEXT" or "... submitted a memo: TEXT"
+  const m2 = description.match(/(?:submitted\s+a\s+memo|memo):\s*(.+)/i);
+  if (m2?.[1]) return m2[1].trim().replace(/\.$/, "");
+  // Fallback: strip leading wallet address (base58 is 32-44 chars) and return rest
+  return description.replace(/^[1-9A-HJ-NP-Za-km-z]{32,44}\s+/, "").trim();
+}
+
 function mapTypeToAction(
   type: string,
   tx: HeliusEnhancedTransaction,
   agentWallet: string
-): "buy" | "sell" | "send" | "receive" | "swap" | "unknown" {
+): "buy" | "sell" | "send" | "receive" | "swap" | "create" | "memo" | "unknown" {
   const upperType = type.toUpperCase();
 
+  // --- Create / token launch detection (checked first) ---
+  // Helius emits types like CREATE_MINT, INITIALIZE_MINT, TOKEN_LAUNCH, etc.
+  // Also catches pump.fun / Bags launches: source is known launch platform and
+  // the agent wallet has no incoming token transfers (they are minting, not buying).
+  const isCreateType =
+    upperType.includes("CREATE") ||
+    upperType.includes("MINT") ||
+    upperType.includes("LAUNCH") ||
+    upperType.includes("INITIALIZE");
+
+  const isKnownLaunchSource =
+    tx.source === "PUMP_FUN" || tx.source === "BAGS" || tx.source === "METEORA";
+
+  if (isCreateType) {
+    return "create";
+  }
+
+  if (isKnownLaunchSource) {
+    // On a known launch platform: if the agent receives a brand-new token with no
+    // outgoing SPL (not a swap), treat it as a creation/launch.
+    const hasIncomingToken =
+      tx.tokenTransfers?.some((t) => t.toUserAccount === agentWallet && t.mint !== WSOL_MINT) ??
+      false;
+    const hasOutgoingToken =
+      tx.tokenTransfers?.some((t) => t.fromUserAccount === agentWallet && t.mint !== WSOL_MINT) ??
+      false;
+    if (hasIncomingToken && !hasOutgoingToken) {
+      return "create";
+    }
+  }
+
+  // --- Swap / buy / sell detection ---
   const isSwap =
     upperType.includes("SWAP") ||
     (tx.tokenTransfers &&
@@ -32,6 +83,7 @@ function mapTypeToAction(
   if (isSwap && tx.tokenTransfers && tx.tokenTransfers.length > 0) {
     let receivedWSol = false;
     let receivedSplToken = false;
+    let sentSplToken = false;
 
     for (const transfer of tx.tokenTransfers) {
       if (transfer.toUserAccount === agentWallet) {
@@ -41,17 +93,47 @@ function mapTypeToAction(
           receivedSplToken = true;
         }
       }
+      if (transfer.fromUserAccount === agentWallet && transfer.mint !== WSOL_MINT) {
+        sentSplToken = true;
+      }
     }
 
+    // Clear-cut cases first
     if (receivedSplToken && !receivedWSol) {
       return "buy";
     }
     if (receivedWSol && !receivedSplToken) {
       return "sell";
     }
+
+    // Ambiguous receive side: use sent direction as tiebreaker
+    // Agent sent SPL and received WSOL/SOL (or both sides present) → sell
+    if (sentSplToken && (receivedWSol || !receivedSplToken)) {
+      return "sell";
+    }
+    // Agent received SPL but also WSOL (multi-hop route) → buy (net new token acquired)
+    if (receivedSplToken) {
+      return "buy";
+    }
+
     return "swap";
   }
 
+  // --- Memo detection (checked before transfer to avoid misclassification) ---
+  // Helius sets type=UNKNOWN for Memo program txs; the description mentions "memo".
+  // Memo-only transactions have no native or token transfers.
+  const noTransfers =
+    (!tx.nativeTransfers || tx.nativeTransfers.length === 0) &&
+    (!tx.tokenTransfers || tx.tokenTransfers.length === 0);
+  if (
+    noTransfers &&
+    tx.description &&
+    tx.description.toLowerCase().includes("memo")
+  ) {
+    return "memo";
+  }
+
+  // --- Transfer detection ---
   if (
     upperType.includes("TRANSFER") ||
     (tx.nativeTransfers && tx.nativeTransfers.length > 0)
@@ -109,6 +191,61 @@ function findCounterparty(
     }
   }
   return null;
+}
+
+/**
+ * Create (or silently skip if already exists) an activity record for a given
+ * Helius transaction and agent wallet, and warm the Redis cache.
+ *
+ * Safe to call from the manual POST /api/post flow. Uses upsert with
+ * ignoreDuplicates so it never errors if the webhook already wrote the row.
+ */
+export async function recordActivityFromRawTx(
+  transaction: HeliusEnhancedTransaction,
+  agentWallet: string
+): Promise<void> {
+  try {
+    const parsed = parseHeliusTransaction(transaction);
+    const action = mapTypeToAction(parsed.type, transaction, agentWallet);
+    const tokenMint = extractSplMint(transaction) || parsed.tokens?.[0] || null;
+
+    // For memo actions: store decoded memo text in counterparty (no wallet counterparty exists).
+    // For all other actions: resolve the actual counterparty wallet.
+    const memoText =
+      action === "memo" && transaction.description
+        ? extractMemoText(transaction.description)
+        : null;
+    const counterparty = memoText ?? findCounterparty(transaction, agentWallet);
+
+    const { error } = await supabase.from("activities").upsert(
+      {
+        agent_wallet: agentWallet,
+        tx_hash: parsed.tx_hash,
+        action,
+        amount: parsed.amount,
+        token: tokenMint,
+        counterparty,
+      },
+      { onConflict: "tx_hash", ignoreDuplicates: true }
+    );
+
+    if (error) {
+      logger.warn("recordActivityFromRawTx upsert error:", error);
+      return;
+    }
+
+    setActivityTxCache(parsed.tx_hash, {
+      action,
+      amount: parsed.amount,
+      token: tokenMint,
+      ...(memoText ? { memo_text: memoText } : {}),
+    }).catch((e) => logger.warn("Activity Redis write-through failed:", e));
+
+    logger.info(`✓ Activity upserted from manual post: ${agentWallet.slice(0, 8)}… - ${action}`);
+  } catch (e) {
+    // Non-fatal: activity is best-effort for manual posts
+    logger.warn("recordActivityFromRawTx error:", e);
+  }
 }
 
 /**
@@ -184,22 +321,38 @@ export async function processHeliusTransactionForWebhook(
   }
 
   const action = mapTypeToAction(parsed.type, transaction, agent.wallet);
-  const counterparty = findCounterparty(transaction, agent.wallet);
   const tokenMint = extractSplMint(transaction) || parsed.tokens?.[0] || null;
 
-  const { error: activityError } = await supabase.from("activities").insert({
+  // For memo actions: store decoded text in counterparty (no counterparty wallet exists).
+  const memoText =
+    action === "memo" && transaction.description
+      ? extractMemoText(transaction.description)
+      : null;
+  const counterparty = memoText ?? findCounterparty(transaction, agent.wallet);
+
+  const activityPayload = {
     agent_wallet: agent.wallet,
     tx_hash: parsed.tx_hash,
     action,
     amount: parsed.amount,
     token: tokenMint,
     counterparty,
-  });
+  };
+
+  const { error: activityError } = await supabase.from("activities").insert(activityPayload);
 
   if (activityError) {
     logger.error("Failed to insert activity:", activityError);
   } else {
     logger.info(`✓ Activity recorded: ${agent.name} - ${action}`);
+    // Write-through: prime the Redis cache immediately so the next feed
+    // serialization finds this activity without a DB round-trip.
+    setActivityTxCache(parsed.tx_hash, {
+      action,
+      amount: parsed.amount,
+      token: tokenMint,
+      ...(memoText ? { memo_text: memoText } : {}),
+    }).catch((e) => logger.warn("Activity Redis write-through failed:", e));
   }
 
   if (agent.wallet_verified) {

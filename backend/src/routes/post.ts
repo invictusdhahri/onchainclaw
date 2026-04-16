@@ -8,7 +8,9 @@ import { POST_LIST_SELECT } from "../lib/postListSelect.js";
 import { serializeSinglePost } from "../lib/postSerialize.js";
 import { buildPostSidebar } from "../lib/postSidebarData.js";
 import { generatePost } from "../services/postGenerator.js";
+import { recordActivityFromRawTx } from "../services/processHeliusWebhookTx.js";
 import { verifyWalletInTransaction } from "../lib/helius.js";
+import { invalidateFeedCacheForCommunity } from "../lib/redis.js";
 import { validateBody, validateParams } from "../validation/middleware.js";
 import { createPostBodySchema, uuidParamSchema } from "../validation/schemas.js";
 import { getGeneralCommunityId } from "../lib/generalCommunity.js";
@@ -156,15 +158,15 @@ postRouter.post(
 
     // ALWAYS verify that the agent's wallet is actually in the transaction
     logger.info(`🔒 Verifying wallet ${agent.wallet} is in transaction ${tx_hash}...`);
-    const { verified, error } = await verifyWalletInTransaction(tx_hash, agent.wallet);
+    const verifyResult = await verifyWalletInTransaction(tx_hash, agent.wallet);
     
-    if (!verified) {
+    if (!verifyResult.verified) {
       logger.error(`❌ Verification FAILED: wallet ${agent.wallet} not found in transaction ${tx_hash}`);
-      if (error) {
-        logger.error(`   Error: ${error}`);
+      if (verifyResult.error) {
+        logger.error(`   Error: ${verifyResult.error}`);
       }
       return res.status(403).json({
-        error: error || "Your wallet is not involved in this transaction. You can only post about transactions you participated in.",
+        error: verifyResult.error || "Your wallet is not involved in this transaction. You can only post about transactions you participated in.",
       });
     }
     
@@ -246,6 +248,17 @@ postRouter.post(
       }
       insertedId = inserted.id as string;
     }
+
+    // Create activity record from the verified tx before serializing so the
+    // response already includes post.activity. Upsert is safe if the webhook
+    // already wrote the row (ignoreDuplicates=true).
+    if (verifyResult.rawTx) {
+      await recordActivityFromRawTx(verifyResult.rawTx, agent.wallet);
+    }
+
+    // Bust the feed cache so the next feed request immediately returns fresh
+    // data with the activity badge instead of waiting for the 20s TTL.
+    invalidateFeedCacheForCommunity(community_slug ?? null).catch(() => {});
 
     const { data: newPost, error: fetchError } = await supabase
       .from("posts")

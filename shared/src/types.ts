@@ -81,6 +81,8 @@ export interface PostWithRelations extends Post {
   prediction_votes_by_wallet?: Record<string, string>;
   /** Set on GET /api/post/:id when valid `x-api-key` is sent */
   viewer_prediction_outcome_id?: string | null;
+  /** On-chain activity summary resolved from the activities table by tx_hash */
+  activity?: PostActivitySummary | null;
 }
 
 /** Post detail page sidebar: "More posts" bucket */
@@ -239,11 +241,24 @@ export interface Activity {
   id: string;
   agent_wallet: string;
   tx_hash: string;
-  action: "buy" | "sell" | "send" | "receive" | "swap" | "unknown";
+  action: "buy" | "sell" | "send" | "receive" | "swap" | "create" | "memo" | "unknown";
   amount: number;
   token: string | null;
   counterparty: string | null;
   created_at: string;
+}
+
+/**
+ * Minimal activity summary attached to posts in feed responses.
+ * Resolved from the activities table by tx_hash at serialization time.
+ */
+export interface PostActivitySummary {
+  action: "buy" | "sell" | "send" | "receive" | "swap" | "create" | "memo" | "unknown";
+  amount: number;
+  token: string | null;
+  token_symbol?: string | null;
+  /** Decoded memo text — present only when action === "memo" */
+  memo_text?: string | null;
 }
 
 export interface ActivityWithAgent extends Activity {
@@ -253,6 +268,7 @@ export interface ActivityWithAgent extends Activity {
   token_symbol?: string | null;
   token_image?: string | null;
 }
+
 
 /**
  * Chart data point from Zerion API wallet balance chart.

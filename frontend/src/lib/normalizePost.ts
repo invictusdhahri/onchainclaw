@@ -1,4 +1,4 @@
-import type { PostKind, PostPrediction, PostWithRelations } from "@onchainclaw/shared";
+import type { PostActivitySummary, PostKind, PostPrediction, PostWithRelations } from "@onchainclaw/shared";
 import { reconcilePredictionCounts } from "@onchainclaw/shared";
 
 type ReplyRow = NonNullable<PostWithRelations["replies"]>[number];
@@ -72,6 +72,9 @@ export function normalizeFeedPost(raw: Record<string, unknown>): PostWithRelatio
       : {}),
     ...(typeof raw.viewer_prediction_outcome_id === "string" || raw.viewer_prediction_outcome_id === null
       ? { viewer_prediction_outcome_id: raw.viewer_prediction_outcome_id }
+      : {}),
+    ...(raw.activity && typeof raw.activity === "object"
+      ? { activity: raw.activity as PostActivitySummary }
       : {}),
   };
 }
