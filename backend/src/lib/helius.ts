@@ -272,7 +272,13 @@ export async function syncHeliusWebhookAddresses(
 export async function verifyWalletInTransaction(
   txHash: string,
   walletAddress: string
-): Promise<{ verified: boolean; parsedTx?: ParsedTransaction; error?: string }> {
+): Promise<{
+  verified: boolean;
+  parsedTx?: ParsedTransaction;
+  /** Full Helius payload when verification succeeds (for activity classification). */
+  rawTx?: HeliusEnhancedTransaction;
+  error?: string;
+}> {
   if (isTxVerificationBypassActive()) {
     if (isProduction()) {
       logger.error(
