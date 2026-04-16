@@ -1,4 +1,9 @@
 import { logger } from "./logger.js";
+import {
+  getTokenMetadataCache,
+  mgetTokenMetadataCache,
+  setTokenMetadataCache,
+} from "./redis.js";
 /**
  * Codex API client for fetching Solana token metadata.
  * Docs: https://docs.codex.io/
@@ -47,19 +52,29 @@ interface CodexGraphqlResponse {
   };
 }
 
-// In-memory cache to avoid redundant API calls for the same mint
+// In-memory cache to avoid redundant API calls for the same mint within a process lifetime
 const metadataCache = new Map<string, TokenMetadata>();
+
+/** Timeout for individual Codex GraphQL requests (ms) */
+const CODEX_FETCH_TIMEOUT_MS = 5000;
 
 /**
  * Fetch token metadata from Codex API.
- * Uses in-memory cache to avoid hitting the API repeatedly for the same mint.
+ * Cache hierarchy: in-memory → Redis (24 h TTL) → Codex API.
  */
 export async function fetchTokenMetadata(
   mintAddress: string
 ): Promise<TokenMetadata | null> {
-  // Check cache first
+  // 1. In-memory cache (fastest — same process)
   if (metadataCache.has(mintAddress)) {
     return metadataCache.get(mintAddress)!;
+  }
+
+  // 2. Redis cache (survives server restarts / multiple instances)
+  const redisHit = await getTokenMetadataCache(mintAddress);
+  if (redisHit) {
+    metadataCache.set(mintAddress, redisHit);
+    return redisHit;
   }
 
   if (!CODEX_API_KEY) {
@@ -80,20 +95,29 @@ export async function fetchTokenMetadata(
       }
     `;
 
-    const response = await fetch(CODEX_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: CODEX_API_KEY,
-      },
-      body: JSON.stringify({
-        query,
-        variables: {
-          address: mintAddress,
-          networkId: SOLANA_NETWORK_ID,
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CODEX_FETCH_TIMEOUT_MS);
+
+    let response: Response;
+    try {
+      response = await fetch(CODEX_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: CODEX_API_KEY,
         },
-      }),
-    });
+        body: JSON.stringify({
+          query,
+          variables: {
+            address: mintAddress,
+            networkId: SOLANA_NETWORK_ID,
+          },
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       logger.error(
@@ -121,8 +145,9 @@ export async function fetchTokenMetadata(
       imageUrl: token.info?.imageSmallUrl || null,
     };
 
-    // Cache the result
+    // Store in both caches
     metadataCache.set(mintAddress, metadata);
+    void setTokenMetadataCache(mintAddress, metadata);
 
     return metadata;
   } catch (error) {
@@ -138,6 +163,11 @@ export async function fetchTokenMetadata(
       }
       return null;
     }
+    // AbortError = timeout
+    if (error instanceof Error && error.name === "AbortError") {
+      logger.warn(`[codex] Timeout fetching metadata for ${mintAddress}`);
+      return null;
+    }
     logger.error(`Failed to fetch token metadata for ${mintAddress}:`, error);
     return null;
   }
@@ -145,16 +175,45 @@ export async function fetchTokenMetadata(
 
 /**
  * Batch fetch token metadata for multiple mints.
+ * Uses Redis MGET for a single round-trip on warm cache, then fans out to Codex
+ * only for the remaining misses.
  * Returns a Map of mintAddress -> TokenMetadata.
  */
 export async function fetchBatchTokenMetadata(
   mintAddresses: string[]
 ): Promise<Map<string, TokenMetadata>> {
   const results = new Map<string, TokenMetadata>();
+  if (mintAddresses.length === 0) return results;
 
-  // Fetch in parallel (Codex API allows this)
+  // 1. Satisfy as many hits as possible from in-memory cache
+  const misses: string[] = [];
+  for (const mint of mintAddresses) {
+    const cached = metadataCache.get(mint);
+    if (cached) {
+      results.set(mint, cached);
+    } else {
+      misses.push(mint);
+    }
+  }
+  if (misses.length === 0) return results;
+
+  // 2. Single Redis MGET round-trip for remaining misses
+  const redisHits = await mgetTokenMetadataCache(misses);
+  const codexMisses: string[] = [];
+  for (const mint of misses) {
+    const hit = redisHits.get(mint);
+    if (hit) {
+      metadataCache.set(mint, hit);
+      results.set(mint, hit);
+    } else {
+      codexMisses.push(mint);
+    }
+  }
+  if (codexMisses.length === 0) return results;
+
+  // 3. Fetch remaining from Codex in parallel
   await Promise.all(
-    mintAddresses.map(async (mint) => {
+    codexMisses.map(async (mint) => {
       const metadata = await fetchTokenMetadata(mint);
       if (metadata) {
         results.set(mint, metadata);

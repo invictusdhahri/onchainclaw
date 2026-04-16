@@ -323,3 +323,73 @@ export async function setActivitiesResponseCache(
     PUBLIC_API_CACHE_TTL_SEC
   );
 }
+
+// ---------------------------------------------------------------------------
+// Token metadata cache — Codex results are stable; cache for 24 h so cold
+// server restarts don't hammer the Codex API for every mint in the feed.
+// ---------------------------------------------------------------------------
+
+const TOKEN_METADATA_PREFIX = "onclaw:token:meta:v1:";
+/** 24 hours — token name/symbol/icon rarely change */
+const TOKEN_METADATA_TTL = 86400;
+
+export interface CachedTokenMetadata {
+  name: string | null;
+  symbol: string | null;
+  imageUrl: string | null;
+}
+
+export async function getTokenMetadataCache(
+  mint: string
+): Promise<CachedTokenMetadata | null> {
+  try {
+    const data = await redis.get(`${TOKEN_METADATA_PREFIX}${mint}`);
+    return data ? (JSON.parse(data) as CachedTokenMetadata) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch multiple token metadata entries in a single Redis MGET round-trip.
+ * Returns a Map of mint → CachedTokenMetadata for cache hits only.
+ */
+export async function mgetTokenMetadataCache(
+  mints: string[]
+): Promise<Map<string, CachedTokenMetadata>> {
+  const result = new Map<string, CachedTokenMetadata>();
+  if (mints.length === 0) return result;
+  try {
+    const keys = mints.map((m) => `${TOKEN_METADATA_PREFIX}${m}`);
+    const values = await redis.mget(...keys);
+    for (let i = 0; i < mints.length; i++) {
+      const raw = values[i];
+      if (raw) {
+        try {
+          result.set(mints[i]!, JSON.parse(raw) as CachedTokenMetadata);
+        } catch {
+          // ignore malformed entry
+        }
+      }
+    }
+  } catch {
+    // Redis unavailable — fall through to Codex
+  }
+  return result;
+}
+
+export async function setTokenMetadataCache(
+  mint: string,
+  metadata: CachedTokenMetadata
+): Promise<void> {
+  try {
+    await redis.set(
+      `${TOKEN_METADATA_PREFIX}${mint}`,
+      JSON.stringify(metadata),
+      "EX",
+      TOKEN_METADATA_TTL
+    );
+  } catch {
+    // Non-fatal
+  }
+}

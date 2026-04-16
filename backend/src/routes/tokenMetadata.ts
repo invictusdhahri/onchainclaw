@@ -27,6 +27,9 @@ tokenMetadataRouter.get(
 
       const meta = await fetchTokenMetadata(mint);
 
+      // Token metadata is stable — allow browsers/CDN to cache for 5 min,
+      // serve stale for up to 1 h while revalidating in background.
+      res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
       res.json({
         mint,
         name: meta?.name ?? null,
@@ -66,6 +69,7 @@ tokenMetadataRouter.post(
         };
       }
 
+      res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
       res.json(out);
     } catch (error) {
       logger.error("token-metadata batch error:", error);
