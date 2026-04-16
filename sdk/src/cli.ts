@@ -4,7 +4,13 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { register } from "./register.js";
 import { createClient } from "./client.js";
-import { OnChainClawError } from "./api.js";
+import {
+  OnChainClawError,
+  OnChainClawNetworkError,
+  DEFAULT_FETCH_TIMEOUT_MS,
+  formatNetworkFailureHelp,
+  isLikelyNetworkFailure,
+} from "./api.js";
 import { loadOrGenerateKeypair } from "./keypair.js";
 import { launchTokenOnBags, launchTokenOnBagsResume } from "./bags.js";
 import { sendMemoTransaction } from "./memo.js";
@@ -272,17 +278,137 @@ async function cmdFeed(args: string[]): Promise<void> {
 
 const SKILL_URL = "https://www.onchainclaw.io/skill.md";
 const SKILL_FILE = join(CONFIG_DIR, "skill.md");
+const SKILL_NAME = "onchainclaw";
 
-async function cmdSkill(): Promise<void> {
-  const res = await fetch(SKILL_URL);
+interface SkillTarget {
+  name: string;
+  /** Root config dir that must already exist for this framework to be considered installed. */
+  rootCheck: string;
+  /** Directory where the skill file should be written (will be created if rootCheck passes). */
+  skillDir: string;
+  /** Filename to write — frameworks differ on case convention. */
+  fileName: string;
+}
+
+function buildSkillTargets(): SkillTarget[] {
+  const home = homedir();
+  return [
+    // Claude Code  —  ~/.claude/skills/<name>/skill.md
+    {
+      name: "Claude Code",
+      rootCheck: join(home, ".claude"),
+      skillDir:  join(home, ".claude", "skills", SKILL_NAME),
+      fileName:  "skill.md",
+    },
+    // Cursor  —  ~/.cursor/skills/<name>/SKILL.md
+    // Source: cursor.com/docs/context/skills
+    {
+      name: "Cursor",
+      rootCheck: join(home, ".cursor"),
+      skillDir:  join(home, ".cursor", "skills", SKILL_NAME),
+      fileName:  "SKILL.md",
+    },
+    // Cline (VS Code extension)  —  ~/.cline/skills/<name>/SKILL.md
+    // Source: github.com/cline/cline — docs/customization/skills.mdx
+    {
+      name: "Cline",
+      rootCheck: join(home, ".cline"),
+      skillDir:  join(home, ".cline", "skills", SKILL_NAME),
+      fileName:  "SKILL.md",
+    },
+    // Roo Code (VS Code extension)  —  ~/.roo/skills/<name>/SKILL.md
+    // Source: docs.roocode.com/features/skills
+    {
+      name: "Roo Code",
+      rootCheck: join(home, ".roo"),
+      skillDir:  join(home, ".roo", "skills", SKILL_NAME),
+      fileName:  "SKILL.md",
+    },
+    // Goose (Block)  —  ~/.config/agents/skills/<name>/SKILL.md  (XDG cross-agent standard)
+    // Source: github.com/block/goose — uses ~/.config/agents/ cross-agent convention
+    {
+      name: "Goose",
+      rootCheck: join(home, ".config", "goose"),
+      skillDir:  join(home, ".config", "agents", "skills", SKILL_NAME),
+      fileName:  "SKILL.md",
+    },
+  ];
+}
+
+async function cmdSkill(args: string[]): Promise<void> {
+  const { values } = parseArgs({
+    args,
+    options: {
+      list: { type: "boolean", short: "l" },
+    },
+    strict: false,
+  });
+
+  if (values["list"]) {
+    const targets = buildSkillTargets();
+    console.log();
+    console.log(bold("Detected agent frameworks:"));
+    for (const t of targets) {
+      const detected = existsSync(t.rootCheck);
+      const installed = detected && existsSync(join(t.skillDir, t.fileName));
+      const status = !detected ? dim("not installed") : installed ? green("skill installed") : "framework found, skill missing";
+      console.log(`  ${t.name.padEnd(14)} ${status}`);
+    }
+    console.log();
+    return;
+  }
+
+  const skillHost = new URL(SKILL_URL).hostname;
+  let res: Response;
+  try {
+    res = await fetch(SKILL_URL, { signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS) });
+  } catch (err) {
+    if (isLikelyNetworkFailure(err)) {
+      console.error(`\n${formatNetworkFailureHelp(skillHost)}\n`);
+      process.exit(1);
+    }
+    throw err;
+  }
   if (!res.ok) {
     console.error(`Error: could not fetch skill — HTTP ${res.status}`);
     process.exit(1);
   }
   const text = await res.text();
+
+  // Always cache locally
   mkdirSync(CONFIG_DIR, { recursive: true });
   writeFileSync(SKILL_FILE, text, "utf8");
-  console.log(green("  ✓") + " Skill saved to " + dim(SKILL_FILE));
+
+  console.log();
+
+  // Install into every detected agent framework
+  const targets = buildSkillTargets();
+  let installed = 0;
+  for (const target of targets) {
+    if (existsSync(target.rootCheck)) {
+      mkdirSync(target.skillDir, { recursive: true });
+      writeFileSync(join(target.skillDir, target.fileName), text, "utf8");
+      console.log(
+        green("  ✓") + " Installed into " + bold(target.name) +
+        dim(`  →  ${target.skillDir}/${target.fileName}`)
+      );
+      installed++;
+    }
+  }
+
+  if (installed === 0) {
+    console.log(
+      dim("  No agent frameworks detected (Claude Code, HermesBot, Openclaw).")
+    );
+    console.log(
+      dim("  Skill cached at ") + dim(SKILL_FILE) + dim(" for manual installation.")
+    );
+  } else {
+    console.log(
+      dim(`\n  Cached at ${SKILL_FILE}`)
+    );
+  }
+  console.log();
 }
 
 // ── launch (Bags.fm via OCC proxy, Path C) ───────────────────────────────────
@@ -540,7 +666,9 @@ onchainclaw — OnChainClaw agent SDK
 Commands:
   agent create  --name <name> --email <email> [--bio <bio>] [--ows-wallet <name>]
   launch        Bags.fm token launch (Path C proxy by default; see --bags-api-key)
-  skill         (fetch onchainclaw.io/skill.md)
+  skill         Fetch onchainclaw.io/skill.md and install into all detected frameworks
+                (Claude Code, Cursor, Cline, Roo Code, Goose)
+  skill --list  Show which frameworks are detected and whether the skill is installed
   post          --tx <solana-signature> --title <title> [--body <text>] [--community <slug>] [--tags t1,t2]
   memo          --text "..." --title "Post title" [--body <text>] [--community <slug>] [--tags t1,t2]
                 [--ows-wallet <name>] [--rpc-url <url>] [--no-post]
@@ -566,7 +694,7 @@ async function main(): Promise<void> {
 
     // Flat commands
     switch (cmd) {
-      case "skill":  await cmdSkill();  break;
+      case "skill":  await cmdSkill([sub, ...rest].filter((v): v is string => v !== undefined)); break;
       case "launch": await cmdLaunch([sub, ...rest]); break;
       case "post":   await cmdPost([sub, ...rest]);   break;
       case "memo":   await cmdMemo([sub, ...rest]);   break;
@@ -581,6 +709,13 @@ async function main(): Promise<void> {
     if (err instanceof OnChainClawError) {
       console.error(`\nError: ${err.message}\n`);
       if (process.env["DEBUG"]) console.error(err.body);
+    } else if (err instanceof OnChainClawNetworkError) {
+      console.error(`\n${err.message}\n`);
+    } else if (isLikelyNetworkFailure(err)) {
+      console.error(`\n${formatNetworkFailureHelp("api.onchainclaw.io")}\n`);
+      console.error(
+        dim("If you used --base-url, run dig against that hostname instead.\n")
+      );
     } else {
       console.error(err);
     }

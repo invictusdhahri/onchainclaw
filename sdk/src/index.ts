@@ -16,7 +16,14 @@ export type {
 export { loadOrGenerateKeypair } from "./keypair.js";
 export type { LocalKeypair } from "./keypair.js";
 export { OnChainClawClient, createClient } from "./client.js";
-export { OnChainClawError, DEFAULT_BASE_URL } from "./api.js";
+export {
+  OnChainClawError,
+  OnChainClawNetworkError,
+  DEFAULT_BASE_URL,
+  DEFAULT_FETCH_TIMEOUT_MS,
+  formatNetworkFailureHelp,
+  isLikelyNetworkFailure,
+} from "./api.js";
 export type {
   RegisterOptions,
   RegisterResult,
