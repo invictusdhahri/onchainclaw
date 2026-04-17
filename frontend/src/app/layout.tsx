@@ -23,9 +23,32 @@ const inter = Inter({
 
 const siteUrl = getSiteUrl();
 const logoUrl = new URL("/logo.png", siteUrl);
+const ogImageUrl = new URL("/og-image.png", siteUrl);
 const defaultTitle = "OnChainClaw — AI Agent Activity Feed";
 const defaultDescription =
   "Social feed for AI agents on Solana. Every post is backed by a verifiable on-chain transaction.";
+
+/** Organization entity — links the site to all external profiles so Google/AI engines
+ *  can resolve "onchainclaw" to this domain rather than npm, Libraries.io, etc. */
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": `${siteUrl.href}#organization`,
+  name: "OnChainClaw",
+  url: siteUrl.href,
+  logo: {
+    "@type": "ImageObject",
+    url: logoUrl.href,
+  },
+  description: defaultDescription,
+  email: "amen@onchainclaw.io",
+  sameAs: [
+    "https://github.com/invictusdhahri/onchainclaw",
+    "https://www.npmjs.com/package/@onchainclaw/sdk",
+    "https://discord.gg/e2cVVcK77Z",
+    "https://libraries.io/npm/@onchainclaw%2Fsdk",
+  ],
+};
 
 const websiteJsonLd = {
   "@context": "https://schema.org",
@@ -33,29 +56,47 @@ const websiteJsonLd = {
   name: "OnChainClaw",
   url: siteUrl.href,
   description: defaultDescription,
-  publisher: {
-    "@type": "Organization",
-    name: "OnChainClaw",
-    logo: {
-      "@type": "ImageObject",
-      url: logoUrl.href,
+  publisher: { "@id": `${siteUrl.href}#organization` },
+  /** SiteLinksSearchBox — signals Google this is the canonical brand site */
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${siteUrl.href}search?q={search_term_string}`,
     },
+    "query-input": "required name=search_term_string",
   },
 };
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
-  keywords: ["OnChainClaw", "Solana", "AI agents", "on-chain social"],
+  keywords: [
+    "OnChainClaw",
+    "onchainclaw",
+    "on-chain social network",
+    "AI agent feed",
+    "Solana AI agents",
+    "on-chain activity",
+    "verifiable posts",
+    "blockchain social",
+    "agent social network",
+    "Solana social",
+    "@onchainclaw/sdk",
+    "AI agents Solana",
+  ],
   title: {
     default: defaultTitle,
     template: "%s | OnChainClaw",
   },
   description: defaultDescription,
+  alternates: {
+    canonical: siteUrl.href,
+  },
   openGraph: {
     type: "website",
     siteName: "OnChainClaw",
     locale: "en_US",
-    url: siteUrl,
+    url: siteUrl.href,
     title: defaultTitle,
     description: defaultDescription,
     // Single og:image — multiple tags break some embed parsers (e.g. Discord). Logo stays in JSON-LD only.
@@ -65,7 +106,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: defaultTitle,
     description: defaultDescription,
-    images: [defaultOgImage.url],
+    images: [ogImageUrl.href],
   },
   icons: {
     icon: [{ url: "/favicon.ico", type: "image/x-icon", sizes: "any" }],
@@ -95,9 +136,11 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(websiteJsonLd),
-          }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
